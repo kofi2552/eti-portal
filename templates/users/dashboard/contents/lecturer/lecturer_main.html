@@ -1,0 +1,33 @@
+{% extends "users/dashboard/lecturer_dashboard_layout.html" %}
+<!-- =============================== -->
+{% block title %} Lecturer Dashboard {% endblock %}
+<!-- =============================== -->
+{% block content %}
+
+<div class="container mx-auto">
+  <div class="w-full flex items-center justify-between">
+    <h1 class="text-3xl font-bold mb-6">Lecturer Dashboard</h1>
+  </div>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div class="bg-white p-6 rounded-lg shadow hover:shadow-lg transition">
+      <h2 class="text-xl font-semibold mb-2">My Courses</h2>
+      <p>View and manage courses you are teaching this semester.</p>
+      <a
+        href="{% url 'lecturer_courses' %}"
+        class="mt-2 inline-block text-blue-600 hover:underline"
+        ><i data-lucide="move-right" style="stroke-width: 1; color: #40495d"></i
+      ></a>
+    </div>
+    <div class="bg-white p-6 rounded-lg shadow hover:shadow-lg transition">
+      <h2 class="text-xl font-semibold mb-2">Grades & Assessments</h2>
+      <p>Submit and update student grades and assessments.</p>
+      <a
+        href="{% url 'lecturer_assessments' %}"
+        class="mt-2 inline-block text-blue-600 hover:underline"
+        ><i data-lucide="move-right" style="stroke-width: 1; color: #40495d"></i
+      ></a>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>{% block title %}ETI MIS Platform{% endblock %}</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'dist/style.css' %}" />
+    <link rel="stylesheet" href="{% static 'css/custom.css' %}" />
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script
+      src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"
+      defer
+    ></script>
+  </head>
+  <style>
+    .border-c {
+      border: 1px solid #603939 !important;
+    }
+    .nav-h {
+      height: 60px !important;
+    }
+  </style>
+  <body class="bg-gray-100 min-h-screen font-sans">
+    {% block content %}{% endblock %}
+  </body>
+</html>

@@ -1,0 +1,204 @@
+{% extends "users/dashboard/student_dashboard_layout.html" %}
+<!-- =============================== -->
+{% block title %} Student Dashboard {% endblock %}
+<!-- =============================== -->
+{% block content %}
+<div class="max-w-6xl mx-auto px-4">
+  <div class="container mx-auto">
+    <h1 class="text-3xl font-bold text-gray-800 mb-4">
+      Welcome, {{ user.first_name }}
+    </h1>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="bg-white p-6 rounded-xl shadow">
+        <h3 class="text-gray-600 mb-2">Enrolled Courses</h3>
+        <p class="text-2xl font-semibold text-blue-600">
+          {{ enrolled_courses|default:"0" }}
+        </p>
+      </div>
+
+      <div class="bg-white p-6 rounded-xl shadow">
+        <h3 class="text-gray-600 mb-2">GPA</h3>
+        <p class="text-2xl font-semibold text-green-600">
+          {{ gpa|default:"-" }}
+        </p>
+      </div>
+
+      <div class="bg-white p-6 rounded-xl shadow">
+        <h3 class="text-gray-600 mb-2">Semester</h3>
+        <p class="text-2xl font-semibold text-gray-600">
+          {{ semester_number|default:"-" }}
+        </p>
+      </div>
+    </div>
+    <!-- GPA PROGRESSION BASED ON GRADE POINTS -->
+   
+    <div class="bg-white p-6 rounded-xl shadow mt-8">
+    <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-semibold">Performance Graph</h3>
+
+        <!-- Semester Filter -->
+        <form method="GET" class="flex space-x-3 items-center">
+        <!-- Primary Semester -->
+          <select name="sem" id="semesterSelect" class="border rounded-md px-2 py-1 text-sm">
+              {% for s in semesters %}
+              <option value="{{ s.id }}" {% if selected_semester and selected_semester.id == s.id %}selected{% endif %}>
+                  {{ s.name }}
+              </option>
+              {% endfor %}
+          </select>
+          <button class="bg-blue-600 text-white px-3 py-1 rounded text-sm">Load</button>
+      </form>
+
+    </div>
+
+    <div class="w-full" style="height: 320px;">
+        <canvas id="performanceChart"></canvas>
+    </div>
+   </div>
+
+
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    // -----------------------------
+    //  DATA FROM DJANGO
+    // -----------------------------
+    const labels = JSON.parse(`{{ course_labels|escapejs }}`);
+    const gradePoints = JSON.parse(`{{ grade_points|escapejs }}`);
+
+    const ctx = document.getElementById("performanceChart").getContext("2d");
+
+    // -----------------------------
+    //  GRADIENT BACKGROUND
+    // -----------------------------
+    let gradient = ctx.createLinearGradient(0, 0, 0, 260);
+    gradient.addColorStop(0, "rgba(37, 99, 235, 0.45)");
+    gradient.addColorStop(1, "rgba(37, 99, 235, 0.08)");
+
+    // -----------------------------
+    //  TREND LINE CALCULATION
+    // -----------------------------
+    function calculateTrend(data) {
+        if (data.length <= 1) return data;
+
+        let n = data.length;
+        let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+
+        for (let i = 0; i < n; i++) {
+            sumX += i;
+            sumY += data[i];
+            sumXY += i * data[i];
+            sumXX += i * i;
+        }
+
+        const slope = (n * sumXY - sumX * sumY) /
+                      (n * sumXX - sumX * sumX || 1);
+
+        const intercept = (sumY - slope * sumX) / n;
+
+        let trend = [];
+        for (let i = 0; i < n; i++) {
+            trend.push(slope * i + intercept);
+        }
+
+        return trend;
+    }
+
+    const trendLine = calculateTrend(gradePoints);
+
+    // -----------------------------
+    //     CHART (NO ANIMATIONS)
+    // -----------------------------
+    new Chart(ctx, {
+        type: "line",
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: "Grade Point",
+                    data: gradePoints,
+                    backgroundColor: gradient,
+                    borderColor: "#2563eb",
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 4,
+                    pointBackgroundColor: "#2563eb",
+                    pointBorderColor: "#fff",
+                },
+                {
+                    label: "Trend Line",
+                    data: trendLine,
+                    borderColor: "#1f2937",
+                    borderDash: [5, 4],
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    tension: 0,
+                },
+            ],
+        },
+        options: {
+            animation: false,   // 🚨 Disables ALL animations
+            responsive: true,
+            maintainAspectRatio: false,
+
+            scales: {
+                y: {
+                    min: 0,
+                    max: 4,
+                    ticks: {
+                        stepSize: 1,
+                        color: "#374151",
+                    },
+                    grid: {
+                        color: "rgba(0,0,0,0.07)",
+                    },
+                },
+                x: {
+                    ticks: {
+                        color: "#374151",
+                        maxRotation: 40,
+                        minRotation: 40,
+                    },
+                    grid: {
+                        display: false,
+                    },
+                },
+            },
+
+            plugins: {
+                legend: {
+                    labels: { color: "#374151" },
+                },
+                tooltip: {
+                    backgroundColor: "#1f2937",
+                    titleColor: "#fff",
+                    bodyColor: "#e5e7eb",
+                    padding: 10,
+                    cornerRadius: 6,
+                },
+            },
+        },
+    });
+
+    // -----------------------------
+    //    SEMESTER FILTER RELOAD
+    // -----------------------------
+    document.getElementById("semesterSelect")
+        .addEventListener("change", function () {
+            const url = new URL(window.location.href);
+            url.searchParams.set("semester", this.value);
+            window.location.href = url.toString();
+        });
+
+});
+</script>
+
+{% endblock %}
+
+

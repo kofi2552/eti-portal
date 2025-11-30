@@ -1,0 +1,62 @@
+{% extends "users/dashboard/student_dashboard_layout.html" %}
+<!-- ============================= -->
+{% block content %}
+
+<div class="max-w-5xl mx-auto p-6 rounded-lg mt-10">
+  <h2 class="text-2xl font-semibold mb-4">Step 4 — Review Your Registration</h2>
+
+  <p class="text-gray-600 mb-6">
+    Please review your details carefully before submitting.
+  </p>
+
+  <!-- Program -->
+  <div class="mb-6">
+    <h3 class="font-semibold text-lg mb-1">Program</h3>
+    <p class="text-gray-700">{{ program.name }}</p>
+  </div>
+
+  <!-- Semester -->
+  <div class="mb-6">
+    <h3 class="font-semibold text-lg mb-1">Semester</h3>
+    <p class="text-gray-700">
+      {{ semester.name }} ({{ semester.academic_year.name }})
+    </p>
+  </div>
+
+  <!-- Courses -->
+  <div class="mb-6">
+    <h3 class="font-semibold text-lg mb-1">Selected Courses</h3>
+
+    {% if selected_courses %}
+    <ul class="list-disc pl-6 mt-2 text-gray-700">
+      {% for c in selected_courses %}
+      <li>{{ c.code }} — {{ c.title }}</li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="text-gray-500">No courses selected.</p>
+    {% endif %}
+  </div>
+
+  <form method="POST">
+    {% csrf_token %}
+    <input type="hidden" name="final_submit" value="1" />
+
+    <div class="flex justify-between mt-16">
+      <a
+        href="{% url 'registration_step_3' %}"
+        class="px-4 py-2 border rounded-md"
+      >
+        ← Back
+      </a>
+
+      <button
+        class="bg-green-600 text-white px-4 py-2 rounded-md cursor-pointer"
+      >
+        Submit Registration →
+      </button>
+    </div>
+  </form>
+</div>
+
+{% endblock %}

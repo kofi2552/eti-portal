@@ -1,0 +1,48 @@
+{% extends "users/dashboard/admin_dashboard_layout.html" %} 
+
+{% block title %}Edit User{% endblock %} 
+
+ {% block content %}
+
+<div class="max-w-5xl mx-auto border border-gray-300 rounded-lg bg-white p-6">
+  <h2 class="text-xl font-semibold mb-4">Edit User Information</h2>
+
+  <form method="POST">
+    {% csrf_token %}
+
+    <label class="block mb-2 text-gray-700">First Name</label>
+    <input type="text" name="first_name" value="{{ user_obj.first_name }}"
+      class="w-full border border-gray-300 rounded px-3 py-2 mb-4">
+
+    <label class="block mb-2 text-gray-700">Last Name</label>
+    <input type="text" name="last_name" value="{{ user_obj.last_name }}"
+      class="w-full border border-gray-300 rounded px-3 py-2 mb-4">
+
+    <label class="block mb-2 text-gray-700">Email</label>
+    <input type="email" name="email" value="{{ user_obj.email }}"
+      class="w-full border border-gray-300 rounded px-3 py-2 mb-4">
+
+    <label class="block mb-2 text-gray-700">Role</label>
+    <select name="role" class="w-full border border-gray-300 rounded px-3 py-2 mb-4">
+      <option value="admin" {% if user_obj.role == "admin" %}selected{% endif %}>Admin</option>
+      <option value="dean" {% if user_obj.role == "dean" %}selected{% endif %}>Dean</option>
+      <option value="lecturer" {% if user_obj.role == "lecturer" %}selected{% endif %}>Lecturer</option>
+      <option value="student" {% if user_obj.role == "student" %}selected{% endif %}>Student</option>
+    </select>
+
+    <label class="block mb-2 text-gray-700">New Password (optional)</label>
+    <input type="password" name="password"
+      class="w-full border border-gray-300 rounded px-3 py-2 mb-6">
+    <div class="flex items-center gap-4">
+    <a
+          href="{% url 'admin_manage_users' %}"
+          class="px-4 py-2 text-gray-600 rounded hover:underline"
+        >
+          Back
+        </a>
+    <button class="ml-auto px-5 py-2 bg-blue-600 text-white rounded">Update</button>
+    </div> 
+  </form>
+</div>
+
+{% endblock %}

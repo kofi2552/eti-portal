@@ -1,0 +1,239 @@
+{% extends "users/dashboard/admin_dashboard_layout.html" %} {% block title %}
+Student Payments {% endblock %} {% block content %}
+
+<div class="max-w-5xl mx-auto px-4 py-6 space-y-8">
+  <div class="bg-white border-c rounded-md p-6 mb-8">
+    <h3 class="text-xl font-semibold mb-4">Semester Registration Control</h3>
+
+    <table class="min-w-full text-sm divide-y divide-gray-200">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="px-4 py-2 text-left">Semester</th>
+          <th class="px-4 py-2 text-left">Academic Year</th>
+          <th class="px-4 py-2 text-left">Registration Status</th>
+          <th class="px-4 py-2 text-left">Action</th>
+        </tr>
+      </thead>
+
+      <tbody class="divide-y divide-gray-100">
+        {% for s in semesters %}
+        <tr>
+          <td class="px-4 py-2">{{ s.name }}</td>
+          <td class="px-4 py-2">{{ s.academic_year.name }}</td>
+
+          <td class="px-4 py-2">
+            {% if s.sem_reg_is_active %}
+            <span class="text-green-600 font-semibold">Active</span>
+            {% else %}
+            <span class="text-red-600 font-semibold">Inactive</span>
+            {% endif %}
+          </td>
+
+          <td class="px-4 py-2">
+            <form method="POST">
+              {% csrf_token %}
+              <input type="hidden" name="toggle_sem_reg" value="1" />
+              <input type="hidden" name="semester_id" value="{{ s.id }}" />
+
+              {% if s.sem_reg_is_active %}
+              <button
+                class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+              >
+                Deactivate
+              </button>
+              {% else %}
+              <button
+                class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
+              >
+                Activate
+              </button>
+              {% endif %}
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="flex justify-between items-center">
+    <h2 class="text-2xl font-semibold">Enrolled Students</h2>
+    <button
+      onclick="openCreatePayment()"
+      class="bg-blue-600 text-white px-4 py-2 rounded-md cursor-pointer"
+    >
+      Add Payment
+    </button>
+  </div>
+
+  <!-- PAYMENT TABLE -->
+  <div class="bg-white border-c rounded-md">
+    <table class="min-w-full text-sm divide-y divide-gray-200">
+      <thead class="bg-gray-50">
+        <tr class="text-left">
+          <th class="px-4 py-2">Student</th>
+          <th class="px-4 py-2">Year</th>
+          <th class="px-4 py-2">Semester</th>
+          <th class="px-4 py-2">Amount</th>
+          <th class="px-4 py-2">Paid</th>
+          <th class="px-4 py-2">Verified</th>
+          <th class="px-4 py-2">Actions</th>
+        </tr>
+      </thead>
+
+      <tbody class="divide-y divide-gray-100">
+        {% for p in payments %}
+        <tr>
+          <td class="px-4 py-2">
+            {{ p.student.get_full_name }}
+            <div class="text-left text-xs">
+              <span>ID: {{ p.generated_student_id }}</span>
+              <span>PIN: {{ p.generated_pin }}</span>
+            </div>
+          </td>
+          <td class="px-4 py-2">{{ p.academic_year.name }}</td>
+          <td class="px-4 py-2">{{ p.semester.name }}</td>
+          <td class="px-4 py-2">{{ p.amount_expected }}</td>
+          <td class="px-4 py-2">{{ p.amount_paid }}</td>
+          <td class="px-4 py-2">
+            {% if p.is_verified %}
+            <span class="text-green-600 font-semibold">Verified</span>
+            {% else %}
+            <span class="text-red-600 font-semibold">Pending</span>
+            {% endif %}
+          </td>
+          <td class="px-4 py-2 space-x-3">
+            {% if not p.is_verified %}
+            <form method="POST" style="display: inline">
+              {% csrf_token %}
+              <input type="hidden" name="verify_payment" value="1" />
+              <input type="hidden" name="payment_id" value="{{ p.id }}" />
+              <button class="text-blue-600 hover:underline cursor-pointer mr-4">
+                Verify
+              </button>
+            </form>
+            {% endif %}
+
+            <form method="POST" style="display: inline">
+              {% csrf_token %}
+              <input type="hidden" name="delete_payment" value="1" />
+              <input type="hidden" name="payment_id" value="{{ p.id }}" />
+              <button class="text-red-600 hover:underline cursor-pointer">
+                Delete
+              </button>
+            </form>
+            <form
+              method="GET"
+              action="{% url 'payment_pdf' p.id %}"
+              style="display: inline"
+              class="ml-4"
+            >
+              <button class="text-gray-700 hover:underline cursor-pointer">
+                Save PDF
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- CREATE PAYMENT MODAL -->
+<div
+  id="createPaymentModal"
+  class="w-full hidden fixed inset-0 flex items-center justify-center"
+  style="backdrop-filter: blur(6px); background-color: rgba(255, 255, 255, 0.3)"
+>
+  <div
+    class="bg-white mx-auto p-6 rounded-md border-c shadow-sm"
+    style="width: 500px"
+  >
+    <h3 class="text-lg font-semibold mb-3">Add Payment</h3>
+
+    <form method="POST" class="w-full">
+      {% csrf_token %}
+      <input type="hidden" name="create_payment" value="1" />
+
+      <label class="block mb-1">Student</label>
+      <select name="student_id" required class="w-full border px-3 py-2 mb-3">
+        <option value="">-- Select Student --</option>
+        {% for s in students %}
+        <option value="{{ s.id }}">{{ s.get_full_name }}</option>
+        {% endfor %}
+      </select>
+
+      <div class="flex items-center justify-between gap-4">
+        <div class="w-full">
+          <label class="block mb-1">Academic Year</label>
+          <select
+            name="academic_year_id"
+            required
+            class="w-full border px-3 py-2 mb-3"
+          >
+            {% for y in years %}
+            <option value="{{ y.id }}">{{ y.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="w-full">
+          <label class="block mb-1">Semester</label>
+          <select
+            name="semester_id"
+            required
+            class="w-full border px-3 py-2 mb-3"
+          >
+            {% for sem in semesters %}
+            <option value="{{ sem.id }}">{{ sem.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <label class="block mb-1">Expected Amount</label>
+      <input
+        name="amount_expected"
+        type="number"
+        required
+        class="w-full border px-3 py-2 mb-3"
+      />
+
+      <label class="block mb-1">Amount Paid</label>
+      <input
+        name="amount_paid"
+        type="number"
+        class="w-full border px-3 py-2 mb-3"
+      />
+
+      <label class="block mb-1">Reference</label>
+      <input name="reference" required class="w-full border px-3 py-2 mb-3" />
+
+      <div class="flex justify-end space-x-2">
+        <button
+          type="button"
+          onclick="closeCreatePayment()"
+          class="px-4 py-2 border rounded-md"
+        >
+          Cancel
+        </button>
+        <button class="px-4 py-2 bg-blue-600 text-white rounded-md">
+          Save
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function openCreatePayment() {
+    document.getElementById("createPaymentModal").classList.remove("hidden");
+  }
+
+  function closeCreatePayment() {
+    document.getElementById("createPaymentModal").classList.add("hidden");
+  }
+</script>
+
+{% endblock %}

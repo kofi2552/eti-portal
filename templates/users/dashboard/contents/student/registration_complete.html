@@ -1,0 +1,174 @@
+{% extends "users/dashboard/student_dashboard_layout.html" %}
+<!-- --------------------------------------- -->
+{% block content %}
+
+<style>
+  /* PRINT ONLY REGISTRATION PROOF */
+  @media print {
+    /* Hide EVERYTHING */
+    body * {
+      visibility: hidden !important;
+    }
+
+    /* Show ONLY the registration proof wrapper */
+    .reg-view,
+    .reg-view * {
+      visibility: visible !important;
+    }
+
+    /* Make printed content full width */
+    .reg-view {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100% !important;
+      padding: 20px !important;
+      background: white !important;
+    }
+  }
+</style>
+
+<div class="max-w-3xl mx-auto rounded-lg mt-2">
+  <div
+    class="reg-view w-full mx-auto bg-white rounded-xl p-8 border border-gray-200"
+  >
+    <!-- HEADER -->
+    <div class="text-center mb-10">
+      <h1 class="text-2xl font-bold text-gray-900 tracking-wide">
+        Semester Registration Proof
+      </h1>
+      <p class="text-gray-500 mt-1">
+        This document serves as an official confirmation of registration.
+      </p>
+    </div>
+
+    <!-- TOP INFO BOX -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+      <div
+        class="pl-2 flex items-center gap-2 rounded-lg border border-gray-200"
+        style="height: 50px"
+      >
+        <h3 class="text-xs uppercase text-gray-500 font-semibold">
+          Student Name:
+        </h3>
+        <p class="text-gray-800 font-medium">{{ student.get_full_name }}</p>
+      </div>
+
+      <div
+        class="pl-2 flex items-center gap-2 rounded-lg border border-gray-200"
+        style="height: 50px"
+      >
+        <h3 class="text-xs uppercase text-gray-500 font-semibold">
+          Student ID:
+        </h3>
+        <p class="text-gray-800 font-medium">{{ student.username }}</p>
+      </div>
+
+      <div
+        class="pl-2 flex items-center gap-2 rounded-lg border border-gray-200"
+        style="height: 50px"
+      >
+        <h3 class="text-xs uppercase text-gray-500 font-semibold">Email:</h3>
+        <p class="text-gray-800 font-medium">{{ student.email }}</p>
+      </div>
+
+      <div
+        class="pl-2 flex items-center gap-2 rounded-lg border border-gray-200"
+        style="height: 50px"
+      >
+        <h3 class="text-xs uppercase text-gray-500 font-semibold">Program:</h3>
+        <p class="text-gray-800 font-medium">{{ program.name }}</p>
+      </div>
+    </div>
+
+    <!-- ACADEMIC INFO -->
+    <div class="mb-10">
+      <h2 class="text-lg font-semibold text-gray-800 mb-4">Academic Details</h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div
+          class="flex items-center gap-2 border border-gray-200 rounded-lg p-2"
+        >
+          <h3 class="text-xs font-semibold text-gray-500 uppercase">
+            Academic Year
+          </h3>
+          <p class="text-gray-900 font-medium">
+            {{ semester.academic_year.name }}
+          </p>
+        </div>
+
+        <div
+          class="flex items-center gap-2 border border-gray-200 rounded-lg p-2"
+        >
+          <h3 class="text-xs font-semibold text-gray-500 uppercase">
+            Semester
+          </h3>
+          <p class="text-gray-900 font-medium">{{ semester.name }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- COURSES -->
+    <div class="mb-10">
+      <h2 class="text-lg font-semibold text-gray-800 mb-4">
+        Registered Courses
+      </h2>
+
+      {% if selected_courses %}
+      <table class="w-full border border-gray-200 rounded-lg overflow-hidden">
+        <thead class="bg-gray-100">
+          <tr>
+            <th class="text-xs px-4 py-2 text-left font-semibold text-gray-700">
+              Course Code
+            </th>
+            <th class="text-xs px-4 py-2 text-left font-semibold text-gray-700">
+              Course Title
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in selected_courses %}
+          <tr class="border-t">
+            <td class="px-4 py-3 font-medium text-gray-800">{{ c.code }}</td>
+            <td class="px-4 py-3 text-gray-700">{{ c.title }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p class="text-gray-500 italic">No courses selected.</p>
+      {% endif %}
+    </div>
+
+    <!-- FOOTER -->
+    <div class="text-center mt-12 pt-6 border-t">
+      <p class="text-sm text-gray-500">
+        This document was generated electronically and does not require a
+        signature.
+      </p>
+    </div>
+
+    <div class="flex justify-center gap-4 mt-4">
+      {% if is_registration_open %}
+      <a
+        href="{% url 'student_manage_courses' %}"
+        class="bg-gray-800 text-white px-4 py-2 rounded hover:bg-gray-700"
+      >
+        Manage Courses
+      </a>
+      {% else %}
+      <p class="text-gray-500 text-sm italic py-2">
+        Course registration is closed.
+      </p>
+      {% endif %}
+      <button
+        onclick="window.print()"
+        class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 cursor-pointer"
+      >
+        Print Proof
+      </button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

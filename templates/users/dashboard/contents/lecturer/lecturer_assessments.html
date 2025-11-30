@@ -1,0 +1,116 @@
+{% extends "users/dashboard/lecturer_dashboard_layout.html" %}
+{% block title %} My Assessments {% endblock %}
+{% block content %}
+
+<div class="max-w-6xl mx-auto px-4 py-6 space-y-8">
+
+  <!-- PAGE HEADER -->
+  <div class="flex items-center justify-between">
+    <h2 class="text-2xl font-semibold text-gray-800">My Assessments</h2>
+  </div>
+
+  <!-- FILTERS -->
+  <form method="GET" class="bg-white p-4 border-c rounded-lg flex flex-wrap gap-4 items-center">
+
+    <!-- Semester Filter -->
+    <div>
+      <label class="text-gray-700 text-sm block mb-1">Filter by Semester</label>
+      <select name="semester_id" class="border-c rounded-md px-3 py-2 bg-white">
+        <option value="">-- All Semesters --</option>
+        {% for s in semesters %}
+        <option value="{{ s.id }}" {% if selected_semester and selected_semester.id == s.id %}selected{% endif %}>
+          {{ s.name }} ({{ s.academic_year.name }})
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <!-- SEARCH -->
+    <div class="flex-grow">
+      <label class="text-gray-700 text-sm block mb-1">Search courses...</label>
+      <input type="text" name="search" value="{{ request.GET.search }}" placeholder="e.g. CSC101, Programming"
+        class="w-full border-c rounded-md px-3 py-2" />
+    </div>
+
+    <button class="bg-blue-600 text-white px-5 py-2 rounded-md hover:bg-blue-700 mt-[100px] md:mt-0">
+      Apply
+    </button>
+  </form>
+
+  <!-- COURSE TABLE -->
+  <div class="bg-white border-c rounded-lg overflow-hidden">
+
+    <table class="min-w-full text-sm divide-y divide-gray-200">
+      <thead class="bg-gray-50 text-left">
+        <tr>
+          <th class="px-4 py-3 text-gray-600">Code</th>
+          <th class="px-4 py-3 text-gray-600">Title</th>
+          <th class="px-4 py-3 text-gray-600">Program</th>
+          <th class="px-4 py-3 text-gray-600">Semester</th>
+          <th class="px-4 py-3 text-gray-600">Registered Students</th>
+          <th class="px-4 py-3 text-gray-600">Actions</th>
+        </tr>
+      </thead>
+
+      <tbody class="divide-y divide-gray-100">
+
+        {% for c in courses %}
+        <tr class="hover:bg-gray-50">
+
+          <td class="px-4 py-3">{{ c.code }}</td>
+          <td class="px-4 py-3">{{ c.title }}</td>
+          <td class="px-4 py-3">{{ c.program.name }}</td>
+
+          <td class="px-4 py-3">
+            {{ c.semester.name }}
+            <div class="text-xs text-gray-500">({{ c.semester.academic_year.name }})</div>
+          </td>
+
+          <td class="px-4 py-3">
+            <span class="inline-block bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-medium">
+              {{ c.student_count }} students
+            </span>
+          </td>
+
+          <td class="px-4 py-3">
+            <a href="{% url 'lecturer_enter_assessments' c.id c.semester.id %}"
+              class="text-blue-700 hover:underline font-medium">Enter Scores</a>
+          </td>
+        </tr>
+
+        {% empty %}
+        <tr>
+          <td colspan="6" class="px-4 py-6 text-center text-gray-500">
+            No courses found.
+          </td>
+        </tr>
+        {% endfor %}
+
+      </tbody>
+    </table>
+  </div>
+
+  <!-- PAGINATION -->
+  {% if page_obj.has_other_pages %}
+  <div class="flex justify-center space-x-2 mt-6">
+
+    {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}&semester_id={{ request.GET.semester_id }}&search={{ request.GET.search }}"
+      class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300">Prev</a>
+    {% endif %}
+
+    <span class="px-4 py-1 bg-blue-600 text-white rounded">
+      Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+    </span>
+
+    {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}&semester_id={{ request.GET.semester_id }}&search={{ request.GET.search }}"
+      class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300">Next</a>
+    {% endif %}
+
+  </div>
+  {% endif %}
+
+</div>
+
+{% endblock %}

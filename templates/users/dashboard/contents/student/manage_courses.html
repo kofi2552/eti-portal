@@ -1,0 +1,86 @@
+{% extends "users/dashboard/student_dashboard_layout.html" %}
+<!-- ------------------------------ -->
+{% block title %}My Academics{% endblock %}
+<!-- ------------------------------ -->
+
+{% block content %}
+
+<div class="max-w-4xl mx-auto px-4 py-6 space-y-8">
+  <h2 class="text-2xl font-bold text-gray-800">Manage Registered Courses</h2>
+  <p class="text-gray-600">
+    Academic Year: <b>{{ semester.academic_year.name }}</b> — Semester:
+    <b>{{ semester.name }}</b>
+  </p>
+
+  {% if not semester.sem_reg_is_active %}
+  <div class="bg-red-100 text-red-700 px-4 py-3 rounded mb-4">
+    Course registration is currently closed. You cannot modify your courses.
+  </div>
+  {% else %}
+
+  <div class="bg-white border rounded-lg shadow p-6">
+    <h3 class="text-xl font-semibold mb-4">Your Courses</h3>
+
+    <table class="min-w-full text-sm divide-y divide-gray-200">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="px-4 py-2 text-left">Code</th>
+          <th class="px-4 py-2 text-left">Title</th>
+          <th class="px-4 py-2">Action</th>
+        </tr>
+      </thead>
+
+      <tbody class="divide-y divide-gray-100">
+        {% for c in available_courses %}
+        <tr>
+          <td class="px-4 py-2">{{ c.code }}</td>
+          <td class="px-4 py-2">{{ c.title }}</td>
+
+          <td class="px-4 py-2 text-center">
+            {% if c.id in registered_ids %}
+            <!-- REMOVE BUTTON -->
+            <form method="POST" class="inline">
+              {% csrf_token %}
+              <input type="hidden" name="course_id" value="{{ c.id }}" />
+              <input type="hidden" name="action" value="remove" />
+
+              <button
+                class="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
+              >
+                Drop
+              </button>
+            </form>
+
+            {% else %}
+
+            <!-- ADD BUTTON -->
+            <form method="POST" class="inline">
+              {% csrf_token %}
+              <input type="hidden" name="course_id" value="{{ c.id }}" />
+              <input type="hidden" name="action" value="add" />
+
+              <button
+                class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
+              >
+                Add
+              </button>
+            </form>
+
+            {% endif %}
+          </td>
+        </tr>
+
+        {% empty %}
+        <tr>
+          <td colspan="3" class="text-gray-500 py-4 text-center">
+            No courses available.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

@@ -1,0 +1,41 @@
+{% extends "users/dashboard/student_dashboard_layout.html" %}
+<!-- ------------------------------------ -->
+{% block content %}
+
+<div class="max-w-4xl mx-auto bg-white p-6 mt-10 rounded-lg shadow-sm">
+  <h2 class="text-2xl font-semibold mb-4">Step 2 — Select Your Program</h2>
+
+  <p class="text-gray-600 mb-6">
+    Choose the program you are registering for this semester.
+  </p>
+
+  <form method="POST">
+    {% csrf_token %}
+    <input type="hidden" name="select_program" value="1" />
+
+    <label class="block mb-1 text-gray-700 font-medium mb-2">Program</label>
+    <select
+      name="program_id"
+      required
+      class="w-full border rounded px-3 py-2 mb-6"
+    >
+      <option value="">-- Select Program --</option>
+
+      {% for dept in departments %}
+      <optgroup label="{{ dept.name }}">
+        {% for p in programs %} {% if p.department.id == dept.id %}
+        <option value="{{ p.id }}">{{ p.name }}</option>
+        {% endif %} {% endfor %}
+      </optgroup>
+      {% endfor %}
+    </select>
+
+    <div class="flex justify-end mt-16">
+      <button class="ml-auto bg-blue-600 text-white px-4 py-2 rounded-md">
+        Continue →
+      </button>
+    </div>
+  </form>
+</div>
+
+{% endblock %}

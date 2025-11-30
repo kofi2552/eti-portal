@@ -1,0 +1,63 @@
+{% extends "users/dashboard/student_dashboard_layout.html" %}
+<!-- --------------------------- -->
+{% block content %}
+
+<div class="max-w-4xl mx-auto bg-white p-6 rounded-lg border mt-10">
+  <h2 class="text-2xl font-semibold mb-4">Step 3 — Select Your Courses</h2>
+
+  <p class="text-gray-600 mb-4">
+    Program: <strong>{{ program.name }}</strong><br />
+    Semester: <strong>{{ semester.name }}</strong>
+  </p>
+
+  <form method="POST">
+    {% csrf_token %}
+    <input type="hidden" name="select_courses" value="1" />
+
+    {% if courses %}
+    <div class="grid grid-cols-1 gap-4 mb-6">
+      {% for c in courses %}
+      <label
+        class="flex items-start space-x-3 p-3 border rounded-md hover:bg-gray-50 cursor-pointer"
+      >
+        <input
+          type="checkbox"
+          name="course_ids"
+          value="{{ c.id }}"
+          class="mt-1"
+        />
+
+        <div>
+          <p class="font-medium">{{ c.code }} — {{ c.title }}</p>
+          <p class="text-gray-500 text-sm">
+            {{ c.description|default:"No description" }}
+          </p>
+          <p class="text-xs text-gray-400">
+            Credit hours: {{ c.credit_hours }}
+          </p>
+        </div>
+      </label>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-gray-500 text-sm">
+      No courses found for this program and semester.
+    </p>
+    {% endif %}
+
+    <div class="flex justify-between mt-16">
+      <a
+        href="{% url 'registration_step_2' %}"
+        class="px-4 py-2 border rounded-md"
+      >
+        ← Back
+      </a>
+
+      <button class="bg-blue-600 text-white px-4 py-2 rounded-md">
+        Continue →
+      </button>
+    </div>
+  </form>
+</div>
+
+{% endblock %}

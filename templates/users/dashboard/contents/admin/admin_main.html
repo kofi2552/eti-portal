@@ -1,0 +1,53 @@
+{% extends "users/dashboard/admin_dashboard_layout.html" %}
+<!-- ----------- -->
+{% block title %} Overview {% endblock %}
+<!-- ----------- -->
+{% block content %}
+<!-- ----------- -->
+
+<div class="max-w-6xl mx-auto px-4">
+  <div class="container mx-auto">
+    <div class="w-full flex items-center justify-between">
+      <h1 class="text-3xl font-bold mb-6">Admin Dashboard</h1>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="bg-white p-6 rounded-lg shadow hover:shadow-lg transition">
+        <h2 class="text-xl font-semibold mb-2">Overview</h2>
+        <p>View, add, edit, or remove students, lecturers, and other admins.</p>
+        <a
+          href="{% url 'admin_manage_users' %}"
+          class="mt-2 inline-block text-blue-600 hover:underline"
+          ><i
+            data-lucide="move-right"
+            style="stroke-width: 1; color: #40495d"
+          ></i>
+        </a>
+      </div>
+      <div class="bg-white p-6 rounded-lg shadow hover:shadow-lg transition">
+        <h2 class="text-xl font-semibold mb-2">Programs & Courses</h2>
+        <p>Create or manage academic programs and courses offered.</p>
+        <a
+          href="{% url 'admin_manage_programs' %}"
+          class="mt-2 inline-block text-blue-600 hover:underline"
+          ><i
+            data-lucide="move-right"
+            style="stroke-width: 1; color: #40495d"
+          ></i
+        ></a>
+      </div>
+      <div class="bg-white p-6 rounded-lg shadow hover:shadow-lg transition">
+        <h2 class="text-xl font-semibold mb-2">School Setup</h2>
+        <p>Setup the academic years and semesters</p>
+        <a
+          href="{% url 'admin_school' %}"
+          class="mt-2 inline-block text-blue-600 hover:underline"
+          ><i
+            data-lucide="move-right"
+            style="stroke-width: 1; color: #40495d"
+          ></i
+        ></a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

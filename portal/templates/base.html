@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'dist/style.css' %}" />
+    <link rel="stylesheet" href="{% static 'css/custom.css' %}" />
+    <title>{% block title %}ETI MIS Platform{% endblock %}</title>
+    <!-- <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    /> -->
+  </head>
+  <style>
+    .border-c {
+      border: 1px solid #9b0000 !important;
+    }
+  </style>
+  <body class="p-4">
+    <div class="container">{% block content %}{% endblock %}</div>
+  </body>
+</html>

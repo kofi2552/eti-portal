@@ -1,0 +1,235 @@
+{% extends "users/dashboard/admin_dashboard_layout.html" %} 
+
+{% block title %}Manage Users{% endblock %} 
+
+ {% block content %}
+<div class="max-w-6xl mx-auto px-4">
+  <h2 class="text-2xl font-semibold mb-6 text-gray-800">Manage Users</h2>
+
+
+
+  <!-- ADD USER FORM -->
+  <div class="border border-gray-300 rounded-lg bg-white mb-10">
+    <div
+      class="border-b border-gray-300 px-4 py-3 bg-gray-100 font-medium text-gray-700"
+    >
+      Add New User
+    </div>
+
+    <form method="POST" class="px-6 py-6">
+      {% csrf_token %}
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <div>
+          <label class="block text-gray-700 mb-1">First Name</label>
+          <input
+            type="text"
+            name="first_name"
+            class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-1 focus:ring-blue-500"
+            required
+          />
+        </div>
+
+        <div>
+          <label class="block text-gray-700 mb-1">Last Name</label>
+          <input
+            type="text"
+            name="last_name"
+            class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-1 focus:ring-blue-500"
+            required
+          />
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <div>
+          <label class="block text-gray-700 mb-1">Email</label>
+          <input
+            type="email"
+            name="email"
+            class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-1 focus:ring-blue-500"
+            required
+          />
+        </div>
+
+        <div>
+          <label class="block text-gray-700 mb-1">Password</label>
+          <input
+            type="password"
+            name="password"
+            class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-1 focus:ring-blue-500"
+            required
+          />
+        </div>
+      </div>
+
+      <div class="mb-6">
+        <label class="block text-gray-700 mb-1">Role</label>
+        <select
+          name="role"
+          class="w-full border border-gray-300 rounded px-3 py-2 bg-white focus:ring-1 focus:ring-blue-500"
+          required
+        >
+          <option value="">-- Select Role --</option>
+          <option value="admin">Admin</option>
+          <option value="dean">Dean</option>
+          <option value="lecturer">Lecturer</option>
+          <option value="student">Student</option>
+        </select>
+      </div>
+      <div class="flex">
+        <button
+          type="submit"
+          class="ml-auto px-5 py-2 text-white bg-blue-600 rounded hover:bg-blue-700 transition"
+        >
+          Add User
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- USER TABLE -->
+  <div class="border border-gray-300 mb-12 rounded-lg bg-white">
+    <div
+      class="border-b border-gray-300 px-4 py-3 bg-gray-100 font-medium text-gray-700"
+    >
+      All Users
+    </div>
+
+    <div class="overflow-x-auto p-6">
+      <!-- SEARCH + FILTER + EXPORT + UPLOAD -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-4">
+
+      <form method="GET" class="flex gap-2">
+        <input
+          type="text"
+          name="search"
+          value="{{ search }}"
+          placeholder="Search name or email..."
+          class="border border-gray-300 rounded px-3 py-2"
+        />
+
+        <select
+          name="role"
+          class="border border-gray-300 rounded px-3 py-2 bg-white"
+        >
+          <option value="">All Roles</option>
+          <option value="admin" {% if role_filter == "admin" %}selected{% endif %}>Admin</option>
+          <option value="dean" {% if role_filter == "dean" %}selected{% endif %}>Dean</option>
+          <option value="lecturer" {% if role_filter == "lecturer" %}selected{% endif %}>Lecturer</option>
+          <option value="student" {% if role_filter == "student" %}selected{% endif %}>Student</option>
+        </select>
+
+        <button class="px-4 py-2 bg-blue-600 text-white rounded">
+          Apply
+        </button>
+      </form>
+
+      <div class="flex gap-3">
+        <a
+          href="{% url 'export_users_csv' %}"
+          class="px-4 py-2 bg-green-600 text-white rounded"
+        >
+          Export CSV
+        </a>
+      </div>
+    </div>
+
+    <!-- CSV Upload Form -->
+    <form
+      method="POST"
+      enctype="multipart/form-data"
+      class="mb-6 border flex items-center gap-2 border-gray-300 p-4 rounded bg-white"
+    >
+      {% csrf_token %}
+      <label class="block text-gray-700">Upload CSV: </label>
+
+      <input
+        type="file"
+        name="csv_file"
+        accept=".csv"
+        class="text-sm bg-gray-50 border border-gray-300 rounded px-3 py-2 mx-4"
+        required
+      />
+
+      <button
+        name="upload_csv"
+        class="px-4 py-2 bg-purple-600 text-white rounded"
+      >
+        Upload
+      </button>
+    </form>
+
+      <table class="w-full text-left text-gray-700">
+        <thead class="text-gray-600 border-b border-gray-300">
+          <tr>
+            <th class="py-3 px-4">Name</th>
+            <th class="py-3 px-4">Email</th>
+            <th class="py-3 px-4">Role</th>
+            <th class="py-3 px-4">Date Joined</th>
+            <th class="py-3 px-4">Actions</th>
+          </tr>
+        </thead>
+
+        <tbody>
+      {% for user in page_obj %}
+          <tr class="border-b border-gray-200">
+            <td class="py-3 px-4">
+              {{ user.first_name }} {{ user.last_name }}
+            </td>
+            <td class="py-3 px-4">{{ user.email }}</td>
+            <td class="py-3 px-4 capitalize">{{ user.role }}</td>
+            <td class="py-3 px-4">{{ user.date_joined|date:"M d, Y" }}</td>
+
+            <td class="py-3 px-4 space-x-3">
+              <a
+                href="{% url 'edit_user' user.id %}"
+                class="text-blue-600 hover:underline"
+              >
+                Edit
+              </a>
+              <a
+                href="{% url 'delete_user' user.id %}"
+                class="text-red-600 hover:underline"
+              >
+                Delete
+              </a>
+            </td>
+          </tr>
+
+          {% empty %}
+          <tr>
+            <td colspan="5" class="py-4 text-center text-gray-500">
+              No users found.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <div class="mt-6 mb-6 flex justify-end">
+       <div class="flex">
+         <div class="mr-auto p-2">
+ 
+         {% if page_obj.has_previous %}
+           <a href="?page={{ page_obj.previous_page_number }}&search={{search}}&role={{role_filter}}"
+             class="px-3 py-1 border rounded">Prev</a>
+         {% endif %}
+ 
+         <span class="text-xs px-3 py-1 border rounded bg-gray-100">
+           Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+         </span>
+ 
+         {% if page_obj.has_next %}
+           <a href="?page={{ page_obj.next_page_number }}&search={{search}}&role={{role_filter}}"
+             class="px-3 py-1 border rounded">Next</a>
+         {% endif %}
+ 
+       </div>
+       </div>
+    </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,88 @@
+{% extends "users/dashboard/dean_dashboard_layout.html" %}
+<!-- =============================== -->
+{% block title %} Assign Lecturers {% endblock %}
+<!-- =============================== -->
+{% block content %}
+<div class="container mt-4">
+  <h2 class="mb-3">Manage Courses for {{ program.name }}</h2>
+
+  <!-- Add Course -->
+  <div class="card mb-4">
+    <div class="card-header bg-primary text-white">Add New Course</div>
+    <div class="card-body">
+      <form method="POST">
+        {% csrf_token %}
+        <div class="mb-3">
+          <label class="form-label">Course Title</label>
+          <input
+            type="text"
+            name="title"
+            class="form-control"
+            placeholder="e.g., Introduction to Computing"
+            required
+          />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Course Code</label>
+          <input
+            type="text"
+            name="code"
+            class="form-control"
+            placeholder="e.g., CSC101"
+            required
+          />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Description</label>
+          <textarea name="description" class="form-control" rows="3"></textarea>
+        </div>
+        <button type="submit" class="btn btn-success">Add Course</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- List of Courses -->
+  <div class="card">
+    <div class="card-header bg-dark text-white">Courses Under Program</div>
+    <div class="card-body">
+      {% if courses %}
+      <table class="table table-bordered">
+        <thead class="table-light">
+          <tr>
+            <th>#</th>
+            <th>Code</th>
+            <th>Title</th>
+            <th>Lecturer</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for course in courses %}
+          <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ course.code }}</td>
+            <td>{{ course.title }}</td>
+            <td>{{ course.lecturer.get_full_name|default:"Not Assigned" }}</td>
+            <td>
+              <a
+                href="{% url 'assign_lecturer' course.id %}"
+                class="btn btn-sm btn-warning"
+                >Assign Lecturer</a
+              >
+              <a
+                href="{% url 'delete_course' course.id %}"
+                class="btn btn-sm btn-danger"
+                >Delete</a
+              >
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p>No courses added yet.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
