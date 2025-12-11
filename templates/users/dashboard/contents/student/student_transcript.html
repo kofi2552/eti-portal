@@ -1,0 +1,250 @@
+{% extends "users/dashboard/student_dashboard_layout.html" %}
+<!-- ------------------------ -->
+{% block title %}Transcript{% endblock %}
+<!-- ------------------------ -->
+{% block content %}
+
+<style>
+  /* PRINT ONLY REGISTRATION PROOF */
+  @media print {
+    /* Hide EVERYTHING */
+    body * {
+      visibility: hidden !important;
+    }
+
+    * {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    .no-break {
+      break-inside: avoid;
+    }
+
+    /* Show ONLY the registration proof wrapper */
+    .reg-view,
+    .reg-view * {
+      visibility: visible !important;
+    }
+
+    /* Make printed content full width */
+    .reg-view {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100% !important;
+      padding: 20px !important;
+      background: white !important;
+    }
+
+    .print-grid-2 {
+      display: grid !important;
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      gap: 1rem !important; /* matches Tailwind gap-4 */
+    }
+
+    /* prevent tailwind mobile-first collapse */
+    .print-grid-2 > div {
+      break-inside: avoid !important;
+    }
+  }
+</style>
+
+<div class="max-w-3xl mx-auto px-4 pb-6 space-y-6">
+  <!-- <h2 class="text-2xl font-bold text-gray-800">Transcript System</h2> -->
+
+  <!-- STATE: LOCKED -->
+  {% if state == "locked" %}
+  <div class="p-4 border border-red-300 bg-red-50 rounded">
+    <p class="text-red-700 font-medium">
+      Transcript requests are currently locked by administration.
+    </p>
+  </div>
+  {% endif %}
+
+  <!-- STATE: NO REQUEST -->
+  {% if state == "no_request" %}
+  <form
+    method="post"
+    action="{% url 'student_request_transcript' %}"
+    class="mt-10"
+  >
+    {% csrf_token %}
+    <p
+      class="p-4 border border-blue-300 bg-blue-50 rounded mb-6 text-blue-700 font-medium"
+    >
+      You have not requested for your transcript yet. Click the button below to
+      submit a request.
+    </p>
+    <button class="px-5 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+      Request Transcript
+    </button>
+  </form>
+  {% endif %}
+
+  <!-- STATE: PENDING -->
+  {% if state == "pending" %}
+  <div class="p-4 border border-yellow-300 bg-yellow-50 rounded">
+    <p class="text-yellow-700 font-medium">
+      Your transcript request is pending approval.
+    </p>
+  </div>
+
+  {% endif %}
+
+  <!-- ------------------------ -->
+  {% if state == "revoked" %}
+  <div class="p-4 border border-red-300 bg-red-50 rounded mt-10">
+    <p class="text-red-700 font-medium">
+      Your transcript access has been revoked by administration.<br />
+      <span class="text-xs font-bold pt-2"
+        >Contact administration for more details.</span
+      >
+    </p>
+  </div>
+  {% endif %}
+
+  <!-- STATE: REJECTED -->
+  {% if state == "rejected" %}
+  <div class="p-4 border border-red-300 bg-red-50 rounded">
+    <p class="text-red-700 font-medium">
+      Your transcript request was rejected by admin.
+    </p>
+  </div>
+  {% endif %}
+
+  <!-- STATE: APPROVED BUT JSON MISSING -->
+  {% if state == "approved_no_data" %}
+  <div class="p-4 border border-red-300 bg-red-50 rounded">
+    <p class="text-red-700 font-medium">
+      Transcript approved but not generated yet. Please contact admin.
+    </p>
+  </div>
+  {% endif %}
+</div>
+
+<!-- STATE: APPROVED — DISPLAY TRANSCRIPT -->
+{% if state == "approved" %}
+<div
+  class="reg-view max-w-3xl mx-auto bg-white p-6 rounded-lg border border-gray-300"
+>
+  <!-- TRANSCRIPT HEADER -->
+  <div class="text-center mb-10 border-b border-gray-300 pt-4 pb-6">
+    {% if school.logo %}
+    <img
+      src="{{ school.logo.url }}"
+      alt="School Logo"
+      class="mx-auto mb-3"
+      style="height: 30px"
+    />
+    {% endif %}
+
+    <h1 class="text-2xl font-bold tracking-wide text-gray-700 capitalize">
+      {{ school.name }}
+    </h1>
+
+    {% if school.tagline %}
+    <p class="text-gray-600 text-sm italic mt-1">{{ school.tagline }}</p>
+    {% endif %}
+
+    <p class="text-gray-700 text-sm mt-2">
+      {{ school.address }} {% if school.phone %} • {{ school.phone }}{% endif %}
+      {% if school.email %} • {{ school.email }}{% endif %}
+    </p>
+
+    <h2 class="text-md text-gray-600 mt-6 tracking-wide">
+      OFFICIAL ACADEMIC TRANSCRIPT
+    </h2>
+  </div>
+
+  <!-- STUDENT DETAILS -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10 print-grid-2">
+    <div class="border-b border-gray-200 p-3">
+      <p class="text-xs text-gray-500 uppercase">Name</p>
+      <p class="text-sm text-gray-900">{{ transcript.student.name }}</p>
+    </div>
+
+    <div class="border-b border-gray-200 p-3">
+      <p class="text-xs text-gray-500 uppercase">Student ID</p>
+      <p class="text-sm text-gray-900">{{ transcript.student.student_id }}</p>
+    </div>
+
+    <div class="border-b border-gray-200 p-3">
+      <p class="text-xs text-gray-500 uppercase">Department</p>
+      <p class="text-sm text-gray-900">{{ department }}</p>
+    </div>
+
+    <div class="border-b border-gray-200 p-3">
+      <p class="text-xs text-gray-500 uppercase">Program</p>
+      <p class="text-sm text-gray-900">{{ program }}</p>
+    </div>
+  </div>
+
+  <!-- SEMESTERS -->
+  <!-- border border-gray-300 rounded -->
+  {% for sem in transcript.semesters %}
+  <div class="p-4 mb-6 no-break">
+    <h3
+      class="w-full flex items-center justify-between text-md font-semibold text-gray-900 mb-3"
+    >
+      <span
+        >{{ sem.level }} -
+        <em class="text-xs">({{ sem.academic_year }})</em></span
+      >
+      <span class="text-sm font-medium text-gray-500">{{ sem.semester }} </span>
+    </h3>
+
+    <table class="w-full text-sm border border-gray-300 rounded">
+      <thead class="bg-gray-100">
+        <tr class="text-left">
+          <th class="px-3 py-2">Code</th>
+          <th class="px-3 py-2">Course Title</th>
+          <th class="px-3 py-2">Credits</th>
+          <th class="px-3 py-2">Score</th>
+          <th class="px-3 py-2">Grade</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for course in sem.courses %}
+        <tr class="border-t">
+          <td class="px-3 py-2">{{ course.code }}</td>
+          <td class="px-3 py-2">{{ course.title }}</td>
+          <td class="px-3 py-2">{{ course.credits }}</td>
+          <td class="px-3 py-2">{{ course.score }}</td>
+          <td class="px-3 py-2">{{ course.grade }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <p class="text-right font-semibold mt-2">GPA: {{ sem.gpa }}</p>
+  </div>
+  {% endfor %}
+
+  <!-- CGPA -->
+  <div class="text-center mt-6 border-t border-gray-300 pt-5">
+    <p class="text-xl font-semibold text-gray-900">
+      CGPA: {{ transcript.cgpa }}
+    </p>
+  </div>
+
+  <!-- FOOTER -->
+  <div
+    class="w-full flex items-center justify-between text-center mt-8 mb-8 border-t py-2 border-gray-100"
+  >
+    <p class="text-xs text-gray-500">Official Academic Transcript</p>
+    <p class="text-gray-500 text-xs">Generated on {{ req.generated_at }}</p>
+  </div>
+</div>
+<div class="text-center mt-6">
+  <button
+    onclick="window.print()"
+    class="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 cursor-pointer"
+  >
+    Print Transcript
+  </button>
+</div>
+
+{% endif %}
+<!-- ------------------------ -->
+{% endblock %}

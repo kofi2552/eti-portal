@@ -74,7 +74,7 @@
                 href="{% url 'student_course_details' c.id %}"
                 class="block p-2 rounded hover:bg-gray-100 text-sm"
               >
-                {{ c.code }}
+                {{ c.course_code }}
               </a>
               {% empty %}
               <span class="text-xs text-gray-500 p-2"
@@ -97,12 +97,18 @@
           >
             Registeration
           </a>
+          <a
+            href="{% url 'student_view_transcript' %}"
+            class="block p-2 rounded hover:bg-gray-100"
+          >
+            Transcript
+          </a>
 
           <a
-            href="{% url 'logout' %}"
-            class="block p-2 rounded hover:bg-red-50 text-red-600"
+            href="{% url 'student_fee_payments' %}"
+            class="block p-2 rounded hover:bg-gray-100"
           >
-            Logout
+            Fee Payments
           </a>
         </nav>
       </aside>

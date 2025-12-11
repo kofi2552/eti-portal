@@ -1,0 +1,382 @@
+{% extends "users/dashboard/admin_dashboard_layout.html" %}
+<!-- ------------------------ -->
+{% block title %} School Setup{% endblock %}
+<!-- ------------------------ -->
+{% load static %}
+<!-- ------------------------ -->
+
+{% block content %}
+
+<div class="max-w-5xl mx-auto px-4 py-8 space-y-8">
+  <h2 class="text-2xl font-bold text-gray-800">School Setup</h2>
+  <p class="text-gray-500 mb-6">
+    Update your institution's identity and contact details.
+  </p>
+
+  <form
+    method="POST"
+    enctype="multipart/form-data"
+    class="space-y-6 bg-white p-6 rounded-xl border border-gray-200"
+  >
+    {% csrf_token %}
+    <input type="hidden" name="update_school" value="1" />
+    <!-- SCHOOL LOGO -->
+    <label class="block text-gray-600 font-semibold mb-1">School Logo</label>
+    <div class="flex items-center gap-4">
+      <div>
+        {% if school.logo %}
+        <img
+          src="{{ school.logo.url }}"
+          alt="School Logo"
+          class="contain mb-3 rounded border-c"
+          style="height: 50px; width: auto"
+        />
+        {% endif %}
+      </div>
+
+      <div>
+        <input
+          type="file"
+          name="logo"
+          class="block border border-gray-300 rounded px-3 py-2 w-full"
+        />
+        <p class="text-xs text-gray-500 mt-1">Recommended size: 300x300px</p>
+      </div>
+    </div>
+
+    <!-- NAME -->
+    <div>
+      <label class="block text-gray-600 font-semibold mb-1">School Name</label>
+      <input
+        type="text"
+        name="name"
+        value="{{ school.name }}"
+        class="border border-gray-300 rounded px-3 py-2 w-full"
+        required
+      />
+    </div>
+
+    <!-- MOTTO -->
+    <div>
+      <label class="block text-gray-600 font-semibold mb-1">Motto</label>
+      <input
+        type="text"
+        name="motto"
+        value="{{ school.motto }}"
+        placeholder="school motto"
+        class="border border-gray-300 rounded px-3 py-2 w-full"
+      />
+    </div>
+
+    <!-- ADDRESS -->
+    <div>
+      <label class="block text-gray-600 font-semibold mb-1">Address</label>
+      <textarea
+        name="address"
+        class="border border-gray-300 rounded px-3 py-2 w-full"
+        rows="3"
+      >
+ {{ school.address }}
+</textarea
+      >
+    </div>
+
+    <!-- CONTACT DETAILS -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-gray-600 font-semibold mb-1">Email</label>
+        <input
+          type="email"
+          name="email"
+          value="{{ school.email }}"
+          class="border border-gray-300 rounded px-3 py-2 w-full"
+        />
+      </div>
+
+      <div>
+        <label class="block text-gray-600 font-semibold mb-1">Phone</label>
+        <input
+          type="text"
+          name="phone"
+          value="{{ school.phone }}"
+          class="border border-gray-300 rounded px-3 py-2 w-full"
+        />
+      </div>
+    </div>
+
+    <!-- WEBSITE -->
+    <div>
+      <label class="block text-gray-600 font-semibold mb-1">Website</label>
+      <input
+        type="url"
+        name="website"
+        value="{{ school.website }}"
+        class="border border-gray-300 rounded px-3 py-2 w-full"
+      />
+    </div>
+    <label class="block text-gray-600 font-semibold mb-1">Signature</label>
+    <div class="flex items-center gap-4 w-full">
+      <div class="flex items-center gap-4">
+        {% if school.signature %}
+
+        <img
+          src="{{ school.signature.url }}"
+          alt="School Logo"
+          class="contain rounded border-c"
+          style="height: 50px; width: auto"
+        />
+
+        {% endif %}
+
+        <input
+          type="file"
+          name="signature"
+          class="block border border-gray-300 rounded px-3 py-2 w-full"
+        />
+      </div>
+
+      <div>
+        <input
+          type="text"
+          name="signee_name"
+          value="{{ school.signee_name }}"
+          placeholder="Signee fullname"
+          class="border border-gray-300 rounded px-3 py-2 w-full"
+        />
+      </div>
+    </div>
+
+    <div class="flex justify-end pt-4">
+      <button
+        class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
+      >
+        Save Changes
+      </button>
+    </div>
+  </form>
+
+  <!-- ===================== -->
+  <!--     GRADES        -->
+  <!-- ===================== -->
+  <div class="mt-10">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-xl font-semibold">Grade Settings</h2>
+
+      <button
+        onclick="openCreateGrade()"
+        class="border-c text-gray-600 text-sm px-4 py-2 rounded-md hover:bg-gray-100 cursor-pointer"
+      >
+        Add Grade
+      </button>
+    </div>
+
+    <div class="bg-white border-c rounded-lg">
+      <table class="min-w-full text-sm divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+          <tr class="text-left">
+            <th class="px-4 py-2">Letter</th>
+            <th class="px-4 py-2">Min Score</th>
+            <th class="px-4 py-2">Max Score</th>
+            <th class="px-4 py-2">Actions</th>
+          </tr>
+        </thead>
+
+        <tbody class="divide-y divide-gray-100">
+          {% for g in grades %}
+          <tr>
+            <td class="px-4 py-2">{{ g.letter }}</td>
+            <td class="px-4 py-2">{{ g.min_score }}</td>
+            <td class="px-4 py-2">{{ g.max_score }}</td>
+
+            <td class="px-4 py-2 space-x-3">
+              <!-- EDIT -->
+              <button
+                onclick="openEditGrade('{{ g.id }}','{{ g.letter }}','{{ g.min_score }}','{{ g.max_score }}')"
+                class="text-blue-600 hover:underline"
+              >
+                Edit
+              </button>
+
+              <!-- DELETE -->
+              <button
+                onclick="openDeleteGrade('{{ g.id }}')"
+                class="text-red-600 hover:underline"
+              >
+                Delete
+              </button>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="4" class="px-4 py-4 text-center text-gray-500">
+              No grade rules added.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- // ========================== // GRADE SECTION // ========================== -->
+
+  <div
+    id="createGradeModal"
+    class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center"
+    style="backdrop-filter: blur(6px); background: rgba(255, 255, 255, 0.3)"
+  >
+    <div class="bg-white w-96 p-6 rounded shadow">
+      <h3 class="text-lg font-semibold mb-4">Add Grade</h3>
+
+      <form method="POST">
+        {% csrf_token %}
+        <input type="hidden" name="create_grade" value="1" />
+
+        <label class="block mb-1">Letter</label>
+        <input name="letter" class="w-full border rounded px-3 py-2 mb-3" />
+
+        <label class="block mb-1">Min Score</label>
+        <input
+          name="min_score"
+          type="number"
+          step="0.01"
+          class="w-full border rounded px-3 py-2 mb-3"
+        />
+
+        <label class="block mb-1">Max Score</label>
+        <input
+          name="max_score"
+          type="number"
+          step="0.01"
+          class="w-full border rounded px-3 py-2 mb-3"
+        />
+
+        <div class="flex justify-end space-x-2">
+          <button
+            type="button"
+            onclick="closeCreateGrade()"
+            class="px-4 py-2 border rounded"
+          >
+            Cancel
+          </button>
+          <button class="px-4 py-2 bg-blue-600 text-white rounded">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div
+    id="editGradeModal"
+    class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center"
+    style="backdrop-filter: blur(6px); background: rgba(255, 255, 255, 0.3)"
+  >
+    <div class="bg-white w-96 p-6 rounded shadow">
+      <h3 class="text-lg font-semibold mb-4">Edit Grade</h3>
+
+      <form method="POST">
+        {% csrf_token %}
+        <input type="hidden" name="update_grade" value="1" />
+        <input type="hidden" name="grade_id" id="editGradeId" />
+
+        <label class="block mb-1">Letter</label>
+        <input
+          name="letter"
+          id="editGradeLetter"
+          class="w-full border rounded px-3 py-2 mb-3"
+        />
+
+        <label class="block mb-1">Min Score</label>
+        <input
+          name="min_score"
+          id="editGradeMin"
+          type="number"
+          step="0.01"
+          class="w-full border rounded px-3 py-2 mb-3"
+        />
+
+        <label class="block mb-1">Max Score</label>
+        <input
+          name="max_score"
+          id="editGradeMax"
+          type="number"
+          step="0.01"
+          class="w-full border rounded px-3 py-2 mb-3"
+        />
+
+        <div class="flex justify-end space-x-2">
+          <button
+            type="button"
+            onclick="closeEditGrade()"
+            class="px-4 py-2 border rounded"
+          >
+            Cancel
+          </button>
+          <button class="px-4 py-2 bg-blue-600 text-white rounded">
+            Update
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div
+    id="deleteGradeModal"
+    class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center"
+    style="backdrop-filter: blur(6px); background: rgba(255, 255, 255, 0.3)"
+  >
+    <div class="bg-white w-80 p-6 rounded shadow">
+      <h3 class="text-lg font-semibold mb-4 text-red-600">Delete Grade</h3>
+
+      <p class="mb-4">Are you sure you want to delete this grade?</p>
+
+      <form method="POST">
+        {% csrf_token %}
+        <input type="hidden" name="delete_grade" value="1" />
+        <input type="hidden" name="grade_id" id="deleteGradeId" />
+
+        <div class="flex justify-end space-x-2">
+          <button
+            type="button"
+            onclick="closeDeleteGrade()"
+            class="px-4 py-2 border rounded"
+          >
+            Cancel
+          </button>
+          <button class="px-4 py-2 bg-red-600 text-white rounded">
+            Delete
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  function openCreateGrade() {
+    document.getElementById("createGradeModal").classList.remove("hidden");
+  }
+  function closeCreateGrade() {
+    document.getElementById("createGradeModal").classList.add("hidden");
+  }
+
+  function openEditGrade(id, letter, min, max) {
+    document.getElementById("editGradeId").value = id;
+    document.getElementById("editGradeLetter").value = letter;
+    document.getElementById("editGradeMin").value = min;
+    document.getElementById("editGradeMax").value = max;
+    document.getElementById("editGradeModal").classList.remove("hidden");
+  }
+  function closeEditGrade() {
+    document.getElementById("editGradeModal").classList.add("hidden");
+  }
+
+  function openDeleteGrade(id) {
+    document.getElementById("deleteGradeId").value = id;
+    document.getElementById("deleteGradeModal").classList.remove("hidden");
+  }
+  function closeDeleteGrade() {
+    document.getElementById("deleteGradeModal").classList.add("hidden");
+  }
+</script>
+
+{% endblock %}

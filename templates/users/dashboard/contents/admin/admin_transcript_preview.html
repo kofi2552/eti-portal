@@ -1,0 +1,100 @@
+{% extends "users/dashboard/admin_dashboard_layout.html" %}
+<!-- ----------------------------- -->
+{% block title %} Admin Transcript Preview {% endblock %}
+<!-- ----------------------------- -->
+{% block content %}
+
+<div class="max-w-4xl mx-auto px-4 py-8">
+  <!-- HEADER -->
+  <div class="text-center mb-8">
+    <h1 class="text-3xl font-bold text-gray-900 tracking-wide">
+      Official Academic Transcript
+    </h1>
+    <p class="text-gray-500 text-sm">
+      Generated for {{ student.get_full_name }} — {{ generated_at }}
+    </p>
+  </div>
+
+  <!-- STUDENT INFO -->
+  <div class="border border-gray-200 rounded-lg p-6 mb-10 bg-white">
+    <h2 class="text-lg font-semibold text-gray-700 mb-4">
+      Student Information
+    </h2>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-gray-700">
+      <p><strong>Name:</strong> {{ student.get_full_name }}</p>
+      <p><strong>Student ID:</strong> {{ student.student_id }}</p>
+      <p><strong>Email:</strong> {{ student.email }}</p>
+      <p><strong>Department:</strong> {{ student.department.name }}</p>
+      <p><strong>Program:</strong> {{ student.program.name }}</p>
+      <p>
+        <strong>Award:</strong> {{ student.program.get_award_type_display }} -
+        ({{ student.program.duration_years }} years)
+      </p>
+    </div>
+  </div>
+
+  <!-- SEMESTERS -->
+  <div class="space-y-8">
+    {% for sem in transcript.semesters %}
+    <div class="border border-gray-200 rounded-lg p-6 bg-white">
+      <h3 class="text-lg font-semibold text-gray-800 mb-3">
+        {{ sem.level }} — {{ sem.semester }}
+        <span class="text-sm text-gray-500">({{ sem.academic_year }})</span>
+      </h3>
+
+      <table class="w-full border border-gray-200 rounded text-sm">
+        <thead class="bg-gray-100">
+          <tr>
+            <th class="px-3 py-2 text-left">Code</th>
+            <th class="px-3 py-2 text-left">Course Title</th>
+            <th class="px-3 py-2 text-left">Credits</th>
+            <th class="px-3 py-2 text-left">Score</th>
+            <th class="px-3 py-2 text-left">Grade</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for c in sem.courses %}
+          <tr class="border-t">
+            <td class="px-3 py-2">{{ c.code }}</td>
+            <td class="px-3 py-2">{{ c.title }}</td>
+            <td class="px-3 py-2">{{ c.credits }}</td>
+            <td class="px-3 py-2">{{ c.score }}</td>
+            <td class="px-3 py-2">{{ c.grade }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <p class="text-right font-semibold mt-2">Semester GPA: {{ sem.gpa }}</p>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- CGPA -->
+  <div class="text-center mt-10 py-5 border-t border-gray-300">
+    <p class="text-xl font-semibold text-gray-800">
+      Cumulative GPA (CGPA): {{ transcript.cgpa }}
+    </p>
+  </div>
+
+  <!-- ACTION BUTTONS -->
+  <div class="flex justify-center gap-4 mt-6">
+    <button
+      onclick="window.print()"
+      class="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+    >
+      Print Transcript
+    </button>
+
+    <a
+      href="{% url 'admin_transcript_requests' %}"
+      class="px-6 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+    >
+      Back
+    </a>
+  </div>
+</div>
+
+{% endblock %}

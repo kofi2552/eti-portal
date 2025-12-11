@@ -49,9 +49,9 @@
       <div class="flex">
         <button
           type="submit"
-          class="ml-auto bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          class="ml-auto text-sm bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
         >
-          Add Department
+          Save Department
         </button>
       </div>
     </form>
@@ -161,12 +161,55 @@
         </select>
       </div>
 
+      <div>
+        <label class="block text-gray-600 mb-1">Award Type</label>
+        <select
+          name="award_type"
+          class="w-full border border-gray-300 rounded-md px-3 py-2"
+          required
+        >
+          <option value="">-- Select Award --</option>
+          <option value="certificate">Certificate</option>
+          <option value="diploma">Diploma</option>
+          <option value="hnd">Higher National Diploma</option>
+          <option value="bachelor">Bachelor Degree</option>
+          <option value="master">Masters</option>
+          <option value="phd">PhD</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-gray-600 mb-1">Program Duration (Years)</label>
+        <input
+          type="number"
+          name="duration_years"
+          min="1"
+          max="8"
+          value="4"
+          class="w-full border border-gray-300 rounded-md px-3 py-2"
+          required
+        />
+      </div>
+
+      <div>
+        <label class="block text-gray-600 mb-1">Semester Per Level</label>
+        <input
+          type="number"
+          name="sems_per_level"
+          min="1"
+          max="8"
+          value="2"
+          class="w-full border border-gray-300 rounded-md px-3 py-2"
+          required
+        />
+      </div>
+
       <div class="flex">
         <button
           type="submit"
-          class="ml-auto bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          class="ml-auto bg-blue-600 text-sm text-white px-4 py-2 rounded hover:bg-blue-700"
         >
-          Add Program
+          Save Program
         </button>
       </div>
     </form>
@@ -189,6 +232,9 @@
             <th class="px-4 py-2">Program</th>
             <th class="px-4 py-2">Dept</th>
             <th class="px-4 py-2">Code</th>
+            <th class="px-4 py-2">Award</th>
+            <th class="px-4 py-2">No. Semesters</th>
+            <th class="px-4 py-2">Duration</th>
             <th class="px-4 py-2">Actions</th>
           </tr>
         </thead>
@@ -199,6 +245,9 @@
             <td class="px-4 py-2">{{ p.name }}</td>
             <td class="px-4 py-2">{{ p.department.name }}</td>
             <td class="px-4 py-2">{{ p.code }}</td>
+            <td class="px-4 py-2">{{ p.get_award_type_display }}</td>
+            <td class="px-4 py-2">{{ p.semesters_per_level }} sem(s)</td>
+            <td class="px-4 py-2">{{ p.duration_years }} years</td>
             <td class="px-4 py-2">
               <button
                 onclick="openProgEdit('{{ p.id }}', '{{ p.name }}', '{{ p.description }}')"
@@ -228,11 +277,11 @@
 <!--      MODALS FOR EDITING        -->
 <!-- =============================== -->
 
-<!-- Program Modal -->
+<!-- Edit Program Modal -->
 <div
   id="editModal"
-  class="hidden fixed inset-0 flex items-center justify-center"
-  style="backdrop-filter: blur(6px); background-color: rgba(255, 255, 255, 0.3)"
+  class="hidden fixed border-c inset-0 flex items-center justify-center"
+  style="backdrop-filter: blur(6px); background-color: #ffffff4d"
 >
   <div class="bg-white rounded-lg p-6 w-96 shadow-black/50 shadow-2xl">
     <h3 class="text-lg font-medium text-gray-700 mb-4">Edit Program</h3>
@@ -251,16 +300,15 @@
           required
         />
       </div>
-
       <div>
         <label class="block text-gray-600 mb-1">Description</label>
         <textarea
-          class="w-full border border-gray-300 rounded-md px-3 py-2"
+          class="w-full border-c border-gray-300 rounded-md px-3 py-2"
           name="description"
           id="editProgramDescription"
+          rows="3"
         ></textarea>
       </div>
-
       <div class="flex justify-end space-x-2">
         <button
           type="button"
@@ -392,6 +440,10 @@
     document.getElementById("editProgramId").value = id;
     document.getElementById("editProgramName").value = name;
     document.getElementById("editProgramDescription").value = description;
+    // document.getElementById("editDurationYears").value = duration;
+    // document.getElementById("editSemsPerLevel").value = sems;
+    // document.querySelector("#editModal select[name='award_type']").value =
+    //   award;
     document.getElementById("editModal").classList.remove("hidden");
   }
 

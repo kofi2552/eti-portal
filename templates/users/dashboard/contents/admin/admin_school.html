@@ -5,12 +5,12 @@ Academic Years & Semesters {% endblock %} {% block content %}
   <!-- ===================== -->
   <!--   ACADEMIC YEARS      -->
   <!-- ===================== -->
-  <div>
+  <div class="pb-4">
     <div class="flex items-center justify-between mb-4">
       <h2 class="text-2xl font-semibold text-gray-800">Academic Years</h2>
       <button
         onclick="openYearCreate()"
-        class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 cursor-pointer"
+        class="border-c text-gray-600 text-sm px-4 py-2 rounded-md hover:bg-gray-100 cursor-pointer"
       >
         Add Academic Year
       </button>
@@ -24,6 +24,7 @@ Academic Years & Semesters {% endblock %} {% block content %}
             <th class="px-4 py-2 text-left text-gray-600">Start</th>
             <th class="px-4 py-2 text-left text-gray-600">End</th>
             <th class="px-4 py-2 text-left text-gray-600">Active</th>
+            <th class="px-4 py-2 text-left text-gray-600">Ready?</th>
             <th class="px-4 py-2 text-left text-gray-600">Actions</th>
           </tr>
         </thead>
@@ -42,22 +43,30 @@ Academic Years & Semesters {% endblock %} {% block content %}
               <span class="text-gray-500">Inactive</span>
               {% endif %}
             </td>
+            <td class="px-4 py-2">
+              {% if y.is_ready %}
+              <span class="text-green-600 font-medium">Yes</span>
+              {% else %}
+              <span class="text-gray-500">No</span>
+              {% endif %}
+            </td>
 
             <td class="px-4 py-2 space-x-3">
               <button
-                class="text-blue-600 hover:underline cursor-pointer year-edit-btn"
+                class="text-blue-600 hover:underline cursor-pointer year-edit-btn cursor-pointer"
                 data-id="{{ y.id }}"
                 data-name="{{ y.name|escapejs }}"
                 data-start="{{ y.start_date|date:'Y-m-d' }}"
                 data-end="{{ y.end_date|date:'Y-m-d' }}"
                 data-active="{{ y.is_active }}"
+                data-ready="{{ y.is_ready }}"
               >
                 Edit
               </button>
 
               <button
                 onclick="openYearDelete('{{ y.id }}')"
-                class="text-red-600 hover:underline"
+                class="text-red-600 hover:underline cursor-pointer"
               >
                 Delete
               </button>
@@ -75,274 +84,150 @@ Academic Years & Semesters {% endblock %} {% block content %}
     </div>
   </div>
 
+
   <!-- ===================== -->
   <!--      SEMESTERS        -->
   <!-- ===================== -->
-  <div>
-    <div class="flex items-center justify-between mb-4">
-      <h2 class="text-2xl font-semibold text-gray-800">Semesters</h2>
-      <button
-        onclick="openSemCreate()"
-        class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 cursor-pointer"
-      >
-        Add Semester
-      </button>
-    </div>
+  
+<div class="w-full mx-auto py-6 space-y-10">
+<h2 class="text-2xl font-semibold mb-6">Manage Semesters</h2>
 
-    <div class="bg-white border border-gray-200 rounded-lg">
-      <table class="min-w-full text-sm divide-y divide-gray-200">
-        <thead class="bg-gray-50">
-          <tr>
-            <th class="px-4 py-2 text-left text-gray-600">Semester</th>
-            <th class="px-4 py-2 text-left text-gray-600">Academic Year</th>
-            <th class="px-4 py-2 text-left text-gray-600">Start</th>
-            <th class="px-4 py-2 text-left text-gray-600">End</th>
-            <th class="px-4 py-2 text-left text-gray-600">Active</th>
-            <th class="px-4 py-2 text-left text-gray-600">Actions</th>
-          </tr>
-        </thead>
+<!-- PROGRAM SELECT -->
+  <form method="get" class="flex gap-4 mb-6">
+  <select name="program" class="border-c px-3 py-2 rounded">
+    <option value="">-- Select Program --</option>
+    {% for p in programs %}
+      <option value="{{ p.id }}" {% if selected_program and selected_program.id == p.id %}selected{% endif %}>
+        {{ p.name }}
+      </option>
+    {% endfor %}
+  </select>
 
-        <tbody class="divide-y divide-gray-100">
-          {% for s in semesters %}
-          <tr>
-            <td class="px-4 py-2">{{ s.name }}</td>
-            <td class="px-4 py-2">{{ s.academic_year.name }}</td>
-            <td class="px-4 py-2">
-              {{ s.start_date|date:"Y-m-d"|default:"-" }}
-            </td>
-            <td class="px-4 py-2">{{ s.end_date|date:"Y-m-d"|default:"-" }}</td>
+  {% if selected_program %}
+    <select name="level" class="border-c px-3 py-2 rounded">
+      <option value="">-- Select Level --</option>
+      {% for lvl in levels %}
+        <option value="{{ lvl.id }}" {% if selected_level and selected_level.id == lvl.id %}selected{% endif %}>
+          {{ lvl.level_name }}
+        </option>
+      {% endfor %}
+    </select>
+  {% endif %}
 
-            <td class="px-4 py-2">
-              {% if s.is_active %}
-              <span class="text-green-600 font-medium">Active</span>
-              {% else %}
-              <span class="text-gray-500">Inactive</span>
-              {% endif %}
-            </td>
+  <button class="bg-blue-600 text-white px-4 py-2 rounded cursor-pointer">Load</button>
+</form>
 
-            <td class="px-4 py-2 space-x-3">
-              <button
-                class="text-blue-600 hover:underline cursor-pointer sem-edit-btn"
-                data-id="{{ s.id }}"
-                data-name="{{ s.name|escapejs }}"
-                data-year="{{ s.academic_year.id }}"
-                data-start="{{ s.start_date|date:'Y-m-d' }}"
-                data-end="{{ s.end_date|date:'Y-m-d' }}"
-                data-active="{{ s.is_active }}"
-              >
-                Edit
-              </button>
 
-              <button
-                onclick="openSemDelete('{{ s.id }}')"
-                class="text-red-600 hover:underline"
-              >
-                Delete
-              </button>
-            </td>
-          </tr>
-          {% empty %}
-          <tr>
-            <td colspan="6" class="px-4 py-4 text-gray-500 text-center">
-              No semesters found.
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
+{% if selected_level %}
+  <!-- CREATE SEMESTER -->
+  <div class="bg-white border-c border-gray-200 rounded-lg p-6 mb-10">
+    <h3 class="text-lg font-semibold mb-4">Add New Semester</h3>
+
+    <form method="POST">
+      {% csrf_token %}
+      <input type="hidden" name="create_semester" value="1">
+      <input type="hidden" name="level_id" value="{{ selected_level.id }}">
+
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div >
+          <label class="block text-gray-600 mb-1">Semester Name</label>
+          <input name="name" class="border-c px-3 py-2 rounded w-full" placeholder="e.g. Semester 1" required>
+        </div>
+
+        <div >
+          <label class="block text-gray-600 mb-1">Academic Year</label>
+          <select name="academic_year_id" class="border-c px-3 py-2 rounded w-full" required>
+            {% for y in years %}
+            <option value="{{ y.id }}">{{ y.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div >
+          <label class="block text-gray-600 mb-1">Start Date</label>
+          <input type="date" name="start_date" class="border-c px-3 py-2 rounded w-full" required>
+        </div>
+
+        <div >
+          <label class="block text-gray-600 mb-1">End Date</label>
+          <input type="date" name="end_date" class="border-c px-3 py-2 rounded w-full" required>
+        </div>
+      </div>
+
+      <div class="flex justify-end mt-4">
+        <button class="bg-blue-600 text-white px-4 py-2 rounded cursor-pointer">Create Semester</button>
+      </div>
+    </form>
   </div>
 
-  <div class="mt-10">
-    <div class="flex items-center justify-between mb-4">
-      <h2 class="text-xl font-semibold">Grade Settings</h2>
+<!-- EXISTING SEMESTERS TABLE -->
+<div class="bg-white border-c border-gray-200 rounded-lg p-6">
+  <h3 class="text-lg font-semibold mb-4">Existing Semesters</h3>
 
-      <button
-        onclick="openCreateGrade()"
-        class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
-      >
-        Add Grade
-      </button>
-    </div>
+  {% if semesters %}
+  <table class="min-w-full text-sm">
+    <thead class="bg-gray-100">
+      <tr>
+        <th class="px-3 py-2 text-left">Semester</th>
+        <th class="px-3 py-2 text-left">Year</th>
+        <th class="px-3 py-2 text-left">Active</th>
+        <th class="px-3 py-2 text-left">Reg Active</th>
+        <th class="px-3 py-2 text-left">Start</th>
+        <th class="px-3 py-2 text-left">End</th>
+        <th class="px-3 py-2 text-left">Actions</th>
+      </tr>
+    </thead>
 
-    <div class="bg-white border-c rounded-lg">
-      <table class="min-w-full text-sm divide-y divide-gray-200">
-        <thead class="bg-gray-50">
-          <tr class="text-left">
-            <th class="px-4 py-2">Letter</th>
-            <th class="px-4 py-2">Min Score</th>
-            <th class="px-4 py-2">Max Score</th>
-            <th class="px-4 py-2">Actions</th>
-          </tr>
-        </thead>
+    <tbody>
+      {% for s in semesters %}
+      <tr class="border-t border-gray-200">
+        <td class="px-3 py-2">{{ s.name }}</td>
+        <td class="px-3 py-2">{{ s.academic_year.name }}</td>
+        <td class="px-3 py-2">{{ s.is_active|yesno:"Yes,No" }}</td>
+        <td class="px-3 py-2">{{ s.sem_reg_is_active|yesno:"Yes,No" }}</td>
+        <td class="px-3 py-2">{{ s.start_date }}</td>
+        <td class="px-3 py-2">{{ s.end_date }}</td>
+        <td class="px-3 py-2 space-x-3">
+        <button
+            class="text-blue-600 hover:underline cursor-pointer"
+            onclick="openEdit(this)"
+            data-id="{{ s.id }}"
+            data-name="{{ s.name|escapejs }}"
+            data-year="{{ s.academic_year.id }}"
+            data-start="{{ s.start_date|date:'Y-m-d' }}"
+            data-end="{{ s.end_date|date:'Y-m-d' }}"
+            data-active="{{ s.is_active }}"
+            data-regactive="{{ s.sem_reg_is_active }}"
+        >
+            Edit
+        </button>
 
-        <tbody class="divide-y divide-gray-100">
-          {% for g in grades %}
-          <tr>
-            <td class="px-4 py-2">{{ g.letter }}</td>
-            <td class="px-4 py-2">{{ g.min_score }}</td>
-            <td class="px-4 py-2">{{ g.max_score }}</td>
+          <form method="POST" style="display:inline;">
+            {% csrf_token %}
+            <input type="hidden" name="delete_semester" value="1">
+            <input type="hidden" name="semester_id" value="{{ s.id }}">
+            <button class="text-red-600 hover:underline cursor-pointer">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="text-gray-500">No semesters found.</p>
+  {% endif %}
+</div>
 
-            <td class="px-4 py-2 space-x-3">
-              <!-- EDIT -->
-              <button
-                onclick="openEditGrade('{{ g.id }}','{{ g.letter }}','{{ g.min_score }}','{{ g.max_score }}')"
-                class="text-blue-600 hover:underline"
-              >
-                Edit
-              </button>
+{% endif %}
+</div>
 
-              <!-- DELETE -->
-              <button
-                onclick="openDeleteGrade('{{ g.id }}')"
-                class="text-red-600 hover:underline"
-              >
-                Delete
-              </button>
-            </td>
-          </tr>
-          {% empty %}
-          <tr>
-            <td colspan="4" class="px-4 py-4 text-center text-gray-500">
-              No grade rules added.
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
+
 </div>
 
 <!-- ========================================================= -->
 <!-- ======================== MODALS ========================== -->
 <!-- ========================================================= -->
 
-<div
-  id="createGradeModal"
-  class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center"
-  style="backdrop-filter: blur(6px); background: rgba(255, 255, 255, 0.3)"
->
-  <div class="bg-white w-96 p-6 rounded shadow">
-    <h3 class="text-lg font-semibold mb-4">Add Grade</h3>
-
-    <form method="POST">
-      {% csrf_token %}
-      <input type="hidden" name="create_grade" value="1" />
-
-      <label class="block mb-1">Letter</label>
-      <input name="letter" class="w-full border rounded px-3 py-2 mb-3" />
-
-      <label class="block mb-1">Min Score</label>
-      <input
-        name="min_score"
-        type="number"
-        step="0.01"
-        class="w-full border rounded px-3 py-2 mb-3"
-      />
-
-      <label class="block mb-1">Max Score</label>
-      <input
-        name="max_score"
-        type="number"
-        step="0.01"
-        class="w-full border rounded px-3 py-2 mb-3"
-      />
-
-      <div class="flex justify-end space-x-2">
-        <button
-          type="button"
-          onclick="closeCreateGrade()"
-          class="px-4 py-2 border rounded"
-        >
-          Cancel
-        </button>
-        <button class="px-4 py-2 bg-blue-600 text-white rounded">Save</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<div
-  id="editGradeModal"
-  class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center"
-  style="backdrop-filter: blur(6px); background: rgba(255, 255, 255, 0.3)"
->
-  <div class="bg-white w-96 p-6 rounded shadow">
-    <h3 class="text-lg font-semibold mb-4">Edit Grade</h3>
-
-    <form method="POST">
-      {% csrf_token %}
-      <input type="hidden" name="update_grade" value="1" />
-      <input type="hidden" name="grade_id" id="editGradeId" />
-
-      <label class="block mb-1">Letter</label>
-      <input
-        name="letter"
-        id="editGradeLetter"
-        class="w-full border rounded px-3 py-2 mb-3"
-      />
-
-      <label class="block mb-1">Min Score</label>
-      <input
-        name="min_score"
-        id="editGradeMin"
-        type="number"
-        step="0.01"
-        class="w-full border rounded px-3 py-2 mb-3"
-      />
-
-      <label class="block mb-1">Max Score</label>
-      <input
-        name="max_score"
-        id="editGradeMax"
-        type="number"
-        step="0.01"
-        class="w-full border rounded px-3 py-2 mb-3"
-      />
-
-      <div class="flex justify-end space-x-2">
-        <button
-          type="button"
-          onclick="closeEditGrade()"
-          class="px-4 py-2 border rounded"
-        >
-          Cancel
-        </button>
-        <button class="px-4 py-2 bg-blue-600 text-white rounded">Update</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<div
-  id="deleteGradeModal"
-  class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center"
-  style="backdrop-filter: blur(6px); background: rgba(255, 255, 255, 0.3)"
->
-  <div class="bg-white w-80 p-6 rounded shadow">
-    <h3 class="text-lg font-semibold mb-4 text-red-600">Delete Grade</h3>
-
-    <p class="mb-4">Are you sure you want to delete this grade?</p>
-
-    <form method="POST">
-      {% csrf_token %}
-      <input type="hidden" name="delete_grade" value="1" />
-      <input type="hidden" name="grade_id" id="deleteGradeId" />
-
-      <div class="flex justify-end space-x-2">
-        <button
-          type="button"
-          onclick="closeDeleteGrade()"
-          class="px-4 py-2 border rounded"
-        >
-          Cancel
-        </button>
-        <button class="px-4 py-2 bg-red-600 text-white rounded">Delete</button>
-      </div>
-    </form>
-  </div>
-</div>
 
 <!-- YEAR CREATE -->
 <div
@@ -378,11 +263,12 @@ Academic Years & Semesters {% endblock %} {% block content %}
         class="w-full border rounded-md px-3 py-2 mb-3"
       />
 
-      <label class="flex items-center space-x-2 mb-4">
-        <input type="checkbox" name="is_active" />
-        <span>Active</span>
-      </label>
-
+        <label class="flex items-center space-x-2 mb-4">
+          <input type="checkbox" name="is_active" />
+          <span>Active</span>
+        </label>
+  
+      
       <div class="flex justify-end space-x-2">
         <button
           type="button"
@@ -436,10 +322,20 @@ Academic Years & Semesters {% endblock %} {% block content %}
         class="w-full border rounded-md px-3 py-2 mb-3"
       />
 
-      <label class="flex items-center space-x-2 mb-4">
-        <input type="checkbox" name="is_active" id="yearEditActive" />
-        <span>Active</span>
-      </label>
+      
+      <div class="flex items-center gap-4">
+
+        <label class="flex items-center space-x-2 mb-4">
+          <input type="checkbox" name="is_active" id="yearEditActive" />
+          <span>Active</span>
+        </label>
+  
+        <label class="flex items-center space-x-2 mb-4">
+            <input type="checkbox" name="is_ready" id="yearEditReady" />
+          <span>Set Ready</span>
+        </label>
+      </div>
+
 
       <div class="flex justify-end space-x-2">
         <button
@@ -555,6 +451,8 @@ Academic Years & Semesters {% endblock %} {% block content %}
   </div>
 </div>
 
+
+
 <!-- SEM EDIT -->
 <div
   id="semEditModal"
@@ -591,7 +489,7 @@ Academic Years & Semesters {% endblock %} {% block content %}
       <input
         type="date"
         name="start_date"
-        id="semEditStart"
+      id="semEditStart"
         class="w-full border rounded-md px-3 py-2 mb-3"
       />
 
@@ -599,7 +497,7 @@ Academic Years & Semesters {% endblock %} {% block content %}
       <input
         type="date"
         name="end_date"
-        id="semEditEnd"
+       id="semEditEnd"
         class="w-full border rounded-md px-3 py-2 mb-3"
       />
 
@@ -608,15 +506,20 @@ Academic Years & Semesters {% endblock %} {% block content %}
         <span>Active</span>
       </label>
 
+      <label class="flex items-center space-x-2 mb-4">
+        <input id="editRegActive" type="checkbox" name="sem_reg_is_active">
+        <label>Registration Active</label>
+      </label>
+
       <div class="flex justify-end space-x-2">
         <button
           type="button"
           onclick="closeSemEdit()"
-          class="px-4 py-2 border rounded-md"
+          class="px-4 py-2 border rounded-md cursor-pointer"
         >
           Cancel
         </button>
-        <button class="bg-blue-600 text-white px-4 py-2 rounded-md">
+        <button class="bg-blue-600 text-white px-4 py-2 rounded-md cursor-pointer">
           Update
         </button>
       </div>
@@ -660,36 +563,6 @@ Academic Years & Semesters {% endblock %} {% block content %}
 <!-- ================================ -->
 <script>
   // ==========================
-  // GRADE SECTION
-  // ==========================
-
-  function openCreateGrade() {
-    document.getElementById("createGradeModal").classList.remove("hidden");
-  }
-  function closeCreateGrade() {
-    document.getElementById("createGradeModal").classList.add("hidden");
-  }
-
-  function openEditGrade(id, letter, min, max) {
-    document.getElementById("editGradeId").value = id;
-    document.getElementById("editGradeLetter").value = letter;
-    document.getElementById("editGradeMin").value = min;
-    document.getElementById("editGradeMax").value = max;
-    document.getElementById("editGradeModal").classList.remove("hidden");
-  }
-  function closeEditGrade() {
-    document.getElementById("editGradeModal").classList.add("hidden");
-  }
-
-  function openDeleteGrade(id) {
-    document.getElementById("deleteGradeId").value = id;
-    document.getElementById("deleteGradeModal").classList.remove("hidden");
-  }
-  function closeDeleteGrade() {
-    document.getElementById("deleteGradeModal").classList.add("hidden");
-  }
-
-  // ==========================
   // ACADEMIC YEAR CREATE
   // ==========================
   function openYearCreate() {
@@ -710,6 +583,8 @@ Academic Years & Semesters {% endblock %} {% block content %}
       document.getElementById("yearEditEnd").value = btn.dataset.end || "";
       document.getElementById("yearEditActive").checked =
         btn.dataset.active === "True";
+      document.getElementById("yearEditReady").checked =
+        btn.dataset.ready === "True";
 
       document.getElementById("yearEditModal").classList.remove("hidden");
     });
@@ -733,44 +608,23 @@ Academic Years & Semesters {% endblock %} {% block content %}
   // ==========================
   // SEMESTER CREATE
   // ==========================
-  function openSemCreate() {
-    document.getElementById("semCreateModal").classList.remove("hidden");
-  }
-  function closeSemCreate() {
-    document.getElementById("semCreateModal").classList.add("hidden");
-  }
 
-  // ==========================
-  // SEMESTER EDIT
-  // ==========================
-  document.querySelectorAll(".sem-edit-btn").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      document.getElementById("semEditId").value = btn.dataset.id;
-      document.getElementById("semEditName").value = btn.dataset.name;
-      document.getElementById("semEditYear").value = btn.dataset.year;
-      document.getElementById("semEditStart").value = btn.dataset.start || "";
-      document.getElementById("semEditEnd").value = btn.dataset.end || "";
-      document.getElementById("semEditActive").checked =
-        btn.dataset.active === "True";
+function openEdit(btn) {
+    document.getElementById("semEditId").value = btn.dataset.id;
+    document.getElementById("semEditName").value = btn.dataset.name;
 
-      document.getElementById("semEditModal").classList.remove("hidden");
-    });
-  });
+    document.getElementById("semEditStart").value = btn.dataset.start || "";
+    document.getElementById("semEditEnd").value = btn.dataset.end || "";
 
-  function closeSemEdit() {
+    document.getElementById("semEditActive").checked = (btn.dataset.active === "True");
+    document.getElementById("editRegActive").checked = (btn.dataset.regactive === "True");
+
+    document.getElementById("semEditModal").classList.remove("hidden");
+}
+
+function closeSemEdit() {
     document.getElementById("semEditModal").classList.add("hidden");
-  }
-
-  // ==========================
-  // SEMESTER DELETE
-  // ==========================
-  function openSemDelete(id) {
-    document.getElementById("semDeleteId").value = id;
-    document.getElementById("semDeleteModal").classList.remove("hidden");
-  }
-  function closeSemDelete() {
-    document.getElementById("semDeleteModal").classList.add("hidden");
-  }
+}
 </script>
 
 {% endblock %}

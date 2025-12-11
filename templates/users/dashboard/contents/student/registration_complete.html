@@ -129,7 +129,9 @@
         <tbody>
           {% for c in selected_courses %}
           <tr class="border-t">
-            <td class="px-4 py-3 font-medium text-gray-800">{{ c.code }}</td>
+            <td class="px-4 py-3 font-medium text-gray-800">
+              {{ c.course_code }}
+            </td>
             <td class="px-4 py-3 text-gray-700">{{ c.title }}</td>
           </tr>
           {% endfor %}

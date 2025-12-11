@@ -71,22 +71,29 @@
             href="{% url 'student_enrollment' %}"
             class="block p-2 rounded hover:bg-gray-100"
           >
-            Enroll Students
+            Fee Payment
           </a>
 
           <a
             href="{% url 'admin_school' %}"
             class="block p-2 rounded hover:bg-gray-100"
           >
-            School Setup
+            Academic Calendar
           </a>
 
           <a
+            href="{% url 'admin_school_setup' %}"
+            class="block p-2 rounded hover:bg-gray-100"
+          >
+            School Setup
+          </a>
+
+          <!-- <a
             href="{% url 'logout' %}"
             class="block p-2 rounded hover:bg-red-50 text-red-600"
           >
             Logout
-          </a>
+          </a> -->
         </nav>
       </aside>
 
@@ -97,7 +104,10 @@
           class="relative bg-white border-b border-gray-200 flex items-center justify-between px-6 py-4 nav-h"
         >
           <div class="flex items-center gap-4">
-            <button onclick="toggleSidebar()" class="text-gray-600 text-xl">
+            <button
+              onclick="toggleSidebar()"
+              class="text-gray-600 text-xl cursor-pointer"
+            >
               ☰
             </button>
           </div>
@@ -190,7 +200,9 @@
 
             <ul class="space-y-2 text-sm">
               <li>
-                <a href="#" class="text-blue-600 hover:underline"
+                <a
+                  href="{% url 'admin_transcript_requests' %}"
+                  class="text-blue-600 hover:underline"
                   >Generate Report</a
                 >
               </li>
@@ -202,7 +214,9 @@
                 >
               </li>
               <li>
-                <a href="#" class="text-blue-600 hover:underline"
+                <a
+                  href="{% url 'admin_transition_page' %}"
+                  class="text-blue-600 hover:underline"
                   >System Settings</a
                 >
               </li>

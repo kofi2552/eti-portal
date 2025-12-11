@@ -28,7 +28,7 @@
           data-semester="{{ c.semester.name|default:''|lower }}"
           data-lecturers="{% for l in c.assigned_lecturers.all %}{{ l.get_full_name|lower }} {% endfor %}"
         >
-          <td class="px-4 py-2">{{ c.code }}</td>
+          <td class="px-4 py-2">{{ c.course_code }}</td>
           <td class="px-4 py-2">{{ c.title }}</td>
           <td class="px-4 py-2">{{ c.program.name }}</td>
           <td class="px-4 py-2">{{ c.semester.name|default:"-" }}</td>

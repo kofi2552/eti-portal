@@ -17,9 +17,20 @@
       </div>
 
       <div class="bg-white p-6 rounded-xl shadow">
-        <h3 class="text-gray-600 mb-2">GPA</h3>
-        <p class="text-2xl font-semibold text-green-600">
-          {{ gpa|default:"-" }}
+        <div>
+            <div class="flex items-center gap-2">
+                <h3 class="text-gray-600">GPA</h3>
+            <p class="text-3xl font-semibold text-green-600">
+              {{ gpa|default:"-" }}
+            </p>
+            <a href="{% url 'student_academics' %}" class="text-xs text-gray-600 mb-2 hover:underline">
+                View
+            </a>
+        </div>
+        </div>
+        <h3 class="text-xs text-right text-gray-600 mb-0">Current Level</h3>
+        <p class="text-right text-sm font-semibold text-gray-600">    
+        {{ level }}
         </p>
       </div>
 
@@ -32,23 +43,27 @@
     </div>
     <!-- GPA PROGRESSION BASED ON GRADE POINTS -->
    
-    <div class="bg-white p-6 rounded-xl shadow mt-8">
-    <div class="flex justify-between items-center mb-4">
+    <div class="w-full mx-auto bg-white p-6 rounded-xl shadow mt-8">
+   <div class="flex justify-between items-center mb-4">
         <h3 class="text-lg font-semibold">Performance Graph</h3>
 
         <!-- Semester Filter -->
         <form method="GET" class="flex space-x-3 items-center">
-        <!-- Primary Semester -->
-          <select name="sem" id="semesterSelect" class="border rounded-md px-2 py-1 text-sm">
-              {% for s in semesters %}
-              <option value="{{ s.id }}" {% if selected_semester and selected_semester.id == s.id %}selected{% endif %}>
-                  {{ s.name }}
-              </option>
-              {% endfor %}
-          </select>
-          <button class="bg-blue-600 text-white px-3 py-1 rounded text-sm">Load</button>
-      </form>
-
+            <select 
+                name="semester" 
+                id="semesterSelect" 
+                class="border-c rounded-md px-3 py-2 text-xs"
+            >
+                {% for s in graph_semesters %}
+                <option value="{{ s.id }}" {% if selected_sem_id == s.id %}selected{% endif %}>
+                    {{ s.name }} - {{ s.academic_year.name }}
+                </option>
+                {% endfor %}
+            </select>
+            <button class="bg-blue-600 text-white px-4 py-2 rounded text-xs">
+                Load
+            </button>
+        </form>
     </div>
 
     <div class="w-full" style="height: 320px;">
@@ -65,55 +80,33 @@
 <script>
 document.addEventListener("DOMContentLoaded", function () {
 
-    // -----------------------------
-    //  DATA FROM DJANGO
-    // -----------------------------
     const labels = JSON.parse(`{{ course_labels|escapejs }}`);
     const gradePoints = JSON.parse(`{{ grade_points|escapejs }}`);
 
     const ctx = document.getElementById("performanceChart").getContext("2d");
 
-    // -----------------------------
-    //  GRADIENT BACKGROUND
-    // -----------------------------
     let gradient = ctx.createLinearGradient(0, 0, 0, 260);
     gradient.addColorStop(0, "rgba(37, 99, 235, 0.45)");
     gradient.addColorStop(1, "rgba(37, 99, 235, 0.08)");
 
-    // -----------------------------
-    //  TREND LINE CALCULATION
-    // -----------------------------
     function calculateTrend(data) {
         if (data.length <= 1) return data;
-
         let n = data.length;
         let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
-
         for (let i = 0; i < n; i++) {
             sumX += i;
             sumY += data[i];
             sumXY += i * data[i];
             sumXX += i * i;
         }
-
         const slope = (n * sumXY - sumX * sumY) /
                       (n * sumXX - sumX * sumX || 1);
-
         const intercept = (sumY - slope * sumX) / n;
-
-        let trend = [];
-        for (let i = 0; i < n; i++) {
-            trend.push(slope * i + intercept);
-        }
-
-        return trend;
+        return Array.from({ length: n }, (_, i) => slope * i + intercept);
     }
 
     const trendLine = calculateTrend(gradePoints);
 
-    // -----------------------------
-    //     CHART (NO ANIMATIONS)
-    // -----------------------------
     new Chart(ctx, {
         type: "line",
         data: {
@@ -143,58 +136,11 @@ document.addEventListener("DOMContentLoaded", function () {
             ],
         },
         options: {
-            animation: false,   // 🚨 Disables ALL animations
+            animation: false,
             responsive: true,
             maintainAspectRatio: false,
-
-            scales: {
-                y: {
-                    min: 0,
-                    max: 4,
-                    ticks: {
-                        stepSize: 1,
-                        color: "#374151",
-                    },
-                    grid: {
-                        color: "rgba(0,0,0,0.07)",
-                    },
-                },
-                x: {
-                    ticks: {
-                        color: "#374151",
-                        maxRotation: 40,
-                        minRotation: 40,
-                    },
-                    grid: {
-                        display: false,
-                    },
-                },
-            },
-
-            plugins: {
-                legend: {
-                    labels: { color: "#374151" },
-                },
-                tooltip: {
-                    backgroundColor: "#1f2937",
-                    titleColor: "#fff",
-                    bodyColor: "#e5e7eb",
-                    padding: 10,
-                    cornerRadius: 6,
-                },
-            },
-        },
+        }
     });
-
-    // -----------------------------
-    //    SEMESTER FILTER RELOAD
-    // -----------------------------
-    document.getElementById("semesterSelect")
-        .addEventListener("change", function () {
-            const url = new URL(window.location.href);
-            url.searchParams.set("semester", this.value);
-            window.location.href = url.toString();
-        });
 
 });
 </script>

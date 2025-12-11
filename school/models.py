@@ -1,33 +1,29 @@
 from django.db import models
 
-class Semester(models.Model):
-    name = models.CharField(max_length=20)  # e.g., "First Semester"
-    academic_year = models.CharField(max_length=9)  # e.g., "2025/2026"
-
-    def __str__(self):
-        return f"{self.name} ({self.academic_year})"
 
 
-class Grade(models.Model):
-    enrollment = models.OneToOneField(
-        "academics.Enrollment",
-        on_delete=models.CASCADE  # string reference
+class School(models.Model):
+    name = models.CharField(max_length=255)
+    motto = models.CharField(max_length=255, blank=True, null=True)
+    signee_name = models.CharField(max_length=255, blank=True, null=True)
+    address = models.TextField(blank=True, null=True)
+    email = models.EmailField(blank=True, null=True)
+    phone = models.CharField(max_length=50, blank=True, null=True)
+    website = models.URLField(blank=True, null=True)
+
+    logo = models.ImageField(
+        upload_to="school_logo/",
+        blank=True,
+        null=True
     )
-    letter_grade = models.CharField(max_length=2)  # e.g., "A", "B+"
-    grade_point = models.FloatField()
 
-    def __str__(self):
-        return f"{self.enrollment.course} - {self.letter_grade}"
-
-
-class Transcript(models.Model):
-    student = models.ForeignKey(
-        "users.CustomUser",
-        on_delete=models.CASCADE,
-        limit_choices_to={'role': 'student'}
+    signature = models.ImageField(
+        upload_to="school_signature/",
+        blank=True,
+        null=True
     )
-    semester = models.ForeignKey(Semester, on_delete=models.CASCADE)
-    created_at = models.DateTimeField(auto_now_add=True)
+
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"Transcript of {self.student} - {self.semester}"
+        return self.name

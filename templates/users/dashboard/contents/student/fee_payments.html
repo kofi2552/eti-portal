@@ -1,0 +1,116 @@
+{% extends "users/dashboard/student_dashboard_layout.html" %}
+<!-- ---------------------------- -->
+{% block title %} Fee Payments {% endblock %}
+<!-- ---------------------------- -->
+{% block content %}
+
+<div class="max-w-4xl mx-auto px-4 py-6">
+  <h2 class="text-2xl font-bold text-gray-800 mb-6">My Fee Payments</h2>
+
+  <div class="mb-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div class="bg-white border border-gray-200 p-4 rounded-lg">
+      <p class="text-xs uppercase text-gray-500 font-semibold">
+        Total Balance Owed
+      </p>
+      <p class="text-2xl font-bold text-red-600">GH₵ {{ total_balance }}</p>
+    </div>
+
+    <div class="bg-white border border-gray-200 p-4 rounded-lg">
+      <p class="text-xs uppercase text-gray-500 font-semibold">
+        Current Semester
+      </p>
+      <p class="text-lg font-semibold text-gray-800">
+        {{ latest_semester.name }}
+        <span class="text-xs font-medium">({{ latest_semester.academic_year.name }})</span>
+    </p>
+    </div>
+
+    <div class="bg-white border border-gray-200 p-4 rounded-lg">
+      <p class="text-xs uppercase text-gray-500 font-semibold">
+        Current Semester Status
+      </p>
+
+      {% if has_paid_current_semester %}
+      <p class="text-green-600 font-bold">Fully Paid</p>
+      {% else %}
+      <p class="text-red-600 font-bold">
+        Owing GH₵ {{ current_semester_balance }}
+      </p>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if payments %}
+  <div class="space-y-6">
+    {% for pay in payments %}
+    <div class="bg-white border border-gray-200 rounded-lg p-6">
+      <!-- Top Section -->
+      <div class="flex justify-between items-start">
+        <div>
+          <h3 class="text-lg font-semibold text-gray-800">
+            {{ pay.academic_year.name }} — {{ pay.semester.name }}
+          </h3>
+          <p class="text-sm text-gray-500">
+            Paid on: {{ pay.date_paid|date:"M d, Y • h:i A" }}
+          </p>
+        </div>
+
+        <span
+          class="px-3 py-1 rounded-full text-sm font-medium {% if pay.is_verified %} bg-green-100 text-green-700 {% else %} bg-yellow-100 text-yellow-700 {% endif %}"
+        >
+          {{ pay.is_verified|yesno:"Verified,Pending" }}
+        </span>
+      </div>
+
+      <!-- Line Divider -->
+      <hr class="my-4" />
+
+      <!-- Details Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="p-3 bg-gray-50 border border-gray-200 rounded">
+          <p class="text-xs font-semibold text-gray-500 uppercase mb-1">
+            Amount Expected
+          </p>
+          <p class="text-gray-800 font-semibold">
+            GH₵ {{ pay.amount_expected }}
+          </p>
+        </div>
+
+        <div class="p-3 bg-gray-50 border border-gray-200 rounded">
+          <p class="text-xs font-semibold text-gray-500 uppercase mb-1">
+            Amount Paid
+          </p>
+          <p class="text-gray-800 font-semibold">GH₵ {{ pay.amount_paid }}</p>
+        </div>
+
+        <div class="p-3 bg-gray-50 border border-gray-200 rounded">
+          <p class="text-xs font-semibold text-gray-500 uppercase mb-1">
+            Reference
+          </p>
+          <p class="text-gray-700">{{ pay.reference }}</p>
+        </div>
+
+        <div class="p-3 bg-gray-50 border border-gray-200 rounded">
+          <p class="text-xs font-semibold text-gray-500 uppercase mb-1">
+            Balance
+          </p>
+          <p class="text-gray-800 font-semibold">
+           <p class="text-gray-800 font-semibold">GH₵ {{ pay.balance }}</p>
+          </p>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% else %}
+  <!-- No records -->
+  <div
+    class="bg-yellow-50 border border-yellow-300 text-yellow-800 rounded p-4"
+  >
+    <p>No payment records found.</p>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

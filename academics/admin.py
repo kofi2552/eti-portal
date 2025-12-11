@@ -25,9 +25,9 @@ class ProgramAdmin(admin.ModelAdmin):
 
 @admin.register(Course)
 class CourseAdmin(admin.ModelAdmin):
-    list_display = ("code", "title", "program", "semester")
-    search_fields = ("code", "title", "program__name", "semester__name")
-    list_filter = ("program", "semester")
+    list_display = ("code", "title", "program", )
+    search_fields = ("code", "title", "program__name",)
+    list_filter = ("program",)
     filter_horizontal = ("assigned_lecturers",)
     ordering = ("code",)
 
@@ -49,7 +49,7 @@ class SemesterAdmin(admin.ModelAdmin):
 
 @admin.register(Enrollment)
 class EnrollmentAdmin(admin.ModelAdmin):
-    list_display = ("student", "course", "semester", "date_enrolled")
-    search_fields = ("student__username", "course__title", "course__code")
+    list_display = ("student", "program", "level", "semester", "date_enrolled")
+    search_fields = ("student__username", "program__name", "level__name")
     list_filter = ("semester",)
     ordering = ("-date_enrolled",)

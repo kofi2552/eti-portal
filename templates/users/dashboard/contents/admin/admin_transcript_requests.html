@@ -1,0 +1,168 @@
+{% extends "users/dashboard/admin_dashboard_layout.html" %} {% block title %}
+Transcript System {% endblock %} {% block content %}
+
+<div class="max-w-6xl mx-auto px-6 py-8">
+  <div class="flex justify-between items-center mb-6">
+    <h2 class="text-2xl font-semibold">Transcript Requests</h2>
+
+    <form action="{% url 'admin_toggle_transcript_lock' %}" method="post">
+      {% csrf_token %}
+      <button
+        class="px-4 py-2 rounded text-white text-sm cursor-pointer {% if settings.allow_requests %} bg-red-600 hover:bg-red-700 {% else %} bg-green-600 hover:bg-green-700 {% endif %}"
+      >
+        {% if settings.allow_requests %} Disable Transcript Requests {% else %}
+        Enable Transcript Requests {% endif %}
+      </button>
+    </form>
+  </div>
+  <div class="flex items-center justify-between w-full mx-auto py-4">
+    <form
+      method="post"
+      class="mb-4"
+      action="{% url 'admin_generate_transcript_for_student' %}"
+    >
+      {% csrf_token %}
+      <select name="student_id" class="border-c rounded px-2 py-2 text-sm mr-2">
+        {% for s in students %}
+        <option value="{{ s.id }}">
+          {{ s.get_full_name }} ({{ s.student_id }})
+        </option>
+        {% endfor %}
+      </select>
+      <button
+        class="bg-blue-600 text-sm text-white px-3 py-2 rounded cursor-pointer"
+      >
+        Generate Transcript
+      </button>
+    </form>
+
+    <form
+      method="post"
+      action="{% url 'admin_clear_all_transcript_requests' %}"
+      class="mb-4"
+    >
+      {% csrf_token %}
+      <button
+        class="px-4 py-2 bg-yellow-600 text-sm text-white rounded hover:bg-red-700 cursor-pointer"
+        onclick="return confirm('Are you sure you want to delete ALL transcript requests? This cannot be undone.');"
+      >
+        Clear All Requests
+      </button>
+    </form>
+  </div>
+
+  <div class="bg-white border-c rounded">
+    <table class="w-full text-sm">
+      <thead class="bg-gray-200">
+        <tr class="text-left">
+          <th class="px-4 py-2">Student</th>
+          <th class="px-4 py-2">Status</th>
+          <th class="px-4 py-2">Generated</th>
+          <th class="px-4 py-2">Actions</th>
+        </tr>
+      </thead>
+
+      <tbody class="divide-y">
+        {% for req in requests %}
+        <tr>
+          <td class="px-4 py-3">
+            {{ req.student.get_full_name }}
+            <div class="text-xs text-gray-500">{{ req.student.username }}</div>
+          </td>
+
+          <td class="px-4 py-3">
+            {% if req.status == "pending" %}
+            <span class="text-yellow-600 font-semibold">Pending</span>
+            {% elif req.status == "approved" %}
+            <span class="text-green-600 font-semibold">Approved</span>
+            {% else %}
+            <span class="text-red-600 font-semibold">Rejected</span>
+            {% endif %}
+          </td>
+
+          <td class="px-4 py-3">
+            {% if req.transcript_json %}
+            <span class="text-green-700">Yes</span>
+            {% else %}
+            <span class="text-gray-500">No</span>
+            {% endif %}
+          </td>
+
+          <td class="px-4 py-3 space-x-3">
+            <!-- Generate -->
+            {% if not req.transcript_json %}
+            <a
+              href="{% url 'admin_generate_transcript' req.id %}"
+              class="text-blue-600 hover:underline cursor-pointer"
+              >Generate</a
+            >
+            {% endif %}
+
+            <!-- Approve -->
+            {% if req.transcript_json and req.status == "pending" %}
+            <a
+              href="{% url 'admin_approve_transcript' req.id %}"
+              class="text-green-700 hover:underline cursor-pointer"
+              >Approve</a
+            >
+            {% endif %}
+
+            <!-- Approve -->
+            {% if req.status == "revoked" %}
+            <a
+              href="{% url 'admin_approve_transcript' req.id %}"
+              class="text-green-700 hover:underline cursor-pointer"
+              >Approve</a
+            >
+            {% endif %}
+
+            <!-- Reject -->
+            {% if req.status == "pending" %}
+            <a
+              href="{% url 'admin_reject_transcript' req.id %}"
+              class="text-red-600 hover:underline cursor-pointer ml-4"
+              >Reject</a
+            >
+            {% endif %}
+
+            <!-- --- revoke -- -->
+            {% if req.status == "approved" %}
+            <form
+              method="post"
+              action="{% url 'admin_revoke_transcript' req.id %}"
+              class="inline"
+            >
+              {% csrf_token %}
+              <button class="text-yellow-600 hover:underline cursor-pointer">
+                Revoke Access
+              </button>
+            </form>
+            {% endif %}
+
+            <form
+              method="post"
+              action="{% url 'admin_delete_transcript_request' req.id %}"
+              style="display: inline"
+            >
+              {% csrf_token %}
+              <button
+                class="text-red-600 hover:underline ml-4 cursor-pointer"
+                onclick="return confirm('Delete this request?');"
+              >
+                Delete
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="4" class="px-4 py-4 text-center text-gray-500">
+            No transcript requests found.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

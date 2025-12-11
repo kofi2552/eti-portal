@@ -1,0 +1,32 @@
+{% extends "users/dashboard/student_dashboard_layout.html" %}
+<!-- --------------------------------------- -->
+{% block content %}
+
+<div class="max-w-3xl mx-auto rounded-lg mt-2">
+  <div class="max-w-3xl mx-auto mt-10 bg-white p-6 rounded shadow">
+    <h2 class="text-xl font-semibold mb-4 text-gray-800">
+      Semester Registration Not Completed
+    </h2>
+
+    <p class="text-gray-700 mb-4">
+      You have an active enrollment for
+      <strong>{{ semester.name }}</strong> under
+      <strong>{{ active_year.name }}</strong>, but you have not completed course
+      registration.
+    </p>
+
+    <p class="text-gray-600 mb-6">
+      Please proceed to complete your semester registration by selecting your
+      courses.
+    </p>
+
+    <a
+      href="{% url 'registration_step_2' %}"
+      class="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700"
+    >
+      Continue Registration
+    </a>
+  </div>
+</div>
+
+{% endblock %}

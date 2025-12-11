@@ -1,0 +1,41 @@
+{% extends "users/dashboard/admin_dashboard_layout.html" %}
+<!-- =============================== -->
+{% block title %} Academic Transition {% endblock %}
+<!-- =============================== -->
+{% load static %}
+<!-- --- ===============================  -->
+{% block content %}
+<div class="max-w-3xl mt-10 mx-auto bg-white p-4 rounded shadow-sm">
+  <h3 class="text-3xl font-semibold mb-3">System Lock</h3>
+  <p class="mb-3 text-sm text-gray-600">
+    Lock or unlock the academic activities. When locked, students cannot perform
+    registration-related actions.
+  </p>
+
+  <form
+    method="post"
+    action="{% url 'admin_transition_page' %}"
+    class="space-y-2"
+  >
+    {% csrf_token %}
+    <!-- Minimal implementation: toggle via simple POST param -->
+    <div class="flex gap-3">
+      <button
+        name="action"
+        value="lock"
+        class="bg-red-600 text-white px-4 py-2 rounded"
+      >
+        Lock System
+      </button>
+      <button
+        name="action"
+        value="unlock"
+        class="bg-green-600 text-white px-4 py-2 rounded"
+      >
+        Unlock System
+      </button>
+    </div>
+  </form>
+</div>
+
+{% endblock %}

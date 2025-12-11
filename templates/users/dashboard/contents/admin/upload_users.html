@@ -1,0 +1,98 @@
+<!-- ------------------------------------ -->
+{% extends "users/dashboard/admin_dashboard_layout.html" %}
+<!-- ------------------------------------ -->
+{% block title %}Manage Users{% endblock %}
+<!-- ------------------------------------- -->
+{% block content %} {% load static %}
+<style>
+  .border-c {
+    border: 1px solid #603939 !important;
+  }
+</style>
+<div class="max-w-6xl mx-auto px-4">
+  <div class="flex items-center gap-3">
+    <h2 class="text-2xl font-semibold mb-6 text-gray-800">Upload Users(CSV)</h2>
+    <div class="mb-4">
+      <a href="{% static 'user_upload_template.csv' %}" download>
+        <button
+          class="px-4 py-2 text-sm text-gray-500 rounded-md hover:underline transition cursor-pointer"
+        >
+          CSV Template
+        </button>
+      </a>
+    </div>
+  </div>
+
+  <!-- CSV Upload Form -->
+  <form
+    method="POST"
+    enctype="multipart/form-data"
+    class="mb-6 border flex items-center justify-between gap-2 border-gray-300 p-4 rounded bg-white"
+  >
+    {% csrf_token %}
+
+    <input
+      type="file"
+      name="file"
+      accept=".csv"
+      class="text-sm bg-gray-50 border border-gray-300 rounded px-3 py-2 mx-4"
+      required
+    />
+
+    <button
+      name="upload_csv"
+      class="px-4 py-2 bg-purple-600 text-white rounded cursor-pointer"
+    >
+      Upload File
+    </button>
+  </form>
+
+  <div class="w-full mx-auto pt-6">
+    {% if preview %}
+    <h3 class="text-xl font-semibold mb-4 text-gray-800">
+      Preview Uploaded Data
+    </h3>
+
+    <table class="min-w-full border-c rounded-lg overflow-hidden mt-6">
+      <thead class="bg-gray-50">
+        <tr>
+          {% for column in preview.0.keys %}
+          <th
+            class="px-4 py-3 text-left text-sm font-semibold text-gray-700 border-b border-gray-200"
+          >
+            {{ column|capfirst }}
+          </th>
+          {% endfor %}
+        </tr>
+      </thead>
+
+      <tbody class="divide-y divide-gray-100">
+        {% for row in preview %}
+        <tr class="hover:bg-gray-50 transition">
+          {% for value in row.values %}
+          <td class="px-4 py-2 text-sm text-gray-700 border-b border-gray-100">
+            {{ value }}
+          </td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <hr class="mt-4 mb-4" />
+    <div class="flex w-full justify-end" style="margin-top: 20px">
+      <form class="ml-0" method="post" action="{% url 'save_uploaded_users' %}">
+        {% csrf_token %}
+        <button
+          name="upload_csv"
+          type="submit"
+          class="px-4 py-2 bg-green-600 text-white cursor-pointer"
+        >
+          SAVE DATA
+        </button>
+      </form>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

@@ -1,5 +1,8 @@
 from django.shortcuts import render, redirect
 from .decorators import role_required
+from django.contrib.auth.decorators import login_required
+from .models import SystemLock
+from django.contrib import messages
 
 def dashboard_redirect(request):
     """Redirect users to the correct dashboard based on role."""
@@ -57,3 +60,29 @@ def dean_login(request):
 
 def admin_login(request):
     return render(request, "portal/login.html", {"role": "Super Admin"})
+
+
+
+
+
+@login_required
+def toggle_system_lock(request):
+    if getattr(request.user, "role", None) != "admin":
+        messages.error(request, "Access denied.")
+        return redirect("home")
+
+    lock_obj = SystemLock.objects.first()
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+
+        if action == "lock":
+            lock_obj.lock(request.user)
+            messages.success(request, "System is now LOCKED.")
+        elif action == "unlock":
+            lock_obj.unlock()
+            messages.success(request, "System is now UNLOCKED.")
+
+        return redirect("admin_transition_page")
+
+    return redirect("admin_transition_page")

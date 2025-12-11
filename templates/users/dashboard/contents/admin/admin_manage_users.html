@@ -80,7 +80,7 @@
       <div class="flex">
         <button
           type="submit"
-          class="ml-auto px-5 py-2 text-white bg-blue-600 rounded hover:bg-blue-700 transition"
+          class="ml-auto px-5 py-2 border-c text-gray-600 text-sm rounded-md hover:bg-gray-100 cursor-pointer"
         >
           Add User
         </button>
@@ -98,7 +98,7 @@
 
     <div class="overflow-x-auto p-6">
       <!-- SEARCH + FILTER + EXPORT + UPLOAD -->
-    <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-4">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between py-4 gap-4">
 
       <form method="GET" class="flex gap-2">
         <input
@@ -120,12 +120,20 @@
           <option value="student" {% if role_filter == "student" %}selected{% endif %}>Student</option>
         </select>
 
-        <button class="px-4 py-2 bg-blue-600 text-white rounded">
+        <button class="px-4 py-2 border-c text-gray-600 text-sm rounded-md hover:bg-gray-100 cursor-pointer">
           Apply
         </button>
       </form>
 
-      <div class="flex gap-3">
+      <div class="flex items-center gap-3">
+        <a href="{% url 'upload_users' %}">
+       <button
+        name="upload_csv"
+        class="px-4 py-2 bg-purple-600 text-white rounded cursor-pointer"
+      >
+        Upload Users
+      </button>
+      </a>
         <a
           href="{% url 'export_users_csv' %}"
           class="px-4 py-2 bg-green-600 text-white rounded"
@@ -135,32 +143,8 @@
       </div>
     </div>
 
-    <!-- CSV Upload Form -->
-    <form
-      method="POST"
-      enctype="multipart/form-data"
-      class="mb-6 border flex items-center gap-2 border-gray-300 p-4 rounded bg-white"
-    >
-      {% csrf_token %}
-      <label class="block text-gray-700">Upload CSV: </label>
-
-      <input
-        type="file"
-        name="csv_file"
-        accept=".csv"
-        class="text-sm bg-gray-50 border border-gray-300 rounded px-3 py-2 mx-4"
-        required
-      />
-
-      <button
-        name="upload_csv"
-        class="px-4 py-2 bg-purple-600 text-white rounded"
-      >
-        Upload
-      </button>
-    </form>
-
-      <table class="w-full text-left text-gray-700">
+   
+      <table class="w-full text-left text-gray-700 mt-3">
         <thead class="text-gray-600 border-b border-gray-300">
           <tr>
             <th class="py-3 px-4">Name</th>
@@ -215,13 +199,13 @@
              class="px-3 py-1 border rounded">Prev</a>
          {% endif %}
  
-         <span class="text-xs px-3 py-1 border rounded bg-gray-100">
+         <span class="text-xs px-3 py-1 rounded bg-gray-100">
            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
          </span>
  
          {% if page_obj.has_next %}
            <a href="?page={{ page_obj.next_page_number }}&search={{search}}&role={{role_filter}}"
-             class="px-3 py-1 border rounded">Next</a>
+             class="px-4 py-1 mx-4 border-c text-gray-600 text-sm rounded hover:bg-gray-100 cursor-pointer">Next</a>
          {% endif %}
  
        </div>

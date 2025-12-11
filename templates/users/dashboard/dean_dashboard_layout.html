@@ -54,19 +54,20 @@
           </a>
 
           <a
+            href="{% url 'dean_program_courses_list' %}"
+            class="block p-2 rounded hover:bg-gray-100"
+          >
+            Courses
+          </a>
+
+          <a
             href="{% url 'manage_courses' %}"
             class="block p-2 rounded hover:bg-gray-100"
           >
-            Manage Courses
+            Programs
           </a>
 
-          <!-- <a
-            href="{% url 'assign_lecturers' %}"
-            class="block p-2 rounded hover:bg-gray-100"
-          >
-            Assign Lecturers
-          </a>
-
+          <!-- 
           <a
             href="{% url 'assessments' %}"
             class="block p-2 rounded hover:bg-gray-100"

@@ -1,7 +1,7 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.conf import settings  
-from academics.models import Department, Program, AcademicYear, Semester, Course
+from academics.models import Department, Program, AcademicYear, Semester, ProgramCourse, ProgramLevel
 
 class CustomUser(AbstractUser):
     ROLE_CHOICES = [
@@ -12,7 +12,13 @@ class CustomUser(AbstractUser):
         ('superadmin', 'Super Admin'),
     ]
     role = models.CharField(max_length=10, choices=ROLE_CHOICES)
-
+    level = models.ForeignKey(
+        ProgramLevel,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="students_in_level"
+    )
     student_id = models.CharField(max_length=20, unique=True, null=True, blank=True)
     pin_code = models.CharField(max_length=10, null=True, blank=True)
 
@@ -56,7 +62,7 @@ class Payment(models.Model):
     reference = models.CharField(max_length=100, unique=True)
     date_paid = models.DateTimeField(null=True, blank=True)
 
-    generated_student_id = models.CharField(max_length=20, unique=True, null=True, blank=True)
+    generated_student_id = models.CharField(max_length=20, null=True, blank=True)
     generated_pin = models.CharField(max_length=10, null=True, blank=True)
 
     is_verified = models.BooleanField(default=False)  # admin must verify
@@ -121,8 +127,17 @@ class StudentRegistration(models.Model):
     academic_year = models.ForeignKey(AcademicYear, on_delete=models.CASCADE)
     semester = models.ForeignKey(Semester, on_delete=models.CASCADE)
     program = models.ForeignKey(Program, on_delete=models.CASCADE)
-
-    courses = models.ManyToManyField(Course, related_name="registered_students")
+    level = models.ForeignKey(
+        ProgramLevel,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="registration_level"
+    )
+    courses = models.ManyToManyField(
+    ProgramCourse,
+    related_name="registered_students"
+    )
 
     submitted_at = models.DateTimeField(auto_now_add=True)
 
@@ -141,10 +156,6 @@ class StudentRegistration(models.Model):
 
     def __str__(self):
         return f"{self.student.get_full_name()} - {self.academic_year} - {self.semester}"
-
-
-
-
 
 
 

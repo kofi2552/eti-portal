@@ -41,6 +41,8 @@
       {% endfor %}
     </select>
   </div>
+
+  <!-- ----------------------------------- -->
   <div class="bg-white border border-gray-200 rounded-lg">
     <table class="min-w-full text-sm divide-y divide-gray-200">
       <thead class="bg-gray-50 text-left">
@@ -48,7 +50,6 @@
           <th class="px-4 py-2 text-gray-600">Code</th>
           <th class="px-4 py-2 text-gray-600">Title</th>
           <th class="px-4 py-2 text-gray-600">Program</th>
-          <th class="px-4 py-2 text-gray-600">Semester</th>
           <th class="px-4 py-2 text-gray-600">Lecturers</th>
           <th class="px-4 py-2 text-gray-600">Actions</th>
         </tr>
@@ -61,13 +62,11 @@
           data-code="{{ c.code|lower }}"
           data-title="{{ c.title|lower }}"
           data-program="{{ c.program.name|lower }}"
-          data-semester="{{ c.semester.name|default:''|lower }}"
           data-lecturers="{% for l in c.assigned_lecturers.all %}{{ l.get_full_name|lower }} {% endfor %}"
         >
           <td class="px-4 py-2">{{ c.code }}</td>
           <td class="px-4 py-2">{{ c.title }}</td>
           <td class="px-4 py-2">{{ c.program.name }}</td>
-          <td class="px-4 py-2">{{ c.semester.name|default:"-" }}</td>
 
           <!-- LECTURERS -->
           <td class="px-4 py-2">
@@ -94,7 +93,6 @@
               data-description="{{ c.description|default:''|escapejs }}"
               data-credits="{{ c.credit_hours }}"
               data-program="{{ c.program.id }}"
-              data-semester="{{ c.semester.id|default:'' }}"
               data-lecturers="{% for l in c.assigned_lecturers.all %}{{ l.id }}{% if not forloop.last %},{% endif %}{% endfor %}"
             >
               Edit
@@ -143,27 +141,12 @@
           <select
             name="program_id"
             required
+            id="programSelect"
             class="w-full border border-gray-200 rounded-md px-3 py-2 mb-3"
           >
             <option value="">-- Select Program --</option>
             {% for p in programs %}
             <option value="{{ p.id }}">{{ p.name }}</option>
-            {% endfor %}
-          </select>
-        </div>
-
-        <div class="w-full">
-          <!-- Semester -->
-          <label class="block mb-1 text-gray-700">Semester</label>
-          <select
-            name="semester_id"
-            class="w-full border border-gray-200 rounded-md px-3 py-2 mb-3"
-          >
-            <option value="">-- Select Semester --</option>
-            {% for s in semesters %}
-            <option value="{{ s.id }}">
-              {{ s.name }} ({{ s.academic_year.name }})
-            </option>
             {% endfor %}
           </select>
         </div>
@@ -185,15 +168,14 @@
         class="w-full border border-gray-200 rounded-md px-3 py-2 mb-3"
       ></textarea>
       <div class="flex items-center gap-4">
-        <div class="w-full">
-          <!-- Code -->
-          <label class="block mb-1 text-gray-700">Course Code</label>
+        <!-- <div class="w-full">
+          <label class="block mb-1">Course Code</label>
           <input
             name="code"
             required
             class="w-full border border-gray-200 rounded-md px-3 py-2 mb-3"
           />
-        </div>
+        </div> -->
 
         <div class="w-full">
           <!-- Credit Hours -->
@@ -265,22 +247,6 @@
           >
             {% for p in programs %}
             <option value="{{ p.id }}">{{ p.name }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="w-full">
-          <!-- Semester -->
-          <label class="block mb-1">Semester</label>
-          <select
-            name="semester_id"
-            id="editSemester"
-            class="w-full border border-gray-200 rounded-md px-3 py-2 mb-3"
-          >
-            <option value="">-- Select Semester --</option>
-            {% for s in semesters %}
-            <option value="{{ s.id }}">
-              {{ s.name }} ({{ s.academic_year.name }})
-            </option>
             {% endfor %}
           </select>
         </div>
@@ -404,14 +370,12 @@
       const code = row.dataset.code;
       const title = row.dataset.title;
       const program = row.dataset.program;
-      const semester = row.dataset.semester;
       const lecturers = row.dataset.lecturers;
 
       const matchesSearch =
         code.includes(searchValue) ||
         title.includes(searchValue) ||
         program.includes(searchValue) ||
-        semester.includes(searchValue) ||
         lecturers.includes(searchValue);
 
       const matchesProgram = !programValue || program === programValue;
@@ -428,9 +392,11 @@
   programFilter.addEventListener("change", filterCourses);
 
   /* -------------------- CREATE -------------------- */
+
   function openCreateCourse() {
     document.getElementById("createCourseModal").classList.remove("hidden");
   }
+
   function closeCreateCourse() {
     document.getElementById("createCourseModal").classList.add("hidden");
   }
@@ -446,7 +412,6 @@
       document.getElementById("editDescription").value = d.description;
       document.getElementById("editCredits").value = d.credits;
       document.getElementById("editProgram").value = d.program;
-      document.getElementById("editSemester").value = d.semester;
 
       const lectArr = d.lecturers ? d.lecturers.split(",") : [];
       const lectSelect = document.getElementById("editLecturers");
@@ -468,6 +433,7 @@
     document.getElementById("deleteCourseId").value = id;
     document.getElementById("deleteCourseModal").classList.remove("hidden");
   }
+
   function closeDeleteCourse() {
     document.getElementById("deleteCourseModal").classList.add("hidden");
   }
