@@ -194,7 +194,7 @@
 
           <!-- RIGHT SIDEBAR -->
           <aside
-            class="w-52 bg-gray-50 border-l border-gray-200 hidden lg:block p-4"
+            class="w-64 bg-gray-50 border-l border-gray-200 hidden lg:block p-4"
           >
             <h3 class="font-semibold mb-3 text-sm">Quick Actions</h3>
 
@@ -218,6 +218,13 @@
                   href="{% url 'admin_transition_page' %}"
                   class="text-blue-600 hover:underline"
                   >System Settings</a
+                >
+              </li>
+              <li>
+                <a
+                  href="{% url 'announcements_list' %}"
+                  class="text-blue-600 hover:underline"
+                  >Announcements</a
                 >
               </li>
             </ul>

@@ -1,0 +1,137 @@
+{% extends "users/dashboard/student_dashboard_layout.html" %}
+<!-- ------------------------- -->
+{% block title%} Student Profile {% endblock %}
+<!-- ------------------------- -->
+
+{% block content %}
+
+<div class="max-w-4xl mx-auto px-4 pb-8">
+  <h1 class="text-2xl font-bold text-gray-800 mb-6">My Profile</h1>
+  <!-- CARD -->
+  <div class="bg-white shadow rounded-xl p-6 space-y-6">
+    <!-- TOP SECTION -->
+    <div class="flex items-center gap-5">
+      <div
+        class="bg-blue-600 text-white h-16 w-16 rounded-full flex items-center justify-center text-2xl font-bold uppercase"
+      >
+        {{ user.first_name|default:user.username|slice:":1" }}
+      </div>
+
+      <div>
+        <p class="text-xl font-semibold text-gray-800">
+          {{ user.get_full_name }}
+        </p>
+        <p class="text-sm text-gray-500">{{ user.email }}</p>
+      </div>
+    </div>
+
+    <hr class="border-t border-black/10" />
+
+    <!-- BASIC INFO -->
+    <div>
+      <h2 class="font-semibold text-gray-700 mb-3">Basic Information</h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="p-3 border-c rounded-md bg-gray-50">
+          <p class="text-xs text-gray-500 uppercase">Student ID</p>
+          <p class="text-sm font-medium text-gray-800">
+            {{ user.student_id|default:"—" }}
+          </p>
+        </div>
+
+        <div class="p-3 border-c rounded-md bg-gray-50">
+          <p class="text-xs text-gray-500 uppercase">PIN</p>
+          <p class="text-sm font-medium text-gray-800">
+            {{ user.pin_code|default:"—" }}
+          </p>
+        </div>
+
+        <div class="p-3 border-c rounded-md bg-gray-50">
+          <p class="text-xs text-gray-500 uppercase">Department</p>
+          <p class="text-sm font-medium text-gray-800">
+            {{ user.department.name|default:"—" }}
+          </p>
+        </div>
+
+        <div class="p-3 border-c rounded-md bg-gray-50">
+          <p class="text-xs text-gray-500 uppercase">Last Login</p>
+          <p class="text-sm font-medium text-gray-800">
+            {{ user.last_login|default:"—" }}
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <hr class="border-t border-black/10" />
+
+    <!-- ACADEMIC INFO -->
+    <div>
+      <h2 class="font-semibold text-gray-700 mb-3">Academic Information</h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="p-3 border-c rounded-md bg-gray-50">
+          <p class="text-xs text-gray-500 uppercase">Program</p>
+          <p class="text-sm font-medium text-gray-800">
+            {{ user.program.name|default:"Not Assigned" }}
+          </p>
+        </div>
+
+        <div class="p-3 border-c rounded-md bg-gray-50">
+          <p class="text-xs text-gray-500 uppercase">Level</p>
+          <p class="text-sm font-medium text-gray-800">
+            {{ user.level.level_name|default:"—" }}
+          </p>
+        </div>
+
+        <div class="p-3 border-c rounded-md bg-gray-50">
+          <p class="text-xs text-gray-500 uppercase">Current Academic Year</p>
+          <p class="text-sm font-medium text-gray-800">
+            {{ active_year.name|default:"—" }}
+          </p>
+        </div>
+
+        <div class="p-3 border-c rounded-md bg-gray-50">
+          <p class="text-xs text-gray-500 uppercase">Current Semester</p>
+          <p class="text-sm font-medium text-gray-800">
+            {{ active_semester.name|default:"—" }}
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- <hr />
+    <div>
+      <h2 class="font-semibold text-gray-700 mb-3">Additional Information</h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="p-3 border-c rounded-md bg-gray-50">
+          <p class="text-xs text-gray-500 uppercase">Address</p>
+          <p class="text-sm font-medium text-gray-800">
+            {{ user.address|default:"—" }}
+          </p>
+        </div>
+
+        <div class="p-3 border-c rounded-md bg-gray-50">
+          <p class="text-xs text-gray-500 uppercase">Nationality</p>
+          <p class="text-sm font-medium text-gray-800">
+            {{ user.nationality|default:"—" }}
+          </p>
+        </div>
+      </div>
+    </div> -->
+
+    <!-- <hr /> -->
+
+    <!-- ACTION BUTTONS -->
+    <!-- <div class="flex justify-end">
+      <a
+        href="#"
+        class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm"
+      >
+        Update Profile
+      </a>
+    </div> -->
+  </div>
+</div>
+
+{% endblock %}

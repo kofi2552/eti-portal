@@ -162,6 +162,7 @@ def run_program_transition(program_id: int, admin_user) -> Dict:
                 # no next level - skip (should not happen due to earlier checks)
                 continue
             stu.level = next_lvl
+            stu.is_fee_paid = False
             stu.save(update_fields=["level"])
             promoted_count += 1
             logs.append(f"[PROMOTE] Student {stu.get_full_name()} promoted to {next_lvl.level_name}.")

@@ -29,9 +29,15 @@ from portal.utils import log_event
 from portal.utils import generate_transcript_json  
 from django.http import JsonResponse
 from django.db import  IntegrityError
+from portal.models import SystemLock, Announcement
+
 
 # Example assumes your User model has a 'role' field with values:
 # "student", "lecturer", "dean", or "admin"
+
+def system_is_locked():
+    lock = SystemLock.objects.first()
+    return lock.is_locked if lock else False
 
 
 def generate_student_id():
@@ -53,8 +59,12 @@ def get_student_active_semester(student):
     )
 
 
-
 def student_login(request):
+    # Check lock BEFORE processing login
+    if system_is_locked():
+        messages.error(request, "The system is currently locked. Please try again later.")
+        return render(request, "users/student_login.html")
+
     if request.method == "POST":
         username = request.POST.get("username")
         password = request.POST.get("password")
@@ -63,21 +73,27 @@ def student_login(request):
 
         if user is not None and user.role == "student":
             login(request, user)
-            log_event(user, "auth", f"Student login successful (username: {username})")
+            log_event(user, "auth", f"Student login successful ({username})")
             return redirect("student_main")
 
-        # Failed login
-        log_event(
-            None,
-            "auth",
-            f"Failed student login attempt (username: {username})"
-        )
+        log_event(None, "auth", f"Failed student login attempt ({username})")
         messages.error(request, "Invalid student credentials.")
 
-    return render(request, "users/student_login.html")
+        student_announcements = Announcement.objects.filter(
+            role__in=["dean"], is_active=True
+        ).order_by("-created_at")[:5]
 
+    return render(request, "users/student_login.html", {
+        "announcements": student_announcements
+})
+
+    # return render(request, "users/student_login.html")
 
 def lecturer_login(request):
+    if system_is_locked():
+        messages.error(request, "The system is currently locked. Please try again later.")
+        return render(request, "users/lecturer_login.html")
+
     if request.method == "POST":
         email = request.POST.get("email")
         password = request.POST.get("password")
@@ -86,20 +102,20 @@ def lecturer_login(request):
 
         if user is not None and user.role == "lecturer":
             login(request, user)
-            log_event(user, "auth", f"Lecturer login successful (email: {email})")
+            log_event(user, "auth", f"Lecturer login successful ({email})")
             return redirect("lecturer_main")
 
-        log_event(
-            None,
-            "auth",
-            f"Failed lecturer login attempt (email: {email})"
-        )
+        log_event(None, "auth", f"Failed lecturer login attempt ({email})")
         messages.error(request, "Invalid lecturer credentials.")
 
     return render(request, "users/lecturer_login.html")
 
 
 def dean_login(request):
+    if system_is_locked():
+        messages.error(request, "The system is currently locked. Please try again later.")
+        return render(request, "users/dean_login.html")
+
     if request.method == "POST":
         email = request.POST.get("email")
         password = request.POST.get("password")
@@ -108,14 +124,10 @@ def dean_login(request):
 
         if user is not None and user.role == "dean":
             login(request, user)
-            log_event(user, "auth", f"Dean login successful (email: {email})")
+            log_event(user, "auth", f"Dean login successful ({email})")
             return redirect("dean_main")
 
-        log_event(
-            None,
-            "auth",
-            f"Failed dean login attempt (email: {email})"
-        )
+        log_event(None, "auth", f"Failed dean login attempt ({email})")
         messages.error(request, "Invalid dean credentials.")
 
     return render(request, "users/dean_login.html")
@@ -209,6 +221,22 @@ def admin_dashboard(request):
 
 # MAIN STUDENT DASHBOARD -----------------------------------------------------------------student
 
+@login_required
+def student_profile(request):
+    user = request.user
+
+    if user.role != "student":
+        messages.error(request, "Access denied.")
+        return redirect("home")
+
+    active_year = AcademicYear.objects.filter(is_active=True).first()
+    active_semester = Semester.objects.filter(is_active=True, level=user.level).first()
+
+    return render(request, "users/dashboard/contents/student/student_profile.html", {
+        "user": user,
+        "active_year": active_year,
+        "active_semester": active_semester,
+    })
 
 
 # @login_required
@@ -536,6 +564,7 @@ def admin_dashboard(request):
 def student_main(request):
     user = request.user
 
+
     if user.role != "student":
         messages.error(request, "Access denied.")
         return redirect("home")
@@ -658,6 +687,8 @@ def student_main(request):
     # ---------------------------
     # FINAL CONTEXT
     # ---------------------------
+       
+
     return render(request, "users/dashboard/contents/student/student_main.html", {
         "enrolled_courses": enrolled_courses,
         "gpa": gpa,
@@ -717,9 +748,6 @@ def student_course_details(request, course_id):
     )
 
 
-# @login_required
-# def student_academics(request):
-#     return render(request, "users/dashboard/contents/student/student_academics.html")
 
 @login_required
 def register_semester(request):
@@ -730,9 +758,9 @@ def register_semester(request):
 def lecturer_main(request):
     return render(request, "users/dashboard/contents/lecturer/lecturer_main.html")
 
-# @login_required
-# def lecturer_courses(request):
-#     return render(request, "users/dashboard/contents/lecturer/lecturer_courses.html")
+@login_required
+def lecturer_courses(request):
+    return render(request, "users/dashboard/contents/lecturer/lecturer_courses.html")
 
 
 
@@ -847,8 +875,8 @@ def admin_reports(request):
 
 def logout_view(request):
     logout(request)
-    messages.success(request, "You have been logged out successfully.")
-    return redirect("home") 
+    # messages.success(request, "You have been logged out successfully.")
+    return redirect("portal:home")
 
 # EXTERNAL FILES
 # ---------- EXPORT CSV ----------
@@ -3653,3 +3681,49 @@ def student_fee_payments(request):
             "total_expected": total_expected,
         }
     )
+
+
+# -------------------------ANNOUNCEMENTS ------------------------
+
+@login_required
+def announcements_list(request):
+    user = request.user
+    announcements = Announcement.objects.all().order_by("-created_at")
+
+    # Handle create / update / delete
+    if request.method == "POST":
+        action = request.POST.get("form_action")
+        ann_id = request.POST.get("announcement_id")
+
+        # CREATE
+        if action == "create":
+            Announcement.objects.create(
+                created_by=user,
+                role=user.role,
+                title=request.POST.get("title"),
+                message=request.POST.get("body"),
+                link=request.POST.get("link", "")
+            )
+            messages.success(request, "Announcement created.")
+            return redirect("announcements_list")
+
+        # UPDATE
+        if action == "update":
+            ann = get_object_or_404(Announcement, id=ann_id)
+            ann.title = request.POST.get("title")
+            ann.message = request.POST.get("body")
+            ann.link = request.POST.get("link", "")
+            ann.save()
+            messages.success(request, "Announcement updated.")
+            return redirect("announcements_list")
+
+        # DELETE
+        if action == "delete":
+            ann = get_object_or_404(Announcement, id=ann_id)
+            ann.delete()
+            messages.success(request, "Announcement deleted.")
+            return redirect("announcements_list")
+
+    return render(request, "users/dashboard/contents/admin/announcement_list.html", {
+        "announcements": announcements
+    })

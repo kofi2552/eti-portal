@@ -18,6 +18,9 @@ urlpatterns = [
     path("student/registeration/step-3/", views.registration_step_3, name="registration_step_3"),
     path("student/registeration/step-4/", views.registration_step_4, name="registration_step_4"),
     path("student/registeration/complete/", views.registration_complete, name="registration_complete"),
+    path("student/transcript/", views.student_request_transcript, name="student_request_transcript"),
+    path("student/profile/", views.student_profile, name="student_profile"),
+    path("student/transcript/view", views.student_view_transcript, name="student_view_transcript"),
 
     path("lecturer/", views.lecturer_main, name="lecturer_main"),
     path("lecturer/courses/", views.lecturer_courses, name="lecturer_courses"),
@@ -55,9 +58,9 @@ urlpatterns = [
     path("dean/program-course/duplicate/", views.ajax_duplicate_program_course),
     path("dean/program-course/delete/", views.ajax_delete_program_course, name="ajax_delete_program_course"),
     
-    path("student/transcript/", views.student_request_transcript, name="student_request_transcript"),
-    path("student/transcript/view", views.student_view_transcript, name="student_view_transcript"),
+    
     path("admin/transcripts/", views.admin_transcript_requests, name="admin_transcript_requests"),
+    # path("admin/announcements/", views.announcements_list, name="announcements_list"),
     path("admin/transcripts/generate/<int:req_id>/", views.admin_generate_transcript, name="admin_generate_transcript"),
     path("admin/transcripts/approve/<int:req_id>/", views.admin_approve_transcript, name="admin_approve_transcript"),
     path("admin/transcripts/reject/<int:req_id>/", views.admin_reject_transcript, name="admin_reject_transcript"),
@@ -80,6 +83,7 @@ urlpatterns = [
     path("admin/ajax/program-levels/<int:program_id>/", views.ajax_get_program_levels, name="ajax_program_levels"),
     path("student/fee-payments/", views.student_fee_payments, name="student_fee_payments"),
 
+    path("admin/announcements/", views.announcements_list, name="announcements_list"),
 
     path("logout/", views.logout_view, name="logout"),
 ]

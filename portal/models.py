@@ -58,8 +58,6 @@ class SystemLog(models.Model):
         return f"[{self.category}] {self.message[:50]}"
     
 
-
-
 class SystemLock(models.Model):
     is_locked = models.BooleanField(default=False)
     locked_at = models.DateTimeField(null=True, blank=True)
@@ -85,5 +83,27 @@ class SystemLock(models.Model):
         return "System is LOCKED" if self.is_locked else "System is UNLOCKED"
     
 
+from django.db import models
+from django.conf import settings
+
+class Announcement(models.Model):
+    ROLE_CHOICES = [
+        ("admin", "Admin"),
+        ("lecturer", "Lecturer"),
+        ("dean", "Dean"),
+    ]
+
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES)
+
+    title = models.CharField(max_length=255)
+    message = models.TextField()
+    link = models.URLField(blank=True, null=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"{self.title} ({self.role})"
 
 

@@ -43,16 +43,16 @@
     </div>
     <!-- GPA PROGRESSION BASED ON GRADE POINTS -->
    
-    <div class="w-full mx-auto bg-white p-6 rounded-xl shadow mt-8">
+    <div class="bg-white p-6 rounded-xl shadow mt-8">
    <div class="flex justify-between items-center mb-4">
         <h3 class="text-lg font-semibold">Performance Graph</h3>
 
         <!-- Semester Filter -->
-        <form method="GET" class="flex space-x-3 items-center">
+       <form method="GET" class="flex items-center gap-2 flex-shrink min-w-0">
             <select 
                 name="semester" 
                 id="semesterSelect" 
-                class="border-c rounded-md px-3 py-2 text-xs"
+                class="border-c rounded-md px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-gray-200"
             >
                 {% for s in graph_semesters %}
                 <option value="{{ s.id }}" {% if selected_sem_id == s.id %}selected{% endif %}>
@@ -60,13 +60,13 @@
                 </option>
                 {% endfor %}
             </select>
-            <button class="bg-blue-600 text-white px-4 py-2 rounded text-xs">
+            <button class="bg-blue-600 text-white px-4 py-2 rounded text-xs shrink-0">
                 Load
             </button>
         </form>
     </div>
 
-    <div class="w-full" style="height: 320px;">
+    <div class="chart w-full min-w-0" style="height: 320px;">
         <canvas id="performanceChart"></canvas>
     </div>
    </div>
@@ -144,6 +144,20 @@ document.addEventListener("DOMContentLoaded", function () {
 
 });
 </script>
+
+<style>
+  /* let flex children shrink properly */
+.chart.min-w-0, .chart-wrapper, .w-full.min-w-0 {
+  min-width: 0 !important;
+}
+
+/* ensure canvas respects parent width */
+#performanceChart {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
+</style>
 
 {% endblock %}
 

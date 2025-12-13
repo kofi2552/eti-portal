@@ -1,8 +1,10 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from .decorators import role_required
 from django.contrib.auth.decorators import login_required
 from .models import SystemLock
 from django.contrib import messages
+from .models import Announcement
+
 
 def dashboard_redirect(request):
     """Redirect users to the correct dashboard based on role."""
@@ -62,9 +64,6 @@ def admin_login(request):
     return render(request, "portal/login.html", {"role": "Super Admin"})
 
 
-
-
-
 @login_required
 def toggle_system_lock(request):
     if getattr(request.user, "role", None) != "admin":
@@ -86,3 +85,10 @@ def toggle_system_lock(request):
         return redirect("admin_transition_page")
 
     return redirect("admin_transition_page")
+
+
+
+def home(request):
+    anns = Announcement.objects.filter(role="admin", is_active=True).order_by("-created_at")[:5]
+    return render(request, "portal/home.html", {"announcements": anns})
+

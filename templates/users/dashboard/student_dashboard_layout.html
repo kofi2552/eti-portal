@@ -28,6 +28,22 @@
       .border-c {
         border: 1px solid #b9b9b9 !important;
       }
+
+      /* Hide text when collapsed */
+      .sidebar-collapsed .sidebar-label {
+        display: none;
+      }
+
+      /* Center icons better when collapsed */
+      .sidebar-collapsed nav a,
+      .sidebar-collapsed button {
+        justify-content: center !important;
+      }
+
+      /* remove indent on collapse */
+      .sidebar-collapsed #coursesMenu {
+        margin-left: 0 !important;
+      }
     </style>
   </head>
 
@@ -38,77 +54,89 @@
         id="sidebar"
         class="sidebar-expanded bg-white border-r border-gray-200 transition-all duration-300"
       >
+        <!-- HEADER -->
         <div
-          class="py-4 pl-6 border-b border-gray-200 font-semibold text-lg tracking-wide"
+          class="py-4 pl-6 border-b border-gray-200 font-semibold text-lg tracking-wide flex items-center gap-2"
         >
-          Student Panel
+          <i data-lucide="badge-check" class="w-5 h-5"></i>
+          <span class="sidebar-label">Student Panel</span>
         </div>
 
+        <!-- MENU -->
         <nav class="p-4 space-y-2 text-sm">
+          <!-- Overview -->
           <a
             href="{% url 'student_main' %}"
-            class="block p-2 rounded hover:bg-gray-100"
+            class="flex items-center gap-3 p-2 rounded hover:bg-gray-100"
           >
-            Overview
+            <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+            <span class="sidebar-label">Overview</span>
           </a>
 
-          <!-- COURSES COLLAPSIBLE MENU -->
+          <!-- COURSES COLLAPSIBLE -->
           <div>
             <button
               onclick="toggleCoursesMenu()"
-              class="w-full text-left p-2 rounded hover:bg-gray-100 flex justify-between items-center"
+              class="w-full p-2 rounded hover:bg-gray-100 flex items-center justify-between"
             >
-              <span>Courses</span>
-              <span
-                id="coursesArrow"
-                class="block text-xs"
-                style="font-size: 10px"
-              >
-                ▼
+              <span class="flex items-center gap-3">
+                <i data-lucide="book-open" class="w-5 h-5"></i>
+                <span class="sidebar-label">Courses</span>
               </span>
+              <span id="coursesArrow" class="sidebar-label text-xs">▼</span>
             </button>
 
             <div id="coursesMenu" class="hidden ml-4 mt-2 space-y-1">
               {% for c in student_courses %}
               <a
                 href="{% url 'student_course_details' c.id %}"
-                class="block p-2 rounded hover:bg-gray-100 text-sm"
+                class="flex items-center gap-2 p-2 rounded hover:bg-gray-100 text-sm"
               >
-                {{ c.course_code }}
+                <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                <span class="sidebar-label">{{ c.course_code }}</span>
               </a>
               {% empty %}
-              <span class="text-xs text-gray-500 p-2"
+              <span class="sidebar-label text-xs text-gray-500 p-2"
                 >No courses registered</span
               >
               {% endfor %}
             </div>
           </div>
 
+          <!-- Academics -->
           <a
             href="{% url 'student_academics' %}"
-            class="block p-2 rounded hover:bg-gray-100"
+            class="flex items-center gap-3 p-2 rounded hover:bg-gray-100"
           >
-            Academics
+            <i data-lucide="graduation-cap" class="w-5 h-5"></i>
+            <span class="sidebar-label">Academics</span>
           </a>
 
+          <!-- Registration -->
           <a
             href="{% url 'registration_step_1' %}"
-            class="block p-2 rounded hover:bg-gray-100"
+            class="flex items-center gap-3 p-2 rounded hover:bg-gray-100"
           >
-            Registeration
-          </a>
-          <a
-            href="{% url 'student_view_transcript' %}"
-            class="block p-2 rounded hover:bg-gray-100"
-          >
-            Transcript
+            <i data-lucide="clipboard-list" class="w-5 h-5"></i>
+            <span class="sidebar-label">Registration</span>
           </a>
 
+          <!-- Transcript -->
+          <a
+            href="{% url 'student_view_transcript' %}"
+            class="flex items-center gap-3 p-2 rounded hover:bg-gray-100"
+          >
+            <i data-lucide="file-text" class="w-5 h-5"></i>
+            <span class="sidebar-label">Transcript</span>
+          </a>
+
+          <!-- Fees -->
           <a
             href="{% url 'student_fee_payments' %}"
-            class="block p-2 rounded hover:bg-gray-100"
+            class="flex items-center gap-3 p-2 rounded hover:bg-gray-100"
           >
-            Fee Payments
+            <i data-lucide="wallet" class="w-5 h-5"></i>
+            <span class="sidebar-label">Fee Payments</span>
           </a>
         </nav>
       </aside>
@@ -141,7 +169,8 @@
               </div>
 
               <!-- Name + Arrow -->
-              <div class="hidden md:block text-left" style="width: 120px">
+              <div class="hidden md:block text-left" style="width: 160px">
+                <!-- <div class="w-32 hidden md:block text-left"> -->
                 <div class="w-full text-xs font-semibold text-gray-800">
                   {{ request.user.get_full_name|default:request.user.username }}
                 </div>
@@ -171,7 +200,7 @@
               x-transition
             >
               <a
-                href="#"
+                href="{% url 'student_profile' %}"
                 class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
               >
                 Profile
@@ -211,16 +240,60 @@
           </main>
 
           <!-- RIGHT SIDEBAR -->
+          <!-- RIGHT SIDEBAR (Explainers Panel) -->
           <aside
-            class="w-52 bg-gray-50 border-l border-gray-200 hidden lg:block p-4"
+            class="w-64 bg-gray-50 border-l border-gray-200 hidden lg:block p-4"
           >
-            <h3 class="font-semibold mb-3 text-sm">Notifications</h3>
+            <h3 class="font-semibold mb-3 text-sm">Explainers</h3>
 
-            <ul class="space-y-2 text-sm">
-              <li>Generate Report</li>
-              <li>Underline</li>
-              <li>System Settings</li>
-            </ul>
+            <div class="space-y-4 text-xs text-gray-600 leading-relaxed">
+              <!-- Courses Explainer -->
+              <div class="border-b pb-3">
+                <p class="font-semibold text-gray-800 mb-1">📚 Announcements</p>
+                {% for ann in announcements %}
+                <div class="p-3 bg-yellow-50 border rounded mb-2">
+                  <strong>{{ ann.title }}</strong>
+                  <p>{{ ann.message }}</p>
+                </div>
+                {% endfor %}
+              </div>
+
+              <!-- Academics Explainer -->
+              <div class="border-b pb-3">
+                <p class="font-semibold text-gray-800 mb-1">🎓 Academics</p>
+                <p>
+                  Review your academic records across semesters, including
+                  scores, grades, and GPA history.
+                </p>
+              </div>
+
+              <!-- Registration Explainer -->
+              <div class="border-b pb-3">
+                <p class="font-semibold text-gray-800 mb-1">📝 Registration</p>
+                <p>
+                  Complete your semester registration by confirming fees,
+                  selecting courses, and submitting.
+                </p>
+              </div>
+
+              <!-- Transcript Explainer -->
+              <div class="border-b pb-3">
+                <p class="font-semibold text-gray-800 mb-1">📄 Transcript</p>
+                <p>
+                  Request and view your generated transcript once it has been
+                  approved by the academic office.
+                </p>
+              </div>
+
+              <!-- Fee Payments Explainer -->
+              <div>
+                <p class="font-semibold text-gray-800 mb-1">💰 Fee Payments</p>
+                <p>
+                  View expected fees, payment history, and verification status
+                  for each academic semester.
+                </p>
+              </div>
+            </div>
           </aside>
         </div>
       </div>

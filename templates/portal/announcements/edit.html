@@ -1,0 +1,31 @@
+{% extends "users/dashboard/admin_dashboard_layout.html" %}
+<!-- ---------------------------- -->
+{% block title %}Edit Announcement{% endblock %}
+<!-- ---------------------------- -->
+{% block content %}
+<div class="max-w-xl mx-auto bg-white p-6 shadow rounded">
+  <h1 class="text-xl font-bold mb-4">Edit Announcement</h1>
+
+  <form method="POST">
+    {% csrf_token %}
+
+    <label class="block font-semibold">Title</label>
+    <input
+      name="title"
+      value="{{ ann.title }}"
+      class="border p-2 w-full mb-3"
+      required
+    />
+
+    <label class="block font-semibold">Message</label>
+    <textarea name="message" class="border p-2 w-full mb-3" rows="4" required>
+{{ ann.message }}</textarea
+    >
+
+    <label class="block font-semibold">Optional Link</label>
+    <input name="link" value="{{ ann.link }}" class="border p-2 w-full mb-4" />
+
+    <button class="bg-blue-600 text-white px-4 py-2 rounded">Update</button>
+  </form>
+</div>
+{% endblock %}

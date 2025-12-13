@@ -1,0 +1,57 @@
+{% extends "users/dashboard/admin_dashboard_layout.html" %}
+<!-- --------------------------- -->
+{% block title %}Announcements{% endblock %}
+<!-- --------------------------- -->
+{% block content %}
+<div class="max-w-4xl mx-auto">
+  <div class="flex justify-between items-center mb-4">
+    <h1 class="text-xl font-bold">Announcements</h1>
+    <a
+      href="{% url 'portal:announcement_create' %}"
+      class="px-4 py-2 bg-blue-600 text-white rounded"
+      >Create New</a
+    >
+  </div>
+
+  <div class="space-y-4">
+    {% for ann in announcements %}
+    <div class="p-4 bg-white shadow rounded border">
+      <div class="flex justify-between">
+        <h2 class="font-semibold">{{ ann.title }}</h2>
+        <span class="text-xs text-gray-400"
+          >{{ ann.created_at|date:"Y-m-d" }}</span
+        >
+      </div>
+
+      <p class="text-gray-700 mt-2">{{ ann.message }}</p>
+
+      {% if ann.link %}
+      <a
+        href="{{ ann.link }}"
+        class="text-blue-600 text-sm underline mt-2 block"
+      >
+        Open Link
+      </a>
+      {% endif %}
+
+      <div class="flex space-x-3 mt-3">
+        <a
+          href="{% url 'portal:announcement_edit' ann.id %}"
+          class="text-xs text-blue-600 underline"
+          >Edit</a
+        >
+
+        <a
+          href="{% url 'portal:announcement_delete' ann.id %}"
+          class="text-xs text-red-600 underline"
+          onclick="return confirm('Delete this announcement?')"
+          >Delete</a
+        >
+      </div>
+    </div>
+    {% empty %}
+    <p>No announcements yet.</p>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

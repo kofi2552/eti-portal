@@ -1,4 +1,5 @@
 from academics.models import ProgramCourse, Enrollment, AcademicYear, Semester
+from portal.models import Announcement
 
 def student_sidebar_data(request):
     user = request.user
@@ -68,8 +69,13 @@ def student_sidebar_data(request):
         .order_by("course_code")
     )
 
-    print("Loading student sidebar courses:", courses)
+    announcements = Announcement.objects.filter(
+        role__in=["lecturer", "dean"], is_active=True
+    ).order_by("-created_at")[:5]
 
-    return {"student_courses"}
+    return {
+        "student_courses": courses,
+        "student_announcements": announcements
+            }
 
 
