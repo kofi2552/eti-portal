@@ -5,57 +5,61 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ETI MIS Portal</title>
-
     <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+      rel="icon"
+      href="{% static 'images/favicon.ico' %}"
+      type="image/x-icon"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
       rel="stylesheet"
     />
 
+    <!-- Tailwind MUST be here -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Tailwind config -->
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              brand: {
+                50: "#eef2ff",
+                100: "#e0e7ff",
+                500: "#6366f1",
+                600: "#4f46e5",
+                700: "#4338ca",
+              },
+              success: {
+                500: "#22c55e",
+                600: "#16a34a",
+              },
+            },
+            boxShadow: {
+              card: "0 10px 30px rgba(0,0,0,0.08)",
+            },
+            fontFamily: {
+              sans: ["Inter", "ui-sans-serif", "system-ui"],
+            },
+          },
+        },
+      };
+    </script>
+
+    <!-- Alpine -->
+    <script
+      defer
+      src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"
+    ></script>
+
+    <!-- Lucide -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
     <style>
-      body {
-        margin: 0;
-        font-family: "Segoe UI", sans-serif;
-        background: url("{% static 'images/eti-bg.png' %}") no-repeat center
-          center/cover;
-        height: 100vh;
-        overflow: hidden;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-      }
-
-      .overlay {
-        background: rgba(255, 255, 255, 0.85);
-        width: 100%;
-        height: 100%;
-        overflow-y: auto;
-      }
-
-      .content-wrapper {
-        max-width: 1100px;
-        margin: auto;
-        padding: 50px 20px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        flex-direction: column;
-        height: 100%;
-      }
-
-      /* Left/Right Card Layout */
-      .main-grid {
-        display: grid;
-        grid-template-columns: 1.6fr 1fr;
-        gap: 30px;
-      }
-
       @media (max-width: 900px) {
-        .main-grid {
-          grid-template-columns: 1fr;
-        }
-        .content-wrapper {
-          padding: 50px;
-        }
       }
 
       /* Announcement Card */
@@ -69,91 +73,374 @@
       }
 
       .announcement-item {
-        background: #fafafa;
+        background: #6366f1;
         padding: 15px;
         border-radius: 10px;
         margin-bottom: 15px;
         border-left: 4px solid #0d6efd;
       }
-
-      /* Login Card */
-      .login-card {
-        background: white;
-        border-radius: 12px;
-        padding: 30px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        height: fit-content;
-      }
-
-      .login-card .btn {
-        width: 100%;
-        margin-bottom: 15px;
-        font-size: 15px;
-        padding: 12px;
-        border-radius: 8px;
-      }
     </style>
   </head>
 
   <body>
-    <div class="overlay">
-      <div class="content-wrapper flex items-center flex-col justify-center">
-        <h1 class="text-center fw-bold mb-4">ETI MIS Portal</h1>
+    <div class="min-h-screen flex flex-col relative">
+      {% include "partials/Navbar.html" %}
 
-        <div class="main-grid">
-          <!-- LEFT: ANNOUNCEMENTS -->
-          <div class="announcement-card">
-            <h4 class="fw-bold mb-4">Latest Announcements</h4>
-
-            {% if announcements %} {% for ann in announcements %}
-            <div class="announcement-item">
-              <h5 class="fw-bold mb-1">{{ ann.title }}</h5>
-              <p class="mb-1">{{ ann.message }}</p>
-              <div
-                style="
-                  width: 100%;
-                  display: flex;
-                  justify-content: space-between;
-                  align-items: center;
-                "
-              >
-                {% if ann.link %}
-                <a
-                  href="{{ ann.link }}"
-                  target="_blank"
-                  class="text-primary small"
-                  >Read More →</a
+      <main class="flex-grow flex flex-col">
+        <div
+          class="relative pt-12 pb-20 bg-slate-50 border-b-2 border-slate-200 overflow-hidden"
+        >
+          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div class="lg:grid lg:grid-cols-12 lg:gap-16 items-center">
+              <!-- LEFT CONTENT -->
+              <div class="lg:col-span-6 mb-12 lg:mb-0 text-center lg:text-left">
+                <div
+                  class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border-2 border-slate-200 text-brand-600 font-extrabold uppercase text-xs tracking-wider mb-8 shadow-sm transform -rotate-2 hover:rotate-0 transition-transform cursor-default"
                 >
-                {% endif %}
-                <div class="text-muted small mt-1">
-                  {{ ann.created_at|date:"M d, Y" }}
+                  <i data-lucide="sparkles" class="w-4 h-4 text-yellow-500"></i>
+                  New: Enterprise V1.0
+                </div>
+
+                <h1
+                  class="text-4xl lg:text-6xl font-extrabold text-slate-800 mb-6 leading-tight"
+                >
+                  Welcome to <br />
+                  <span class="text-brand-500">ETI Portal</span>
+                </h1>
+
+                <p
+                  class="text-lg text-slate-500 mb-10 font-medium leading-relaxed max-w-xl mx-auto lg:mx-0"
+                >
+                  Your centralized academic dashboard. Register for courses,
+                  check your GPA, and access learning resources in one place.
+                </p>
+
+                <div
+                  class="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start"
+                >
+                  <a
+                    href="{% url 'portal:auth_portal' %}"
+                    class="bg-brand-500 text-white px-8 py-4 rounded-2xl text-lg font-bold flex items-center justify-center border-b-4 border-brand-700 active:border-b-0 active:translate-y-1 transition-all hover:bg-brand-600"
+                  >
+                    Select Role
+                    <i
+                      data-lucide="arrow-right"
+                      class="ml-2 h-6 w-6 stroke-[3]"
+                    ></i>
+                  </a>
+
+                  <button
+                    class="bg-white text-slate-600 px-8 py-4 rounded-2xl text-lg font-bold border-2 border-slate-300 transition-all flex items-center justify-center cursor-default"
+                  >
+                    Online
+                    <span
+                      class="ml-3 h-2 w-2 rounded-full bg-green-500 animate-ping"
+                    ></span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- RIGHT CONTENT -->
+              <div class="lg:col-span-6">
+                <div
+                  class="relative rounded-3xl bg-white border-2 border-slate-200 shadow-xl overflow-hidden transform rotate-1 hover:rotate-0 transition-transform duration-500"
+                >
+                  <!-- FAKE APP HEADER -->
+                  <div
+                    class="bg-white border-b-2 border-slate-100 px-6 py-4 flex items-center justify-between"
+                  >
+                    <div class="flex items-center gap-3">
+                      <div
+                        class="w-8 h-8 bg-brand-500 rounded-lg flex items-center justify-center text-white text-xs font-extrabold border-b-4 border-brand-700"
+                      >
+                        E
+                      </div>
+                      <span
+                        class="text-slate-700 text-sm font-extrabold uppercase tracking-wide"
+                      >
+                        Student Dashboard
+                      </span>
+                    </div>
+
+                    <div class="flex gap-4">
+                      <div class="relative">
+                        <i
+                          data-lucide="bell"
+                          class="w-6 h-6 text-slate-300 stroke-[3]"
+                        ></i>
+                        <div
+                          class="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-white"
+                        ></div>
+                      </div>
+                      <div
+                        class="w-8 h-8 rounded-full bg-slate-200 border-2 border-slate-300"
+                      ></div>
+                    </div>
+                  </div>
+
+                  <!-- FAKE CONTENT AREA -->
+                  <div class="p-6 bg-slate-50 grid gap-6">
+                    <!-- PROGRESS STATS -->
+                    <div class="grid grid-cols-2 gap-4">
+                      <div
+                        class="bg-white p-4 rounded-2xl border-2 border-slate-200 shadow-sm"
+                      >
+                        <div
+                          class="text-slate-400 text-xs font-extrabold uppercase mb-2"
+                        >
+                          Current GPA
+                        </div>
+                        <div class="text-3xl font-extrabold text-slate-800">
+                          3.8
+                        </div>
+                        <div
+                          class="w-full h-2 bg-slate-100 rounded-full mt-3 overflow-hidden"
+                        >
+                          <div
+                            class="h-full bg-green-500 w-[85%] rounded-full"
+                          ></div>
+                        </div>
+                      </div>
+
+                      <div
+                        class="bg-white p-4 rounded-2xl border-2 border-slate-200 shadow-sm"
+                      >
+                        <div
+                          class="text-slate-400 text-xs font-extrabold uppercase mb-2"
+                        >
+                          Credits
+                        </div>
+                        <div class="text-3xl font-extrabold text-slate-800">
+                          12 / 18
+                        </div>
+                        <div
+                          class="w-full h-2 bg-slate-100 rounded-full mt-3 overflow-hidden"
+                        >
+                          <div
+                            class="h-full bg-brand-500 w-[60%] rounded-full"
+                          ></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- ACTIVE COURSE -->
+                    <div
+                      class="bg-white p-5 rounded-2xl border-2 border-slate-200 shadow-sm flex items-center justify-between"
+                    >
+                      <div class="flex items-center gap-4">
+                        <div
+                          class="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center text-orange-600"
+                        >
+                          <i
+                            data-lucide="book-open"
+                            class="w-6 h-6 stroke-[3]"
+                          ></i>
+                        </div>
+                        <div>
+                          <div class="text-slate-800 font-extrabold text-sm">
+                            Entrepreneurship 101
+                          </div>
+                          <div class="text-slate-400 font-bold text-xs mt-1">
+                            Next class in 2 hours
+                          </div>
+                        </div>
+                      </div>
+
+                      <button
+                        class="bg-brand-500 text-white px-4 py-2 rounded-xl text-xs font-extrabold uppercase border-b-4 border-brand-700 active:border-b-0 active:translate-y-1 transition-all"
+                      >
+                        Join
+                      </button>
+                    </div>
+
+                    <!-- ANNOUNCEMENT -->
+                    <div
+                      class="bg-blue-50 p-4 rounded-2xl border-2 border-blue-100 border-l-4 border-l-blue-400"
+                    >
+                      <div
+                        class="text-blue-800 font-extrabold text-xs uppercase mb-1"
+                      >
+                        Dean's Announcement
+                      </div>
+                      <div class="text-blue-900 font-bold text-sm">
+                        Exam registration closes on Friday.
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-            {% endfor %} {% else %}
-            <p class="text-muted">No announcements available.</p>
-            {% endif %}
-          </div>
-
-          <!-- RIGHT: LOGIN OPTIONS -->
-          <div class="login-card">
-            <h4 class="fw-bold mb-4 text-center">Login Options</h4>
-
-            <a href="{% url 'student_login' %}" class="btn btn-primary"
-              >Student Login</a
-            >
-            <a href="{% url 'lecturer_login' %}" class="btn btn-success"
-              >Lecturer Login</a
-            >
-            <a href="{% url 'dean_login' %}" class="btn btn-danger text-white"
-              >Dean / HOD Login</a
-            >
-            <a href="{% url 'admin_login' %}" class="btn btn-warning"
-              >Admin Login</a
-            >
           </div>
         </div>
-      </div>
+
+        <section class="py-24 bg-white" id="products">
+          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <!-- Header -->
+            <div class="text-center mb-16">
+              <h2 class="text-4xl font-extrabold text-slate-800 mb-4">
+                Choose Your Solution
+              </h2>
+              <p class="text-lg text-slate-500 font-medium max-w-2xl mx-auto">
+                Modular systems designed to work independently or together as a
+                unified academic operating system.
+              </p>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-8">
+              <!-- PRODUCT 1: MIS -->
+              <div
+                class="group bg-white rounded-3xl border-2 border-slate-200 p-8 shadow-card hover:-translate-y-1 transition-all duration-200"
+              >
+                <div class="flex items-start justify-between mb-8">
+                  <div
+                    class="w-20 h-20 bg-brand-500 rounded-2xl flex items-center justify-center border-b-4 border-brand-700"
+                  >
+                    <i data-lucide="school" class="w-10 h-10 text-white"></i>
+                  </div>
+                  <div
+                    class="bg-brand-100 text-brand-700 px-3 py-1 rounded-lg text-xs font-extrabold uppercase tracking-wide"
+                  >
+                    Flagship
+                  </div>
+                </div>
+
+                <h3 class="text-2xl font-extrabold text-slate-800 mb-3">
+                  University MIS Core
+                </h3>
+                <p class="text-slate-500 font-medium mb-8 leading-relaxed">
+                  The central nervous system for your campus. Handles
+                  enrollment, grading, faculty management, and transcripts.
+                </p>
+
+                <div class="space-y-4 mb-8">
+                  <div class="flex items-center text-slate-600 font-bold">
+                    <div
+                      class="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center mr-3"
+                    >
+                      <i
+                        data-lucide="check"
+                        class="w-4 h-4 text-green-600 stroke-[4]"
+                      ></i>
+                    </div>
+                    Unified Student Records
+                  </div>
+
+                  <div class="flex items-center text-slate-600 font-bold">
+                    <div
+                      class="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center mr-3"
+                    >
+                      <i
+                        data-lucide="check"
+                        class="w-4 h-4 text-green-600 stroke-[4]"
+                      ></i>
+                    </div>
+                    Auto-Generated Transcripts
+                  </div>
+
+                  <div class="flex items-center text-slate-600 font-bold">
+                    <div
+                      class="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center mr-3"
+                    >
+                      <i
+                        data-lucide="check"
+                        class="w-4 h-4 text-green-600 stroke-[4]"
+                      ></i>
+                    </div>
+                    Role-Based Access
+                  </div>
+                </div>
+
+                <a
+                  href="{% url 'portal:auth_portal' %}"
+                  class="w-full bg-brand-500 text-white py-4 rounded-xl text-lg font-extrabold border-b-4 border-brand-700 active:border-b-0 active:translate-y-1 transition-all hover:bg-brand-600 text-center block"
+                >
+                  Launch MIS Portal
+                </a>
+              </div>
+
+              <!-- PRODUCT 2: AI -->
+              <div
+                class="group bg-white rounded-3xl border-2 border-slate-200 p-8 shadow-card hover:-translate-y-1 transition-all duration-200"
+              >
+                <div class="flex items-start justify-between mb-8">
+                  <div
+                    class="w-20 h-20 bg-purple-500 rounded-2xl flex items-center justify-center border-b-4 border-purple-700"
+                  >
+                    <i
+                      data-lucide="trending-up"
+                      class="w-10 h-10 text-white"
+                    ></i>
+                  </div>
+                  <div
+                    class="bg-purple-100 text-purple-700 px-3 py-1 rounded-lg text-xs font-extrabold uppercase tracking-wide"
+                  >
+                    New
+                  </div>
+                </div>
+
+                <h3 class="text-2xl font-extrabold text-slate-800 mb-3">
+                  Tudlin AI Insights
+                </h3>
+                <p class="text-slate-500 font-medium mb-8 leading-relaxed">
+                  Predictive modeling for student success. Identify at-risk
+                  students and generate personalized study paths.
+                </p>
+
+                <div class="space-y-4 mb-8">
+                  <div class="flex items-center text-slate-600 font-bold">
+                    <div
+                      class="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center mr-3"
+                    >
+                      <i
+                        data-lucide="check"
+                        class="w-4 h-4 text-purple-600 stroke-[4]"
+                      ></i>
+                    </div>
+                    Retention Forecasting
+                  </div>
+
+                  <div class="flex items-center text-slate-600 font-bold">
+                    <div
+                      class="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center mr-3"
+                    >
+                      <i
+                        data-lucide="check"
+                        class="w-4 h-4 text-purple-600 stroke-[4]"
+                      ></i>
+                    </div>
+                    Study Recommendations
+                  </div>
+
+                  <div class="flex items-center text-slate-600 font-bold">
+                    <div
+                      class="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center mr-3"
+                    >
+                      <i
+                        data-lucide="check"
+                        class="w-4 h-4 text-purple-600 stroke-[4]"
+                      ></i>
+                    </div>
+                    Automated Intervention
+                  </div>
+                </div>
+                <a
+                  href="https://www.tudlin.com"
+                  target="_blank"
+                  class="w-full bg-white border-2 border-slate-200 border-b-4 border-b-slate-300 text-slate-500 font-extrabold uppercase tracking-wide py-4 rounded-xl hover:bg-slate-50 hover:text-slate-600 active:border-b-2 active:translate-y-0.5 transition-all text-center block"
+                >
+                  Check it Out
+                </a>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      {% include "partials/Footer.html" %}
     </div>
+
+    <script>
+      lucide.createIcons();
+    </script>
   </body>
 </html>

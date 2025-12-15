@@ -9,6 +9,7 @@ from django.db import models
 from django.conf import settings
 from django.utils import timezone
 
+
 # Example: Portal-level settings or utilities could go here
 class PortalSettings(models.Model):
     site_name = models.CharField(max_length=100, default="ETI MIS Platform")
@@ -82,9 +83,6 @@ class SystemLock(models.Model):
     def __str__(self):
         return "System is LOCKED" if self.is_locked else "System is UNLOCKED"
     
-
-from django.db import models
-from django.conf import settings
 
 class Announcement(models.Model):
     ROLE_CHOICES = [

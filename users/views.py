@@ -60,10 +60,18 @@ def get_student_active_semester(student):
 
 
 def student_login(request):
+    # ALWAYS define announcements first
+    student_announcements = Announcement.objects.filter(
+        role__in=["dean"],
+        is_active=True
+    ).order_by("-created_at")[:5]
+
     # Check lock BEFORE processing login
     if system_is_locked():
         messages.error(request, "The system is currently locked. Please try again later.")
-        return render(request, "users/student_login.html")
+        return render(request, "users/student_login.html", {
+            "announcements": student_announcements
+        })
 
     if request.method == "POST":
         username = request.POST.get("username")
@@ -79,13 +87,10 @@ def student_login(request):
         log_event(None, "auth", f"Failed student login attempt ({username})")
         messages.error(request, "Invalid student credentials.")
 
-        student_announcements = Announcement.objects.filter(
-            role__in=["dean"], is_active=True
-        ).order_by("-created_at")[:5]
-
     return render(request, "users/student_login.html", {
         "announcements": student_announcements
-})
+    })
+
 
     # return render(request, "users/student_login.html")
 

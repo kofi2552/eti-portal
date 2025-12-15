@@ -1,0 +1,114 @@
+{% load static %}
+<nav
+  x-data="{ isOpen: false }"
+  class="sticky top-0 z-50 w-full bg-white border-b-2 border-slate-200"
+>
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex justify-between h-20 items-center">
+      <!-- LEFT -->
+      <div class="flex items-center gap-4">
+        <!-- Brand -->
+        <a
+          href="{{ '/' }}"
+          class="flex-shrink-0 flex items-center gap-3 cursor-pointer group"
+        >
+          <div
+            class="w-6 h-6 w- rounded-xl flex items-center justify-center text-white font-extrabold text-xl active:translate-y-1 transition-all"
+          >
+            <img
+              src="{% static 'images/TudlinNewLogo.png' %}"
+              class="h-auto w-full object-contain"
+            />
+          </div>
+
+          <span
+            class="font-bold text-xl tracking-tight text-slate-700 group-hover:text-brand-600 transition-colors hidden sm:block"
+          >
+            Tudlin Softwares
+          </span>
+        </a>
+      </div>
+
+      <!-- DESKTOP MENU -->
+      <div class="hidden md:flex items-center space-x-6">
+        <div class="flex space-x-2">
+          <a
+            href="#products"
+            class="text-slate-500 font-bold uppercase tracking-wider text-sm hover:text-brand-500 px-4 py-2 rounded-xl hover:bg-brand-50 transition-colors"
+          >
+            PRODUCTS
+          </a>
+
+          <a
+            href="{{ secondary_link_url|default:'#' }}"
+            class="text-slate-500 font-bold uppercase tracking-wider text-sm hover:text-brand-500 px-4 py-2 rounded-xl hover:bg-brand-50 transition-colors"
+          >
+            COMPANY
+          </a>
+        </div>
+
+        <div class="h-8 w-0.5 bg-slate-200"></div>
+
+        <button
+          class="flex items-center gap-2 text-slate-500 font-bold uppercase tracking-wider text-sm hover:text-brand-500"
+        >
+          <i data-lucide="help-circle" class="w-5 h-5 stroke-[2.5]"></i>
+          Help
+        </button>
+
+        <a
+          href="{% url 'portal:auth_portal' %}"
+          class="px-6 py-2.5 rounded-xl border-2 border-b-4 active:border-b-0 active:translate-y-1 transition-all font-bold uppercase tracking-wider text-sm shadow-sm"
+        >
+          GET STARTED
+        </a>
+      </div>
+
+      <!-- MOBILE TOGGLE -->
+      <div class="flex items-center md:hidden">
+        <button
+          @click="isOpen = !isOpen"
+          class="p-2 rounded-xl text-slate-400 hover:text-brand-500 hover:bg-brand-50 border-2 border-transparent hover:border-brand-100"
+        >
+          <span class="sr-only">Open main menu</span>
+          <i
+            x-show="!isOpen"
+            data-lucide="menu"
+            class="h-7 w-7 stroke-[2.5]"
+          ></i>
+          <i x-show="isOpen" data-lucide="x" class="h-7 w-7 stroke-[2.5]"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MOBILE MENU -->
+  <div
+    x-show="isOpen"
+    x-transition
+    class="md:hidden bg-white border-b-2 border-slate-200"
+  >
+    <div class="px-4 pt-4 pb-6 space-y-2">
+      <a
+        href="{{ primary_link_url|default:'#' }}"
+        class="block px-4 py-3 rounded-xl text-base font-bold text-slate-600 hover:bg-slate-50 hover:text-brand-500 border-2 border-transparent hover:border-slate-100"
+      >
+        PRODUCTS
+      </a>
+
+      <a
+        href="{{ secondary_link_url|default:'#' }}"
+        class="block px-4 py-3 rounded-xl text-base font-bold text-slate-600 hover:bg-slate-50 hover:text-brand-500 border-2 border-transparent hover:border-slate-100"
+      >
+        COMPANY
+      </a>
+
+      <a
+        href="{% url 'portal:auth_portal' %}"
+        class="w-full mt-4 block text-center px-4 py-3 rounded-xl text-sm font-extrabold uppercase text-white border-b-4 active:border-b-0 active:translate-y-1"
+      >
+        GET STARTED
+      </a>
+    </div>
+  </div>
+</nav>
