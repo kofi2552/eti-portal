@@ -82,6 +82,12 @@
       .sidebar-collapsed #coursesMenu {
         margin-left: 0 !important;
       }
+      .shadow-card {
+        --tw-shadow: 0 4px 0 0 #e2e8f0 !important;
+        --tw-shadow-colored: 0 4px 0 0 #e2e8f0 !important;
+        box-shadow: var(#aaaaaa00, 0 0 #0000), var(#aaaaaa00, 0 0 #0000),
+          var(--tw-shadow);
+      }
     </style>
   </head>
 
@@ -90,53 +96,87 @@
       <!-- LEFT SIDEBAR -->
       <aside
         id="sidebar"
-        class="sidebar-expanded bg-white border-r border-gray-200 transition-all duration-300"
+        class="sidebar-expanded bg-white border-r-2 border-slate-200 transition-all duration-300 flex flex-col"
       >
-        <!-- HEADER -->
-        <div
-          class="py-4 pl-6 border-b border-gray-200 font-semibold text-lg tracking-wide flex items-center gap-2"
-        >
-          <i data-lucide="badge-check" class="w-5 h-5"></i>
-          <span class="sidebar-label">Student Panel</span>
+        <!-- BRAND HEADER -->
+        <div class="h-20 flex items-center px-6 border-b-2 border-slate-200">
+          <!-- Brand Icon (never shrinks) -->
+          <div
+            class="w-8 h-8 flex-shrink-0 bg-brand-500 rounded-lg flex items-center justify-center text-white font-extrabold text-sm border-b-4 border-brand-700 mr-3"
+          >
+            E
+          </div>
+
+          <!-- Brand Text -->
+          <span
+            class="sidebar-label font-extrabold text-xl text-slate-700 tracking-tight"
+          >
+            ETI Portal
+          </span>
         </div>
 
-        <!-- MENU -->
-        <nav class="p-4 space-y-2 text-sm">
+        <!-- NAVIGATION -->
+        <nav class="flex-1 flex-shrink-0 overflow-y-auto p-4 text-sm space-y-2">
+          <p
+            class="px-3 text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-2 sidebar-label"
+          >
+            Main Menu
+          </p>
+
           <!-- Overview -->
           <a
             href="{% url 'student_main' %}"
-            class="flex items-center gap-3 p-2 rounded hover:bg-gray-100"
+            class="flex items-center gap-3 p-3 rounded-xl font-medium text-slate-500 hover:bg-slate-100 transition-colors"
           >
-            <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+            <span
+              class="w-6 h-6 flex items-center justify-center flex-shrink-0"
+            >
+              <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+            </span>
             <span class="sidebar-label">Overview</span>
           </a>
 
-          <!-- COURSES COLLAPSIBLE -->
+          <!-- Courses -->
           <div>
             <button
               onclick="toggleCoursesMenu()"
-              class="w-full p-2 rounded hover:bg-gray-100 flex items-center justify-between"
+              class="w-full flex items-center justify-between p-3 rounded-xl font-medium text-slate-500 hover:bg-slate-100 transition-colors"
             >
               <span class="flex items-center gap-3">
-                <i data-lucide="book-open" class="w-5 h-5"></i>
-                <span class="sidebar-label">Courses</span>
+                <span
+                  class="w-6 h-6 flex items-center justify-center flex-shrink-0"
+                >
+                  <i data-lucide="book-open" class="w-5 h-5"></i>
+                </span>
+                <span class="sidebar-label">My Courses</span>
               </span>
-              <span id="coursesArrow" class="sidebar-label text-xs">▼</span>
+
+              <span
+                id="coursesArrow"
+                class="sidebar-label text-xs flex-shrink-0"
+              >
+                ▼
+              </span>
             </button>
 
-            <div id="coursesMenu" class="hidden ml-4 mt-2 space-y-1">
+            <!-- Courses submenu -->
+            <div id="coursesMenu" class="hidden ml-6 mt-2 space-y-1">
               {% for c in student_courses %}
               <a
                 href="{% url 'student_course_details' c.id %}"
-                class="flex items-center gap-2 p-2 rounded hover:bg-gray-100 text-sm"
+                class="flex items-center gap-2 p-2 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors"
               >
-                <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                <span
+                  class="w-5 h-5 flex items-center justify-center flex-shrink-0"
+                >
+                  <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                </span>
                 <span class="sidebar-label">{{ c.course_code }}</span>
               </a>
               {% empty %}
-              <span class="sidebar-label text-xs text-gray-500 p-2"
-                >No courses registered</span
-              >
+              <span class="sidebar-label text-xs text-slate-400 px-3">
+                No courses registered
+              </span>
               {% endfor %}
             </div>
           </div>
@@ -144,112 +184,150 @@
           <!-- Academics -->
           <a
             href="{% url 'student_academics' %}"
-            class="flex items-center gap-3 p-2 rounded hover:bg-gray-100"
+            class="flex items-center gap-3 p-3 rounded-xl font-medium text-slate-500 hover:bg-slate-100 transition-colors"
           >
-            <i data-lucide="graduation-cap" class="w-5 h-5"></i>
+            <span
+              class="w-6 h-6 flex items-center justify-center flex-shrink-0"
+            >
+              <i data-lucide="graduation-cap" class="w-5 h-5"></i>
+            </span>
             <span class="sidebar-label">Academics</span>
           </a>
 
           <!-- Registration -->
           <a
             href="{% url 'registration_step_1' %}"
-            class="flex items-center gap-3 p-2 rounded hover:bg-gray-100"
+            class="flex items-center gap-3 p-3 rounded-xl font-medium text-slate-500 hover:bg-slate-100 transition-colors"
           >
-            <i data-lucide="clipboard-list" class="w-5 h-5"></i>
+            <span
+              class="w-6 h-6 flex items-center justify-center flex-shrink-0"
+            >
+              <i data-lucide="clipboard-list" class="w-5 h-5"></i>
+            </span>
             <span class="sidebar-label">Registration</span>
           </a>
 
           <!-- Transcript -->
           <a
             href="{% url 'student_view_transcript' %}"
-            class="flex items-center gap-3 p-2 rounded hover:bg-gray-100"
+            class="flex items-center gap-3 p-3 rounded-xl font-medium text-slate-500 hover:bg-slate-100 transition-colors"
           >
-            <i data-lucide="file-text" class="w-5 h-5"></i>
+            <span
+              class="w-6 h-6 flex items-center justify-center flex-shrink-0"
+            >
+              <i data-lucide="file-text" class="w-5 h-5"></i>
+            </span>
             <span class="sidebar-label">Transcript</span>
           </a>
 
           <!-- Fees -->
           <a
             href="{% url 'student_fee_payments' %}"
-            class="flex items-center gap-3 p-2 rounded hover:bg-gray-100"
+            class="flex items-center gap-3 p-3 rounded-xl font-medium text-slate-500 hover:bg-slate-100 transition-colors"
           >
-            <i data-lucide="wallet" class="w-5 h-5"></i>
+            <span
+              class="w-6 h-6 flex items-center justify-center flex-shrink-0"
+            >
+              <i data-lucide="credit-card" class="w-5 h-5"></i>
+            </span>
             <span class="sidebar-label">Fee Payments</span>
           </a>
         </nav>
+
+        <!-- FOOTER -->
+        <div class="p-4 border-t-2 border-slate-200 bg-slate-50">
+          <a
+            href="{% url 'logout' %}"
+            class="flex items-center gap-3 p-3 rounded-xl text-slate-500 hover:bg-red-50 hover:text-red-600 font-medium transition-colors"
+          >
+            <span
+              class="w-6 h-6 flex items-center justify-center flex-shrink-0"
+            >
+              <i data-lucide="log-out" class="w-5 h-5"></i>
+            </span>
+            <span class="sidebar-label">Sign Out</span>
+          </a>
+        </div>
       </aside>
 
       <!-- MAIN CONTENT WRAPPER -->
       <div class="flex-1 flex flex-col min-h-0">
         <!-- TOP NAVBAR -->
         <header
-          class="relative bg-white border-b border-gray-200 flex items-center justify-between px-6 py-4 nav-h"
+          class="h-20 bg-white border-b-2 border-slate-200 flex items-center justify-between px-6 md:px-8"
         >
+          <!-- LEFT -->
           <div class="flex items-center gap-4">
-            <button onclick="toggleSidebar()" class="text-gray-600 text-xl">
-              ☰
-            </button>
-          </div>
-          <!-- USER PROFILE DROPDOWN -->
-          <div x-data="{ open: false }" class="nav-h">
             <button
-              @click="open = !open"
-              class="flex items-center space-x-3 focus:outline-none m-0 p-0"
+              onclick="toggleSidebar()"
+              class="p-2 rounded-xl text-slate-500 hover:bg-slate-100"
             >
-              <!-- Avatar Circle -->
-              <div
-                class="bg-blue-600 text-white flex items-center justify-center rounded-full text-lg font-bold uppercase shadow"
-                style="width: 28px; height: 28px; border-radius: 20px"
-              >
-                <span class="text-xs"
-                  >{{request.user.first_name|default:request.user.username|slice:":1"}}</span
-                >
-              </div>
-
-              <!-- Name + Arrow -->
-              <div class="hidden md:block text-left" style="width: 160px">
-                <!-- <div class="w-32 hidden md:block text-left"> -->
-                <div class="w-full text-xs font-semibold text-gray-800">
-                  {{ request.user.get_full_name|default:request.user.username }}
-                </div>
-                <div class="text-gray-500" style="font-size: 8px">Student</div>
-              </div>
-
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="text-gray-600 cursor-pointer"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                style="width: 16px; height: 20px"
-              >
-                <polyline points="6 9 12 15 18 9"></polyline>
-              </svg>
+              <i data-lucide="menu" class="w-6 h-6"></i>
             </button>
 
-            <!-- Dropdown Menu -->
             <div
-              x-show="open"
-              @click.away="open = false"
-              class="absolute right-0 mr-2 mt-4 w-48 bg-white border border-gray-200 rounded-lg shadow-md py-2 z-50"
-              x-transition
+              class="hidden md:flex items-center gap-2 text-sm font-bold text-slate-400"
             >
-              <a
-                href="{% url 'student_profile' %}"
-                class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-              >
-                Profile
-              </a>
+              <i data-lucide="chevron-right" class="w-4 h-4"></i>
+              <span>Student Portal</span>
+              <!-- <span class="text-slate-800">Dashboard</span> -->
+            </div>
+          </div>
 
-              <a
-                href="{% url 'logout' %}"
-                class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+          <!-- RIGHT -->
+          <div class="flex items-center gap-4">
+            <!-- Search -->
+            <div class="relative hidden sm:block">
+              <i
+                data-lucide="search"
+                class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"
+              ></i>
+              <input
+                type="text"
+                placeholder="Search..."
+                class="pl-9 pr-4 py-2 bg-slate-100 rounded-xl text-sm font-bold text-slate-700 focus:bg-white focus:border-brand-300 border-2 border-transparent outline-none transition-all w-64"
+              />
+            </div>
+
+            <!-- Notifications -->
+            <button
+              class="relative p-2 rounded-xl text-slate-400 hover:bg-brand-50 hover:text-brand-500"
+            >
+              <i data-lucide="bell" class="w-6 h-6"></i>
+              <span
+                class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-white"
+              ></span>
+            </button>
+
+            <!-- Profile Dropdown -->
+            <div x-data="{ open: false }" class="relative">
+              <button @click="open = !open" class="flex items-center gap-2">
+                <div
+                  class="w-10 h-10 bg-brand-200 rounded-xl border-2 border-brand-300 flex items-center justify-center font-extrabold text-brand-600"
+                >
+                  {{request.user.first_name|default:request.user.username|slice:":1"}}
+                </div>
+              </button>
+
+              <div
+                x-show="open"
+                @click.away="open=false"
+                class="absolute right-0 mt-3 w-48 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden"
+                x-transition
               >
-                Logout
-              </a>
+                <a
+                  href="{% url 'student_profile' %}"
+                  class="block px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50"
+                >
+                  Profile
+                </a>
+                <a
+                  href="{% url 'logout' %}"
+                  class="block px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50"
+                >
+                  Logout
+                </a>
+              </div>
             </div>
           </div>
         </header>
@@ -280,16 +358,16 @@
           <!-- RIGHT SIDEBAR -->
           <!-- RIGHT SIDEBAR (Explainers Panel) -->
           <aside
-            class="w-64 bg-gray-50 border-l border-gray-200 hidden lg:block p-4"
+            class="w-48 bg-gray-50 border-l border-gray-200 hidden lg:block p-4"
           >
-            <h3 class="font-semibold mb-3 text-sm">Explainers</h3>
+            <h3 class="font-semibold text-sm">Guide</h3>
 
             <div class="space-y-4 text-xs text-gray-600 leading-relaxed">
               <!-- Courses Explainer -->
               <div class="border-b pb-3">
-                <p class="font-semibold text-gray-800 mb-1">📚 Announcements</p>
+                <!-- <p class="font-semibold text-gray-800 mb-1">📚 Announcements</p> -->
                 {% for ann in announcements %}
-                <div class="p-3 bg-yellow-50 border rounded mb-2">
+                <div class="text-sm p-3 bg-yellow-50 border rounded mb-2">
                   <strong>{{ ann.title }}</strong>
                   <p>{{ ann.message }}</p>
                 </div>
@@ -298,7 +376,7 @@
 
               <!-- Academics Explainer -->
               <div class="border-b pb-3">
-                <p class="font-semibold text-gray-800 mb-1">🎓 Academics</p>
+                <p class="font-semibold text-gray-800 mb-1">Academics</p>
                 <p>
                   Review your academic records across semesters, including
                   scores, grades, and GPA history.
@@ -307,7 +385,7 @@
 
               <!-- Registration Explainer -->
               <div class="border-b pb-3">
-                <p class="font-semibold text-gray-800 mb-1">📝 Registration</p>
+                <p class="font-semibold text-gray-800 mb-1">Registration</p>
                 <p>
                   Complete your semester registration by confirming fees,
                   selecting courses, and submitting.
@@ -316,7 +394,7 @@
 
               <!-- Transcript Explainer -->
               <div class="border-b pb-3">
-                <p class="font-semibold text-gray-800 mb-1">📄 Transcript</p>
+                <p class="font-semibold text-gray-800 mb-1">Transcript</p>
                 <p>
                   Request and view your generated transcript once it has been
                   approved by the academic office.
@@ -325,7 +403,7 @@
 
               <!-- Fee Payments Explainer -->
               <div>
-                <p class="font-semibold text-gray-800 mb-1">💰 Fee Payments</p>
+                <p class="font-semibold text-gray-800 mb-1">Fee Payments</p>
                 <p>
                   View expected fees, payment history, and verification status
                   for each academic semester.

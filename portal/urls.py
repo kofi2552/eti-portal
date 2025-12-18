@@ -16,6 +16,6 @@ urlpatterns = [
     path('login/dean/', views.dean_login, name='dean_login'),
     path('login/admin/', views.admin_login, name='admin_login'),
     path('users/admin/system-lock', views.toggle_system_lock, name='toggle_system_lock'),
-    path('auth/', views.auth_portal, name='auth_portal'),
+    path('accounts/login/', views.auth_portal, name='auth_portal'),
     path('', views.home, name='home'),
 ]

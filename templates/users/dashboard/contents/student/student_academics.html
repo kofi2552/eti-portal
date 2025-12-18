@@ -3,169 +3,211 @@
 
 {% block content %}
 
-<div class="max-w-6xl mx-auto px-4 py-8 space-y-6">
+<div class="max-w-6xl mx-auto px-4 py-8 space-y-10 animate-in fade-in duration-500">
 
   <!-- ================= HEADER AREA ================= -->
-  <div class="w-full flex items-center justify-between">
-      <div class="w-full">
+  <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
 
-          <div class="flex items-center gap-4">
-              <h1 class="text-2xl font-bold text-gray-800">Academic Record</h1>
+    <div>
+      <h1 class="text-3xl font-extrabold text-slate-800">
+        Academic Results
+      </h1>
+      <p class="text-slate-500 font-medium text-sm mt-1">
+        Breakdown of your courses, scores and grades
+      </p>
+    </div>
 
-              <!-- Academic Year Switcher -->
-              <form method="GET" class="flex items-center space-x-2">
-                  <!-- <label class="text-sm text-gray-600"></label> -->
-                  <select name="year" id="yearSelect" class="border-c rounded-md px-2 py-2 text-xs">
-                    {% for y in all_years %}
-                    <option value="{{ y.id }}" 
-                        {% if selected_year_id|stringformat:"s" == y.id|stringformat:"s" %}
-                            selected
-                        {% endif %}
-                    >
-                        {{ y.name }}
-                    </option>
-                    {% endfor %}
-                </select>
-              </form>
-          </div>
+    <!-- Academic Year Switcher (UNCHANGED FUNCTIONALITY) -->
+    <form method="GET" class="flex items-center gap-2">
+      <label class="text-xs font-extrabold uppercase text-slate-400">
+        Academic Year
+      </label>
+      <select
+        name="year"
+        id="yearSelect"
+        class="border-2 border-slate-200 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 bg-white focus:outline-none focus:border-brand-500"
+      >
+        {% for y in all_years %}
+        <option
+          value="{{ y.id }}"
+          {% if selected_year_id|stringformat:"s" == y.id|stringformat:"s" %}
+            selected
+          {% endif %}
+        >
+          {{ y.name }}
+        </option>
+        {% endfor %}
+      </select>
+    </form>
+  </div>
 
-          <div class="w-full flex items-center justify-between">
-
-            <!-- Show selected academic year -->
-            <p class="text-sm text-gray-500 mt-2">
-                Current Academic Year breakdown of your courses, scores and grades: 
-                <strong class="text-xs">{{ selected_year.name }}</strong>
-            </p>
-  
-            <!-- CGPA Display -->
-            <div class="flex justify-between items-center mt-1">
-                <div class="flex items-center space-x-4">
-                    <div class="flex items-center gap-2 text-right">
-                        <div class="text-xs text-gray-500">Current CGPA</div>
-                        <div class="text-3xl font-extrabold text-indigo-700">
-                            {% if cgpa %}{{ cgpa }}{% else %}—{% endif %}
-                        </div>
-                    </div>
-                </div>
-            </div>
-          </div>
-
+  <!-- ================= CGPA SUMMARY ================= -->
+  <div class="flex items-center justify-between bg-white rounded-3xl border-2 border-slate-200 p-6 shadow-card">
+    <div>
+      <div class="text-xs font-extrabold uppercase text-slate-400 mb-1">
+        Current CGPA
       </div>
+      <div class="text-3xl font-extrabold text-brand-600">
+        {% if cgpa %}{{ cgpa }}{% else %}—{% endif %}
+      </div>
+    </div>
+    <div class="text-slate-400 text-sm font-medium">
+      {{ selected_year.name }}
+    </div>
   </div>
 
-  <!-- ================= NO DATA MESSAGE ================= -->
+  <!-- ================= NO DATA ================= -->
   {% if not semesters %}
-  <div class="bg-white border border-gray-200 rounded-lg p-6 text-center text-gray-600">
-      No assessments found for academic year <strong>{{ selected_year.name }}</strong>.
-  </div>
+    <div class="bg-white rounded-3xl border-2 border-slate-200 p-8 text-center text-slate-500 font-medium">
+      No academic records found for
+      <span class="font-bold text-slate-700">
+        {{ selected_year.name }}
+      </span>.
+    </div>
   {% else %}
 
-  <!-- ================= SEMESTER CARDS ================= -->
-  <div class="grid gap-6 md:grid-cols-1">
+  <!-- ================= SEMESTER ACCORDION ================= -->
+  <div class="space-y-6">
 
-      {% for sem_key, data in semesters.items %}
-      {% with sem=data.semester %}
+    {% for sem_key, data in semesters.items %}
+    {% with sem=data.semester %}
 
-      <article class="bg-white border border-gray-200 rounded-lg shadow-sm">
+    <article class="bg-white rounded-3xl border-2 border-slate-200 overflow-hidden">
 
-          <!-- COLLAPSIBLE HEADER -->
-          <header
-              class="px-5 py-4 flex items-center justify-between cursor-pointer semester-toggle border-b border-gray-200"
-              data-target="sem-{{ sem.id }}"
-          >
-              <div class="flex items-center gap-3">
-                  <div class="text-sm text-gray-500">{{ sem.academic_year.name }}</div>
-                  <div class="text-lg font-semibold text-gray-800">{{ sem.name }}</div>
-              </div>
+      <!-- ===== ACCORDION HEADER ===== -->
+      <header
+        class="px-6 py-5 flex items-center justify-between cursor-pointer bg-slate-50 border-b-2 border-slate-200 semester-toggle"
+        data-target="sem-{{ sem.id }}"
+      >
+        <div>
+          <h2 class="text-lg font-extrabold text-slate-800">
+            {{ sem.name }}
+          </h2>
+          <p class="text-sm font-bold text-slate-400">
+            {{ sem.academic_year.name }}
+          </p>
+        </div>
 
-              <div class="flex items-center gap-2 text-right">
-                  <div class="text-xs text-gray-500">Semester GPA</div>
-                  <div class="text-lg font-bold text-indigo-600">
-                      {{ data.gpa|default:"—" }}
-                  </div>
-              </div>
-          </header>
+        <div class="text-right">
+          <div class="text-xs font-extrabold uppercase text-slate-400">
+            Semester GPA
+          </div>
+          <div class="text-xl font-extrabold text-brand-600">
+            {{ data.gpa|default:"—" }}
+          </div>
+        </div>
+      </header>
 
-          <!-- COLLAPSIBLE CONTENT -->
-          <div id="sem-{{ sem.id }}" class="hidden px-5 pb-5">
-              <div class="overflow-x-auto">
-                  <table class="w-full text-sm table-auto">
-                      <thead class="bg-gray-100 py-1">
-                          <tr class="text-left text-xs text-gray-600">
-                              <th class="px-3 py-2">Course</th>
-                              <th class="px-3 py-2">Title</th>
-                              <th class="px-3 py-2">Score</th>
-                              <th class="px-3 py-2">Grade</th>
-                              <th class="px-3 py-2">Recorded</th>
-                              <th class="px-3 py-2">Lecturer</th>
-                          </tr>
-                      </thead>
+      <!-- ===== ACCORDION BODY (UNCHANGED STRUCTURE) ===== -->
+      <div id="sem-{{ sem.id }}" class="hidden px-6 pb-6">
 
-                      <tbody class="divide-y divide-gray-100">
-                          {% for a in data.courses %}
-                          <tr>
-                              <td class="px-3 py-3 font-medium text-gray-800">
-                                  {{ a.course.course_code }}
-                              </td>
-                              <td class="px-3 py-3 text-gray-700">
-                                  {{ a.course.title }}
-                              </td>
-                              <td class="px-3 py-3 font-semibold">
-                                  {{ a.score }}
-                              </td>
-                              <td class="px-3 py-3">
-                                  <span class="px-2 py-1 rounded-md text-xs font-semibold bg-gray-100 text-gray-800">
-                                      {{ a.grade }}
-                                  </span>
-                              </td>
-                              <td class="px-3 py-3 text-gray-500 text-xs">
-                                  {{ a.date_recorded|date:"Y-m-d" }}
-                              </td>
-                              <td class="px-3 py-3 text-gray-600 text-sm">
-                                  {% if a.recorded_by %}
-                                      {{ a.recorded_by.get_full_name }}
-                                  {% else %}
-                                      —
-                                  {% endif %}
-                              </td>
-                          </tr>
-                          {% empty %}
-                          <tr>
-                              <td colspan="6" class="px-3 py-4 text-center text-gray-500">
-                                  No course records for this semester.
-                              </td>
-                          </tr>
-                          {% endfor %}
-                      </tbody>
-                  </table>
-              </div>
+        <div class="overflow-x-auto mt-4">
+        <table class="w-full table-fixed text-sm">
+  <!-- COLUMN WIDTH CONTROL -->
+  <colgroup>
+    <col class="w-[14%]" />  <!-- Course -->
+    <col class="w-[28%]" />  <!-- Title -->
+    <col class="w-[10%]" />  <!-- Score -->
+    <col class="w-[10%]" />  <!-- Grade -->
+    <col class="w-[14%]" />  <!-- Recorded -->
+    <col class="w-[24%]" />  <!-- Lecturer -->
+  </colgroup>
 
-              <!-- FOOTER -->
-              <div class="mt-4 flex justify-end items-center">
-                  <div class="text-xs text-gray-500 mr-3">
-                      Courses:
-                      <span class="font-medium text-gray-700">
-                          {{ data.courses|length }}
-                      </span>
-                  </div>
+  <thead>
+    <tr class="border-b-2 border-slate-100 text-left">
+      <th class="pb-3 text-xs font-extrabold uppercase tracking-wider text-slate-400">
+        Course
+      </th>
+      <th class="pb-3 text-xs font-extrabold uppercase tracking-wider text-slate-400">
+        Title
+      </th>
+      <th class="pb-3 text-xs font-extrabold uppercase tracking-wider text-slate-400">
+        Score
+      </th>
+      <th class="pb-3 text-xs font-extrabold uppercase tracking-wider text-slate-400">
+        Grade
+      </th>
+      <th class="pb-3 text-xs font-extrabold uppercase tracking-wider text-slate-400">
+        Recorded
+      </th>
+      <th class="pb-3 text-xs font-extrabold uppercase tracking-wider text-slate-400">
+        Lecturer
+      </th>
+    </tr>
+  </thead>
 
-                  <button
-                      onclick="toggleCollapse('sem-{{ sem.id }}')"
-                      class="text-sm text-indigo-600 hover:underline"
-                  >
-                      Close
-                  </button>
-              </div>
+  <tbody class="divide-y divide-slate-100 text-slate-700 font-medium">
+    {% for a in data.courses %}
+    <tr class="hover:bg-slate-50 transition-colors">
+      <td class="py-3 font-extrabold text-slate-800">
+        {{ a.course.course_code }}
+      </td>
+
+      <td class="py-3 break-words">
+        {{ a.course.title }}
+      </td>
+
+      <td class="py-3 font-semibold">
+        {{ a.score }}
+      </td>
+
+      <td class="py-3">
+        <span class="px-2 py-1 rounded-lg text-xs font-extrabold bg-slate-100 text-slate-700">
+          {{ a.grade }}
+        </span>
+      </td>
+
+      <td class="py-3 text-xs text-slate-400">
+        {{ a.date_recorded|date:"Y-m-d" }}
+      </td>
+
+      <td class="py-3 text-sm text-slate-600 break-words">
+        {% if a.recorded_by %}
+          {{ a.recorded_by.get_full_name }}
+        {% else %}
+          —
+        {% endif %}
+      </td>
+    </tr>
+    {% empty %}
+    <tr>
+      <td colspan="6" class="py-6 text-center text-slate-400">
+        No course records for this semester.
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+        </div>
+
+        <!-- ===== FOOTER ===== -->
+        <div class="mt-5 flex items-center justify-between">
+          <div class="text-xs font-bold text-slate-400">
+            Courses:
+            <span class="text-slate-700">
+              {{ data.courses|length }}
+            </span>
           </div>
 
-      </article>
+          <button
+            onclick="toggleCollapse('sem-{{ sem.id }}')"
+            class="text-sm font-bold text-brand-600 hover:underline"
+          >
+            Close
+          </button>
+        </div>
 
-      {% endwith %}
-      {% endfor %}
+      </div>
+    </article>
+
+    {% endwith %}
+    {% endfor %}
   </div>
 
   {% endif %}
 </div>
+
 
 <!-- PRINT BUTTON -->
 <div class="flex justify-end p-6">

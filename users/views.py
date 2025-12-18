@@ -30,6 +30,7 @@ from portal.utils import generate_transcript_json
 from django.http import JsonResponse
 from django.db import  IntegrityError
 from portal.models import SystemLock, Announcement
+from django.db.models import Sum, F, DecimalField, ExpressionWrapper
 
 
 # Example assumes your User model has a 'role' field with values:
@@ -203,7 +204,9 @@ def admin_logs(request):
 def student_dashboard(request):
     if request.user.role != "student":
         return redirect("student_login")
-    return render(request, "users/dashboard/student_dashboard_layout.html")
+    
+    anns = Announcement.objects.filter(role="admin", is_active=True).order_by("-created_at")[:5]
+    return render(request, "users/dashboard/student_dashboard_layout.html", {"announcements": anns})
 
 @login_required(login_url='lecturer_login')
 def lecturer_dashboard(request):
@@ -569,7 +572,6 @@ def student_profile(request):
 def student_main(request):
     user = request.user
 
-
     if user.role != "student":
         messages.error(request, "Access denied.")
         return redirect("home")
@@ -596,7 +598,7 @@ def student_main(request):
         ).first()
 
     # ---------------------------
-    # ENROLLMENT CHECK (single truth)
+    # ENROLLMENT CHECK (single source of truth)
     # ---------------------------
     enrollment = None
     if active_semester and current_level:
@@ -609,13 +611,9 @@ def student_main(request):
 
     registered = enrollment is not None
 
-    # ---------------------------
-    # Enrollment-dependent tiles
-    # ---------------------------
-    if registered:
-        registered_semester_name = active_semester.name
-    else:
-        registered_semester_name = "No registration"
+    registered_semester_name = (
+        active_semester.name if registered else "No registration"
+    )
 
     # ---------------------------
     # ENROLLED COURSES
@@ -626,13 +624,12 @@ def student_main(request):
             academic_year=active_year,
             semester=active_semester
         ).first()
-
         enrolled_courses = reg.courses.count() if reg else 0
     else:
         enrolled_courses = 0
 
     # ---------------------------
-    # GPA (all assessments)
+    # GPA + TOTAL CREDITS (ALL-TIME)
     # ---------------------------
     grade_point_map = {
         "A": 4.0, "A-": 3.7,
@@ -642,8 +639,14 @@ def student_main(request):
         "F": 0.0
     }
 
-    assessments = Assessment.objects.filter(student=user).select_related("course")
-    total_points, total_credits = 0, 0
+    assessments = (
+        Assessment.objects
+        .filter(student=user)
+        .select_related("course")
+    )
+
+    total_points = 0
+    total_credits = 0
 
     for a in assessments:
         points = grade_point_map.get(a.grade, 0)
@@ -651,13 +654,28 @@ def student_main(request):
         total_points += points * credits
         total_credits += credits
 
-    gpa = round(total_points / total_credits, 2) if total_credits else None
+    current_gpa = round(total_points / total_credits, 2) if total_credits else None
 
-    # =============================================================
-    # ⭐⭐ UNIFIED GRAPH DATA — independent from registration ⭐⭐
-    # =============================================================
+    # ---------------------------
+    # FEE BALANCE (ACTIVE SEMESTER)
+    # ---------------------------
+    fee_aggregation = Payment.objects.filter(
+        student=user,
+        is_verified=True
+    ).aggregate(
+        total_balance=Sum(
+            ExpressionWrapper(
+                F("amount_expected") - F("amount_paid"),
+                output_field=DecimalField(max_digits=10, decimal_places=2)
+            )
+        )
+    )
 
-    # All semesters with assessments
+    fee_balance = fee_aggregation["total_balance"] or 0
+
+    # ---------------------------
+    # GRAPH DATA (UNCHANGED)
+    # ---------------------------
     graph_semesters = (
         Semester.objects.filter(
             id__in=Assessment.objects.filter(student=user)
@@ -667,7 +685,6 @@ def student_main(request):
         .order_by("start_date")
     )
 
-    # Selected semester
     selected_sem_id = request.GET.get("semester")
     if selected_sem_id:
         selected_graph_semester = graph_semesters.filter(id=selected_sem_id).first()
@@ -675,37 +692,47 @@ def student_main(request):
         selected_graph_semester = graph_semesters.last() if graph_semesters else None
         selected_sem_id = selected_graph_semester.id if selected_graph_semester else None
 
-    # Graph data arrays
-    course_labels, grade_points = [], []
+    course_labels = []
+    grade_points = []
 
     if selected_graph_semester:
-        sem_assessments = Assessment.objects.filter(
-            student=user,
-            semester=selected_graph_semester
-        ).select_related("course").order_by("course__course_code")
+        sem_assessments = (
+            Assessment.objects
+            .filter(student=user, semester=selected_graph_semester)
+            .select_related("course")
+            .order_by("course__course_code")
+        )
 
         for a in sem_assessments:
-            code = getattr(a.course, "course_code", None) or getattr(a.course, "code", "")
+            code = getattr(a.course, "course_code", "") or getattr(a.course, "code", "")
             course_labels.append(code)
             grade_points.append(grade_point_map.get(a.grade, 0))
 
     # ---------------------------
     # FINAL CONTEXT
     # ---------------------------
-       
+    return render(
+        request,
+        "users/dashboard/contents/student/student_main.html",
+        {
+            # React-style stats
+            "current_gpa": current_gpa,
+            "total_credits": total_credits,
+            "max_credits": 120,  # optional / program-based later
+            "fee_balance": fee_balance,
 
-    return render(request, "users/dashboard/contents/student/student_main.html", {
-        "enrolled_courses": enrolled_courses,
-        "gpa": gpa,
-        "semester_number": registered_semester_name,
-        "level": current_level,
+            # Existing tiles
+            "enrolled_courses": enrolled_courses,
+            "semester_number": registered_semester_name,
+            "level": current_level,
 
-        # Graph-specific data (ONLY these)
-        "graph_semesters": graph_semesters,
-        "selected_sem_id": selected_sem_id,
-        "course_labels": json.dumps(course_labels),
-        "grade_points": json.dumps(grade_points),
-    })
+            # Graph data
+            "graph_semesters": graph_semesters,
+            "selected_sem_id": selected_sem_id,
+            "course_labels": json.dumps(course_labels),
+            "grade_points": json.dumps(grade_points),
+        }
+    )
 
 
 
@@ -734,6 +761,8 @@ def student_course_details(request, course_id):
         id=course_id
     )
 
+    lecturers = course.assigned_lecturers.all()
+
     # fetch resources for this course
     resources = (
         Resource.objects
@@ -747,7 +776,7 @@ def student_course_details(request, course_id):
         {
             "course": course,
             "resources": resources,
-            "lecturer": course.assigned_lecturers.first(),
+            "lecturers": lecturers,
             "registration": registration
         }
     )
@@ -763,10 +792,35 @@ def register_semester(request):
 def lecturer_main(request):
     return render(request, "users/dashboard/contents/lecturer/lecturer_main.html")
 
+# @login_required
+# def lecturer_courses(request):
+#     return render(request, "users/dashboard/contents/lecturer/lecturer_courses.html")
+
+
 @login_required
 def lecturer_courses(request):
-    return render(request, "users/dashboard/contents/lecturer/lecturer_courses.html")
 
+    if getattr(request.user, "role", None) not in ["lecturer", "admin"]:
+        messages.error(request, "Access denied.")
+        return redirect("home")
+
+    user = request.user
+
+    # BEST WAY: Use the reverse relation
+    courses = (
+        user.program_courses_taught
+        .select_related("program", "level", "semester", "semester__academic_year")
+        .filter(is_active=True)
+        .order_by("program__name", "level__order", "course_code")
+    )
+
+    # print("Courses taught:", courses)
+
+    return render(
+        request,
+        "users/dashboard/contents/lecturer/lecturer_courses.html",
+        {"courses": courses}
+    )
 
 
 @login_required
@@ -776,6 +830,7 @@ def course_detail(request, course_id):
     Only admin or assigned lecturer may add/delete resources.
     All users can view.
     """
+    # print("course id: ", course_id)
     course = get_object_or_404(ProgramCourse.objects.select_related("program", "semester"), id=course_id)
     user = request.user
 
@@ -803,10 +858,15 @@ def course_detail(request, course_id):
             # attach current user if lecturer; admin may leave lecturer blank
             if getattr(user, "role", None) == "lecturer":
                 resource.lecturer = user
+
+            if not resource.semester and course.semester_id:
+                resource.semester = course.semester
+
             resource.save()
             messages.success(request, "Resource added successfully.")
             return redirect("course_detail", course_id=course_id)
         else:
+            print("FORM ERRORS:", form.errors)
             messages.error(request, "Please fix the errors below.")
     else:
         # default form
@@ -877,7 +937,6 @@ def admin_reports(request):
     return render(request, "users/dashboard/contents/admin/admin_reports.html")
 
 # logout
-
 def logout_view(request):
     logout(request)
     # messages.success(request, "You have been logged out successfully.")
@@ -1159,15 +1218,6 @@ def admin_manage_programs(request):
         messages.success(request, f"Program '{program.name}' updated successfully.")
         return redirect("admin_manage_programs")
 
-    
-
-        # DELETE DEPARTMENT
-    if request.method == "POST" and request.POST.get("delete_department"):
-        dept_id = request.POST.get("dept_id")
-        department = get_object_or_404(Department, id=dept_id)
-        department.delete()
-        messages.success(request, "Department deleted successfully.")
-        return redirect("admin_manage_programs")
 
     # DELETE PROGRAM
     if request.method == "POST" and request.POST.get("delete_program"):
@@ -1180,6 +1230,10 @@ def admin_manage_programs(request):
     # Pass all departments and programs
     departments = Department.objects.all().order_by("name")
     programs = Program.objects.all().order_by("name")
+
+    for p in programs:
+        p.total_semesters = p.semesters_per_level * p.duration_years
+
 
     return render(request, "users/dashboard/contents/admin/admin_manage_programs.html", {
         "departments": departments,
@@ -1300,7 +1354,7 @@ def student_enrollment(request):
                 student.is_fee_paid = True
                 student.program = program
                 student.department = department
-                student.current_level = level   # 🔥 NEW required field
+                student.level = level  
 
                 # ---------------------------
                 # 3. Generate ID + PIN (ONLY for first-time students)
@@ -1483,7 +1537,6 @@ def generate_payment_pdf(request, payment_id):
     p.showPage()
     p.save()
     return response
-
 
 
 # DEAN SECTION ------------------------------
@@ -1880,13 +1933,11 @@ def ajax_delete_program_course(request):
 
 
 
-
-
 @login_required
 def admin_school_setup(request):
     if request.user.role != "admin":
         messages.error(request, "Access denied.")
-        return redirect("home")
+        return redirect("portal:home")
 
     school = School.objects.first()
     grades = Grade.objects.order_by("-min_score")
@@ -1926,7 +1977,7 @@ def admin_school_setup(request):
 
         if not letter or min_score == "" or max_score == "":
             messages.error(request, "All grade fields are required.")
-            return redirect("admin_school")
+            return redirect("admin_school_setup")
 
         Grade.objects.create(
             letter=letter,
@@ -1934,7 +1985,7 @@ def admin_school_setup(request):
             max_score=max_score,
         )
         messages.success(request, "Grade added successfully.")
-        return redirect("admin_school")
+        return redirect("admin_school_setup")
 
     # UPDATE
     if request.method == "POST" and request.POST.get("update_grade"):
@@ -1947,7 +1998,7 @@ def admin_school_setup(request):
         grade.save()
 
         messages.success(request, "Grade updated successfully.")
-        return redirect("admin_school")
+        return redirect("admin_school_setup")
 
     # DELETE
     if request.method == "POST" and request.POST.get("delete_grade"):
@@ -1956,7 +2007,7 @@ def admin_school_setup(request):
         grade.delete()
 
         messages.success(request, "Grade deleted.")
-        return redirect("admin_school")
+        return redirect("admin_school_setup")
 
     return render(
         request,
@@ -2253,31 +2304,6 @@ def admin_school(request):
         "semesters": semesters,             
     })
 
-
-@login_required
-def lecturer_courses(request):
-
-    if getattr(request.user, "role", None) not in ["lecturer", "admin"]:
-        messages.error(request, "Access denied.")
-        return redirect("home")
-
-    user = request.user
-
-    # BEST WAY: Use the reverse relation
-    courses = (
-        user.program_courses_taught
-        .select_related("program", "level", "semester", "semester__academic_year")
-        .filter(is_active=True)
-        .order_by("program__name", "level__order", "course_code")
-    )
-
-    print("Courses taught:", courses)
-
-    return render(
-        request,
-        "users/dashboard/contents/lecturer/lecturer_courses.html",
-        {"courses": courses}
-    )
 
 
 def registration_error(request, message, back_url_name=None, back_url_kwargs=None, status=400):
@@ -2599,7 +2625,6 @@ def registration_step_4(request):
     )
 
  
-
 @login_required
 def registration_complete(request):
     user = request.user
@@ -2608,27 +2633,25 @@ def registration_complete(request):
         return registration_error(request, "Access denied.")
 
     # ---------------------------------------------
-    # Load progress (this belongs to MOST RECENT registration)
+    # Load progress
     # ---------------------------------------------
     progress = RegistrationProgress.objects.filter(student=user).first()
-
-    # If no progress ever existed
     if not progress:
         return registration_error(request, "You have not started any registration.")
 
     # ---------------------------------------------
-    # Detect current ACTIVE academic year
+    # Active academic year
     # ---------------------------------------------
     active_year = AcademicYear.objects.filter(is_active=True).first()
     if not active_year:
         return registration_error(request, "No active academic year found.")
 
     # ---------------------------------------------
-    # STUDENT USED OLD YEAR RegistrationProgress
+    # Old-year protection
     # ---------------------------------------------
     if progress.academic_year != active_year:
-        # Student has not done registration for the new year
-        return render(request,
+        return render(
+            request,
             "users/dashboard/contents/student/registration_pending_new_year.html",
             {
                 "student": user,
@@ -2637,18 +2660,18 @@ def registration_complete(request):
         )
 
     # ---------------------------------------------
-    # Normal check: must have submitted registration
+    # Must be submitted
     # ---------------------------------------------
     if not progress.is_submitted:
         return registration_error(request, "Registration not completed.")
 
     # ---------------------------------------------
-    # Load student's ACTIVE enrollment (for current semester)
+    # Active enrollment
     # ---------------------------------------------
     enrollment = get_student_active_semester(user)
     if not enrollment:
-        # Student hasn't paid/been verified yet for NEW YEAR after transition
-        return render(request,
+        return render(
+            request,
             "users/dashboard/contents/student/registration_pending_payment.html",
             {
                 "student": user,
@@ -2659,7 +2682,7 @@ def registration_complete(request):
     semester = enrollment.semester
 
     # ---------------------------------------------
-    # Load registration record for CURRENT semester
+    # Registration record
     # ---------------------------------------------
     registration = StudentRegistration.objects.filter(
         student=user,
@@ -2668,8 +2691,8 @@ def registration_complete(request):
     ).first()
 
     if not registration:
-        # Student has NOT registered for this semester yet
-        return render(request,
+        return render(
+            request,
             "users/dashboard/contents/student/registration_not_done.html",
             {
                 "student": user,
@@ -2679,16 +2702,33 @@ def registration_complete(request):
         )
 
     # ---------------------------------------------
-    # At this point, student HAS completed registration for the active semester
+    # ✅ BUILD COURSE + LECTURER STRUCTURE
     # ---------------------------------------------
-    return render(request, "users/dashboard/contents/student/registration_complete.html", {
-        "student": user,
-        "progress": progress,
-        "program": registration.program,
-        "semester": registration.semester,
-        "selected_courses": registration.courses.all(),
-        "is_registration_open": registration.semester.sem_reg_is_active,
-    })
+    courses_with_lecturers = []
+
+    for pc in registration.courses.all():
+        courses_with_lecturers.append({
+            "course": pc,
+            "lecturers": pc.assigned_lecturers.all(),
+        })
+    
+
+    # ---------------------------------------------
+    # FINAL RENDER
+    # ---------------------------------------------
+    return render(
+        request,
+        "users/dashboard/contents/student/registration_complete.html",
+        {
+            "student": user,
+            "progress": progress,
+            "program": registration.program,
+            "semester": registration.semester,
+            "selected_courses": courses_with_lecturers,
+            "is_registration_open": registration.semester.sem_reg_is_active,
+        }
+    )
+
 
 
 @login_required

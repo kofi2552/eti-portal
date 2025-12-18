@@ -5,7 +5,7 @@ from .models import Resource, Semester
 class ResourceForm(forms.ModelForm):
     class Meta:
         model = Resource
-        fields = ("title", "summary", "external_link", "file", "semester")
+        fields = ("title", "summary", "external_link", "semester")
         widgets = {
             "title": forms.TextInput(attrs={"class": "w-full border-c rounded px-3 py-2 "}),
             "summary": forms.Textarea(attrs={"class": "w-full border-c rounded px-3 py-2", "rows": 4}),
@@ -17,5 +17,4 @@ class ResourceForm(forms.ModelForm):
         # optionally limit semester choices to active ones
         super().__init__(*args, **kwargs)
         self.fields["semester"].queryset = Semester.objects.all().order_by("-start_date")
-        self.fields["file"].required = False
         self.fields["external_link"].required = False
