@@ -45,7 +45,30 @@
   </head>
 
   <body class="relative">
-    {% include "partials/Navbar2.html" %}
+    <div class="w-full mx-auto flex items-center justify-center pt-10">
+      <div class="flex items-center gap-4">
+        <!-- Brand -->
+        <a
+          href="{{ '/' }}"
+          class="flex-shrink-0 flex items-center gap-3 cursor-pointer group"
+        >
+          <div
+            class="w-6 h-6 w- rounded-xl flex items-center justify-center text-white font-extrabold text-xl active:translate-y-1 transition-all"
+          >
+            <img
+              src="{% static 'images/eti_favicon.png' %}"
+              class="h-auto w-full object-contain"
+            />
+          </div>
+
+          <span
+            class="font-bold text-xl tracking-tight text-slate-700 group-hover:text-gray-600 transition-colors hidden sm:block"
+          >
+            ETI Portal
+          </span>
+        </a>
+      </div>
+    </div>
     <div
       x-data="{
                 show: !sessionStorage.getItem('announcementSeen'),
