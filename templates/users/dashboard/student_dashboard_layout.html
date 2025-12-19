@@ -88,6 +88,37 @@
         box-shadow: var(#aaaaaa00, 0 0 #0000), var(#aaaaaa00, 0 0 #0000),
           var(--tw-shadow);
       }
+
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 10px 0.75rem;
+        margin: 8px 0;
+        border-radius: 0.75rem;
+        font-weight: 500;
+        transition-property: color;
+        transition-duration: 150ms;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .nav-active {
+        background-color: #eef2ff;
+        color: #4f46e5;
+        font-weight: 500;
+      }
+
+      .nav-active i {
+        color: #4f46e5;
+      }
+
+      .nav-inactive {
+        color: #64748b;
+      }
+
+      .nav-inactive:hover {
+        background-color: #f1f5f9;
+      }
     </style>
   </head>
 
@@ -96,7 +127,7 @@
       <!-- LEFT SIDEBAR -->
       <aside
         id="sidebar"
-        class="sidebar-expanded bg-white border-r-2 border-slate-200 transition-all duration-300 flex flex-col"
+        class="hidden md:flex sidebar-expanded bg-white border-r-2 border-slate-200 transition-all duration-300 flex-col"
       >
         <!-- BRAND HEADER -->
         <div class="h-20 flex items-center px-6 border-b-2 border-slate-200">
@@ -126,7 +157,7 @@
           <!-- Overview -->
           <a
             href="{% url 'student_main' %}"
-            class="flex items-center gap-3 p-3 rounded-xl font-medium text-slate-500 hover:bg-slate-100 transition-colors"
+            class="nav-item {% if request.resolver_match.url_name == 'student_main' %}nav-active{% else %}nav-inactive{% endif %}"
           >
             <span
               class="w-6 h-6 flex items-center justify-center flex-shrink-0"
@@ -164,7 +195,7 @@
               {% for c in student_courses %}
               <a
                 href="{% url 'student_course_details' c.id %}"
-                class="flex items-center gap-2 p-2 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors"
+                class="flex items-center gap-2 p-2 rounded-lg text-sm font-medium transition-colors {% if request.resolver_match.url_name == 'student_course_details' and c.id|stringformat:'s' == request.resolver_match.kwargs.course_id|stringformat:'s' %} bg-brand-50 text-brand-600 font-extrabold {% else %} text-slate-400 hover:text-slate-600 hover:bg-slate-50 {% endif %}"
               >
                 <span
                   class="w-5 h-5 flex items-center justify-center flex-shrink-0"
@@ -184,7 +215,7 @@
           <!-- Academics -->
           <a
             href="{% url 'student_academics' %}"
-            class="flex items-center gap-3 p-3 rounded-xl font-medium text-slate-500 hover:bg-slate-100 transition-colors"
+            class="nav-item {% if request.resolver_match.url_name == 'student_academics' %}nav-active{% else %}nav-inactive{% endif %}"
           >
             <span
               class="w-6 h-6 flex items-center justify-center flex-shrink-0"
@@ -197,7 +228,7 @@
           <!-- Registration -->
           <a
             href="{% url 'registration_step_1' %}"
-            class="flex items-center gap-3 p-3 rounded-xl font-medium text-slate-500 hover:bg-slate-100 transition-colors"
+            class="nav-item {% if request.resolver_match.url_name|slice:':12' == 'registration' %} nav-active {% else %} nav-inactive {% endif %}"
           >
             <span
               class="w-6 h-6 flex items-center justify-center flex-shrink-0"
@@ -210,7 +241,7 @@
           <!-- Transcript -->
           <a
             href="{% url 'student_view_transcript' %}"
-            class="flex items-center gap-3 p-3 rounded-xl font-medium text-slate-500 hover:bg-slate-100 transition-colors"
+            class="nav-item {% if request.resolver_match.url_name == 'student_view_transcript' %}nav-active{% else %}nav-inactive{% endif %}"
           >
             <span
               class="w-6 h-6 flex items-center justify-center flex-shrink-0"
@@ -223,7 +254,7 @@
           <!-- Fees -->
           <a
             href="{% url 'student_fee_payments' %}"
-            class="flex items-center gap-3 p-3 rounded-xl font-medium text-slate-500 hover:bg-slate-100 transition-colors"
+            class="nav-item {% if request.resolver_match.url_name == 'student_fee_payments' %}nav-active{% else %}nav-inactive{% endif %}"
           >
             <span
               class="w-6 h-6 flex items-center justify-center flex-shrink-0"
@@ -260,11 +291,27 @@
           <div class="flex items-center gap-4">
             <button
               onclick="toggleSidebar()"
-              class="p-2 rounded-xl text-slate-500 hover:bg-slate-100"
+              class="hidden md:flex p-2 rounded-xl text-slate-500 hover:bg-slate-100"
             >
               <i data-lucide="menu" class="w-6 h-6"></i>
             </button>
+            <div
+              class="h-20 flex items-center pr-6 border-b-2 border-slate-200 lg:hidden"
+            >
+              <!-- Brand Icon (never shrinks) -->
+              <div
+                class="w-8 h-8 flex-shrink-0 bg-brand-500 rounded-lg flex items-center justify-center text-white font-extrabold text-sm border-b-4 border-brand-700 mr-3"
+              >
+                E
+              </div>
 
+              <!-- Brand Text -->
+              <span
+                class="sidebar-label font-extrabold text-xl text-slate-700 tracking-tight"
+              >
+                ETI Portal
+              </span>
+            </div>
             <div
               class="hidden md:flex items-center gap-2 text-sm font-bold text-slate-400"
             >
@@ -335,7 +382,7 @@
         <!-- CONTENT + RIGHT SIDEBAR LAYOUT -->
         <div class="flex flex-1 min-h-0">
           <!-- MAIN PAGE CONTENT -->
-          <main class="p-6 flex-1 overflow-y-auto min-h-0">
+          <main class="p-6 flex-1 overflow-y-auto min-h-0 pb-24 md:pb-6">
             <!-- Messages -->
             {% if messages %}
             <div class="mb-4 space-y-2">
@@ -413,7 +460,116 @@
           </aside>
         </div>
       </div>
+      <!-- ================= MOBILE BOTTOM NAV ================= -->
+      <nav
+        class="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200 md:hidden"
+      >
+        <div class="grid grid-cols-5 h-16">
+          <!-- Overview -->
+          <a
+            href="{% url 'student_main' %}"
+            class="flex flex-col items-center justify-center {% if request.resolver_match.url_name == 'student_main' %} text-brand-600 font-extrabold {% else %} text-slate-500 {% endif %}"
+          >
+            <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+            <span class="text-[10px] font-bold mt-1">Home</span>
+          </a>
+
+          <!-- Courses (drawer trigger) -->
+          <button
+            type="button"
+            onclick="toggleCourseDrawer()"
+            class="flex flex-col items-center justify-center text-slate-500"
+          >
+            <i data-lucide="book-open" class="w-5 h-5"></i>
+            <span class="text-[10px] font-bold mt-1">Courses</span>
+          </button>
+
+          <!-- Registration (center FAB-style button) -->
+          <a
+            href="{% url 'registration_step_1' %}"
+            class="flex flex-col items-center justify-center relative"
+          >
+            <div
+              class="w-12 h-12 -mt-6 bg-brand-500 rounded-full flex items-center justify-center text-white shadow-lg border-b-4 border-brand-700"
+            >
+              <i data-lucide="clipboard-list" class="w-6 h-6"></i>
+            </div>
+            <span class="text-[10px] font-extrabold mt-1 text-brand-600">
+              Register
+            </span>
+          </a>
+
+          <!-- Academics -->
+          <a
+            href="{% url 'student_academics' %}"
+            class="flex flex-col items-center justify-center {% if request.resolver_match.url_name == 'student_academics' %} text-brand-600 font-extrabold {% else %} text-slate-500 {% endif %}"
+          >
+            <i data-lucide="graduation-cap" class="w-5 h-5"></i>
+            <span class="text-[10px] font-bold mt-1">Academics</span>
+          </a>
+
+          <!-- Fees -->
+          <a
+            href="{% url 'student_fee_payments' %}"
+            class="flex flex-col items-center justify-center {% if request.resolver_match.url_name == 'student_fee_payments' %} text-brand-600 font-extrabold {% else %} text-slate-500 {% endif %}"
+          >
+            <i data-lucide="credit-card" class="w-5 h-5"></i>
+            <span class="text-[10px] font-bold mt-1">Fees</span>
+          </a>
+        </div>
+      </nav>
     </div>
+    <!-- MOBILE COURSE DRAWER OVERLAY -->
+    <div
+      id="courseDrawerOverlay"
+      class="fixed inset-0 z-50 hidden bg-black/40 backdrop-blur-sm md:hidden"
+      onclick="closeCourseDrawer()"
+    ></div>
+
+    <!-- MOBILE COURSE DRAWER -->
+    <aside
+      id="courseDrawer"
+      class="fixed inset-y-0 left-0 z-50 w-72 bg-white border-r-2 border-slate-200 transform -translate-x-full transition-transform duration-300 ease-out md:hidden flex flex-col"
+    >
+      <!-- Drawer Header -->
+      <div
+        class="h-16 flex items-center justify-between px-4 border-b-2 border-slate-200"
+      >
+        <div class="flex items-center gap-2">
+          <i data-lucide="book-open" class="w-5 h-5 text-brand-500"></i>
+          <span class="font-extrabold text-slate-700">My Courses</span>
+        </div>
+        <button
+          onclick="closeCourseDrawer()"
+          class="p-2 rounded-lg hover:bg-slate-100"
+        >
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Course List -->
+      <nav class="flex-1 overflow-y-auto p-3 space-y-1">
+        {% for c in student_courses %}
+        <a
+          href="{% url 'student_course_details' c.id %}"
+          onclick="closeCourseDrawer()"
+          class="flex items-center gap-3 p-3 rounded-xl font-bold text-slate-600 hover:bg-brand-50 hover:text-brand-600 transition-colors"
+        >
+          <div
+            class="w-9 h-9 rounded-xl bg-brand-100 text-brand-600 flex items-center justify-center font-extrabold"
+          >
+            {{ c.course_code|slice:":1" }}
+          </div>
+          <div class="min-w-0">
+            <div class="truncate text-sm">{{ c.course_code }}</div>
+            <div class="text-xs text-slate-400 truncate">{{ c.title }}</div>
+          </div>
+        </a>
+        {% empty %}
+        <p class="text-sm text-slate-400 italic p-3">No courses registered</p>
+        {% endfor %}
+      </nav>
+    </aside>
 
     <script
       src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"
@@ -422,6 +578,31 @@
 
     <!-- SIDEBAR TOGGLE SCRIPT -->
     <script>
+      function openCourseDrawer() {
+        document
+          .getElementById("courseDrawer")
+          .classList.remove("-translate-x-full");
+        document
+          .getElementById("courseDrawerOverlay")
+          .classList.remove("hidden");
+      }
+
+      function closeCourseDrawer() {
+        document
+          .getElementById("courseDrawer")
+          .classList.add("-translate-x-full");
+        document.getElementById("courseDrawerOverlay").classList.add("hidden");
+      }
+
+      function toggleCourseDrawer() {
+        const drawer = document.getElementById("courseDrawer");
+        if (drawer.classList.contains("-translate-x-full")) {
+          openCourseDrawer();
+        } else {
+          closeCourseDrawer();
+        }
+      }
+
       function toggleSidebar() {
         const sidebar = document.getElementById("sidebar");
         sidebar.classList.toggle("sidebar-collapsed");

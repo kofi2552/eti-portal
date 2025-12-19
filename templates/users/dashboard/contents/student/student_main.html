@@ -110,27 +110,43 @@
     <!-- GPA PROGRESSION BASED ON GRADE POINTS -->
    
     <div class="bg-white p-6 rounded-3xl border-2 border-slate-200 mt-8">
-   <div class="flex justify-between items-center mb-4">
-        <h3 class="text-xl font-bold">Performance Trend</h3>
+   <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 gap-2">
+  <h3 class="text-base sm:text-lg md:text-xl font-bold">
+    Performance Trend
+  </h3>
 
-        <!-- Semester Filter -->
-       <form method="GET" class="flex items-center gap-2 flex-shrink min-w-0">
-            <select 
-                name="semester" 
-                id="semesterSelect" 
-                class="border-c rounded-md px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-gray-200"
-            >
-                {% for s in graph_semesters %}
-                <option value="{{ s.id }}" {% if selected_sem_id == s.id %}selected{% endif %}>
-                    {{ s.name }} - {{ s.academic_year.name }}
-                </option>
-                {% endfor %}
-            </select>
-            <button class="bg-brand-500 border-b-4 border-brand-700 text-white px-4 py-2 rounded text-xs shrink-0">
-                Load
-            </button>
-        </form>
-    </div>
+  <!-- Semester Filter (Auto Refresh) -->
+<form method="GET" id="semesterForm" class="relative inline-block min-w-[260px]">
+  <div class="relative">
+    <!-- Icon -->
+    <span class="absolute inset-y-0 left-3 flex items-center pointer-events-none text-slate-400">
+      <i data-lucide="calendar" class="w-4 h-4"></i>
+    </span>
+
+    <!-- Select -->
+    <select
+      name="semester"
+      id="semesterSelect"
+      onchange="document.getElementById('semesterForm').submit()"
+      class="appearance-none w-full bg-white border-2 border-slate-200 rounded-xl pl-10 pr-10 py-2.5 text-sm font-bold text-slate-700
+             hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-all cursor-pointer"
+    >
+      {% for s in graph_semesters %}
+      <option value="{{ s.id }}" {% if selected_sem_id == s.id %}selected{% endif %}>
+        {{ s.name }} • {{ s.academic_year.name }}
+      </option>
+      {% endfor %}
+    </select>
+
+    <!-- Chevron -->
+    <span class="absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-400">
+      <i data-lucide="chevron-down" class="w-4 h-4"></i>
+    </span>
+  </div>
+</form>
+
+</div>
+
 
     <div class="chart w-full min-w-0" style="height: 320px;">
         <canvas id="performanceChart"></canvas>
