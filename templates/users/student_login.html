@@ -1,5 +1,4 @@
-{% extends "base.html" %} {% block content %}
-
+{% extends "base.html" %} {% block content %} {% load static %}
 <div
   class="flex-grow flex items-center justify-center p-4 bg-slate-50 min-h-[100vh]"
 >
@@ -9,14 +8,20 @@
     >
       <!-- HEADER -->
       <div class="pt-8 pb-6 px-8 text-center border-b-2 border-slate-100">
-        <div
+        <!-- <div
           class="w-20 h-20 mx-auto bg-brand-500 rounded-2xl flex items-center justify-center text-white border-b-4 border-brand-700 mb-4"
         >
           <i data-lucide="graduation-cap" class="w-10 h-10 stroke-[2.5]"></i>
+        </div> -->
+        <div
+          class="w-6 h-6 mx-auto pb-4 rounded-xl flex items-center justify-center text-white font-extrabold text-xl active:translate-y-1 transition-all"
+        >
+          <img
+            src="{% static 'images/eti_favicon.png' %}"
+            class="h-auto w-full object-contain"
+          />
         </div>
-        <h2 class="text-2xl font-extrabold text-brand-500 mb-1">
-          Student Portal
-        </h2>
+        <h2 class="text-2xl font-extrabold text-brand-500 mb-1">ETI Portal</h2>
         <p class="text-slate-400 font-bold text-sm">Secure Authentication</p>
       </div>
 

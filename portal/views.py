@@ -64,13 +64,38 @@ def admin_login(request):
     return render(request, "portal/login.html", {"role": "Super Admin"})
 
 
+# @login_required
+# def toggle_system_lock(request):
+#     if getattr(request.user, "role", None) != "admin":
+#         messages.error(request, "Access denied.")
+#         return redirect("home")
+
+#     lock_obj = SystemLock.objects.first()
+
+#     if request.method == "POST":
+#         action = request.POST.get("action")
+
+#         if action == "lock":
+#             lock_obj.lock(request.user)
+#             messages.success(request, "System is now LOCKED.")
+#         elif action == "unlock":
+#             lock_obj.unlock()
+#             messages.success(request, "System is now UNLOCKED.")
+
+#         return redirect("admin_transition_page")
+
+#     return redirect("admin_transition_page")
+
 @login_required
 def toggle_system_lock(request):
     if getattr(request.user, "role", None) != "admin":
         messages.error(request, "Access denied.")
-        return redirect("home")
+        return redirect("portal:home")
 
-    lock_obj = SystemLock.objects.first()
+    # ✅ ALWAYS ENSURE A SINGLE ROW EXISTS
+    lock_obj, _ = SystemLock.objects.get_or_create(
+        defaults={"is_locked": False}
+    )
 
     if request.method == "POST":
         action = request.POST.get("action")
@@ -85,7 +110,6 @@ def toggle_system_lock(request):
         return redirect("admin_transition_page")
 
     return redirect("admin_transition_page")
-
 
 
 def home(request):
