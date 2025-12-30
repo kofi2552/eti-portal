@@ -1,0 +1,94 @@
+{% extends "finance_dashboard_layout.html" %} {% block title %}Finance
+Dashboard{% endblock %} {% block content %}
+<div class="space-y-8">
+  <!-- STATS -->
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+    <div class="bg-white border rounded-xl p-5">
+      <div class="text-sm text-gray-400">Total Payments</div>
+      <div class="text-2xl font-bold">{{ stats.total_payments }}</div>
+    </div>
+    <div class="bg-white border rounded-xl p-5">
+      <div class="text-sm text-gray-400">Verified</div>
+      <div class="text-2xl font-bold text-green-600">
+        {{ stats.verified_payments }}
+      </div>
+    </div>
+    <div class="bg-white border rounded-xl p-5">
+      <div class="text-sm text-gray-400">Pending</div>
+      <div class="text-2xl font-bold text-yellow-600">
+        {{ stats.pending_payments }}
+      </div>
+    </div>
+    <div class="bg-white border rounded-xl p-5">
+      <div class="text-sm text-gray-400">Semester Fees</div>
+      <div class="text-2xl font-bold">{{ stats.declared_fees }}</div>
+    </div>
+  </div>
+
+  <!-- RECENT PAYMENTS -->
+  <div class="bg-white border rounded-xl">
+    <div class="w-full p-5 border-b flex items-center justify-between">
+      <h2 class="font-semibold">Recent Payments</h2>
+      <a
+        href="{% url 'finance_export_summary_payments_csv' %}"
+        class="px-4 py-2 border rounded text-sm hover:bg-gray-100"
+      >
+        Download Summary (CSV)
+      </a>
+    </div>
+    <table class="w-full text-sm">
+      <thead class="bg-gray-50 text-gray-500">
+        <tr class="text-left">
+          <th class="p-3">Student</th>
+          <th class="p-3">Program</th>
+          <th class="p-3">Semester</th>
+          <th class="p-3">Payments Made</th>
+          <th class="p-3">Full Fees Required</th>
+          <th class="p-3">Status</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y">
+        {% for p in recent_payments %}
+        <tr
+          class="text-left cursor-pointer hover:bg-gray-50"
+          data-student-id="{{ p.student.id }}"
+        >
+          <td class="p-3">{{ p.student.get_full_name }}</td>
+          <td class="p-3">{{ p.program.name }}</td>
+          <td class="p-3">{{ p.semester.name }}</td>
+          <td class="p-3">GHS {{ p.amount_paid }}</td>
+          {% if p.program_fee %}
+          <td class="p-3">GHS {{ p.program_fee.total_amount }}</td>
+          {% else %}
+          <td class="text-gray-400 p-3">Fee not declared</td>
+          {% endif %}
+          <!-- <td class="p-3">GHS {{ p.amount_paid }}</td> -->
+          <td class="p-3">
+            {% if p.is_verified %}
+            <span class="text-green-600 font-semibold">Verified</span>
+            {% else %}
+            <span class="text-yellow-600 font-semibold">Pending</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="5" class="p-5 text-left text-gray-400">
+            No payments yet.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll("[data-student-id]").forEach((row) => {
+    row.addEventListener("click", () => {
+      window.location.href = `/finance/students/${row.dataset.studentId}/finance/`;
+    });
+  });
+</script>
+
+{% endblock %}

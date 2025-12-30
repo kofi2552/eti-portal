@@ -26,6 +26,7 @@ urlpatterns = [
     path('', include('portal.urls')),
     path('users/', include('users.urls')),
     path("academics/", include("academics.urls")),
+    path("finance/", include("finance.urls")),
 ]
 
 

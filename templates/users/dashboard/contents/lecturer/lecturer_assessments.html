@@ -1,87 +1,128 @@
 {% extends "users/dashboard/lecturer_dashboard_layout.html" %}
+<!-- --------------------- -->
 {% block title %} My Assessments {% endblock %}
+<!-- --------------------- -->
 {% block content %}
 
-<div class="max-w-6xl mx-auto px-4 py-6 space-y-8">
+<div class="max-w-7xl mx-auto px-4 py-6 space-y-8">
 
   <!-- PAGE HEADER -->
   <div class="flex items-center justify-between">
     <h2 class="text-2xl font-semibold text-gray-800">My Assessments</h2>
+
+    <!-- CREATE TASK BUTTON -->
+    <button
+      onclick="document.getElementById('createTaskModal').classList.remove('hidden')"
+      class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+    >
+      + Create Assessment
+    </button>
   </div>
 
   <!-- FILTERS -->
-  <form method="GET" class="bg-white p-4 border-c rounded-lg flex flex-wrap gap-4 items-center">
+  <form method="GET" class="bg-white p-4 border-c rounded-lg flex flex-wrap gap-4 items-end">
 
     <!-- Semester Filter -->
     <div>
-      <label class="text-gray-700 text-sm block mb-1">Filter by Semester</label>
+      <label class="text-gray-700 text-sm block mb-1">Semester</label>
       <select name="semester_id" class="border-c rounded-md px-3 py-2 bg-white">
-        <option value="">-- All Semesters --</option>
         {% for s in semesters %}
-        <option value="{{ s.id }}" {% if selected_semester and selected_semester.id == s.id %}selected{% endif %}>
-          {{ s.name }} ({{ s.academic_year.name }})
-        </option>
+          <option value="{{ s.id }}"
+            {% if selected_semester and selected_semester.id == s.id %}selected{% endif %}
+          >
+            {{ s.name }} ({{ s.academic_year.name }})
+          </option>
         {% endfor %}
       </select>
     </div>
 
     <!-- SEARCH -->
     <div class="flex-grow">
-      <label class="text-gray-700 text-sm block mb-1">Search courses...</label>
-      <input type="text" name="search" value="{{ request.GET.search }}" placeholder="e.g. CSC101, Programming"
-        class="w-full border-c rounded-md px-3 py-2" />
+      <label class="text-gray-700 text-sm block mb-1">Search assessments</label>
+      <input
+        type="text"
+        name="search"
+        value="{{ search }}"
+        placeholder="Task title, course, program..."
+        class="w-full border-c rounded-md px-3 py-2"
+      />
     </div>
 
-    <button class="bg-blue-600 text-white px-5 py-2 rounded-md hover:bg-blue-700 mt-[100px] md:mt-0">
+    <button class="bg-blue-600 text-white px-5 py-2 rounded-md hover:bg-blue-700">
       Apply
     </button>
   </form>
 
-  <!-- COURSE TABLE -->
+  <!-- TASK TABLE -->
   <div class="bg-white border-c rounded-lg overflow-hidden">
 
     <table class="min-w-full text-sm divide-y divide-gray-200">
       <thead class="bg-gray-50 text-left">
         <tr>
-          <th class="px-4 py-3 text-gray-600">Code</th>
-          <th class="px-4 py-3 text-gray-600">Title</th>
-          <th class="px-4 py-3 text-gray-600">Program</th>
-          <th class="px-4 py-3 text-gray-600">Semester</th>
-          <th class="px-4 py-3 text-gray-600">Registered Students</th>
-          <th class="px-4 py-3 text-gray-600">Actions</th>
+          <th class="px-4 py-3 text-gray-600">Task</th>
+          <th class="px-4 py-3 text-gray-600">Course</th>
+          <th class="px-4 py-3 text-gray-600">Type</th>
+          <th class="px-4 py-3 text-gray-600">Category</th>
+          <th class="px-4 py-3 text-gray-600">Total Marks</th>
+          <th class="px-4 py-3 text-gray-600">Progress</th>
+          <th class="px-4 py-3 text-gray-600">Action</th>
         </tr>
       </thead>
 
       <tbody class="divide-y divide-gray-100">
 
-        {% for c in courses %}
+        {% for task in tasks %}
         <tr class="hover:bg-gray-50">
 
-          <td class="px-4 py-3">{{ c.course_code }}</td>
-          <td class="px-4 py-3">{{ c.title }}</td>
-          <td class="px-4 py-3">{{ c.program.name }}</td>
-
-          <td class="px-4 py-3">
-            {{ c.semester.name }}
-            <div class="text-xs text-gray-500">({{ c.semester.academic_year.name }})</div>
+          <td class="px-4 py-3 font-medium text-gray-800">
+            {{ task.title }}
           </td>
 
           <td class="px-4 py-3">
-            <span class="inline-block bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-medium">
-              {{ c.student_count }} students
+            {{ task.course.course_code }} — {{ task.course.title }}
+            <div class="text-xs text-gray-500">
+              {{ task.course.program.name }}
+            </div>
+          </td>
+
+          <td class="px-4 py-3">
+            {{ task.assessment_type.name }}
+          </td>
+
+          <td class="px-4 py-3">
+            <span class="px-2 py-1 rounded text-xs font-medium
+              {% if task.assessment_category.system_role == 'INTERNAL' %}
+                bg-blue-100 text-blue-700
+              {% else %}
+                bg-green-100 text-green-700
+              {% endif %}
+            ">
+              {{ task.assessment_category.name }}
             </span>
           </td>
 
           <td class="px-4 py-3">
-            <a href="{% url 'lecturer_enter_assessments' c.id c.semester.id %}"
-              class="text-blue-700 hover:underline font-medium">Enter Scores</a>
+            {{ task.total_marks }}
           </td>
-        </tr>
 
+          <td class="px-4 py-3">
+            {{ task.progress.graded }} / {{ task.progress.total }}
+          </td>
+
+          <td class="px-4 py-3">
+            <a
+              href="{% url 'lecturer_assessment_detail' task.id %}"
+              class="text-blue-700 hover:underline font-medium"
+            >
+              Enter Scores
+            </a>
+          </td>
+
+        </tr>
         {% empty %}
         <tr>
-          <td colspan="6" class="px-4 py-6 text-center text-gray-500">
-            No courses found.
+          <td colspan="7" class="px-4 py-6 text-center text-gray-500">
+            No assessment tasks found.
           </td>
         </tr>
         {% endfor %}
@@ -95,8 +136,12 @@
   <div class="flex justify-center space-x-2 mt-6">
 
     {% if page_obj.has_previous %}
-    <a href="?page={{ page_obj.previous_page_number }}&semester_id={{ request.GET.semester_id }}&search={{ request.GET.search }}"
-      class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300">Prev</a>
+    <a
+      href="?page={{ page_obj.previous_page_number }}&semester_id={{ selected_semester.id }}&search={{ search }}"
+      class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300"
+    >
+      Prev
+    </a>
     {% endif %}
 
     <span class="px-4 py-1 bg-blue-600 text-white rounded">
@@ -104,13 +149,102 @@
     </span>
 
     {% if page_obj.has_next %}
-    <a href="?page={{ page_obj.next_page_number }}&semester_id={{ request.GET.semester_id }}&search={{ request.GET.search }}"
-      class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300">Next</a>
+    <a
+      href="?page={{ page_obj.next_page_number }}&semester_id={{ selected_semester.id }}&search={{ search }}"
+      class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300"
+    >
+      Next
+    </a>
     {% endif %}
 
   </div>
   {% endif %}
 
+</div>
+
+<!-- ========================= -->
+<!-- CREATE TASK MODAL -->
+<!-- ========================= -->
+<div id="createTaskModal" class="fixed inset-0 bg-black bg-opacity-40 hidden z-50 flex items-center justify-center">
+  <div class="bg-white rounded-lg w-full max-w-lg p-6 space-y-4">
+
+    <div class="flex justify-between items-center">
+      <h3 class="text-lg font-semibold">Create Assessment Task</h3>
+      <button onclick="this.closest('#createTaskModal').classList.add('hidden')">✕</button>
+    </div>
+
+    <form method="POST">
+      {% csrf_token %}
+
+      <div class="space-y-3">
+
+        <div>
+          <label class="text-sm">Course</label>
+          <select name="course_id" required class="w-full border-c rounded px-3 py-2">
+            {% for c in lecturer_courses %}
+              <option value="{{ c.id }}">
+                {{ c.course_code }} — {{ c.title }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label class="text-sm">Semester</label>
+          <select name="semester_id" required class="w-full border-c rounded px-3 py-2">
+            {% for s in semesters %}
+              <option value="{{ s.id }}"
+                {% if selected_semester and selected_semester.id == s.id %}selected{% endif %}
+              >
+                {{ s.name }} ({{ s.academic_year.name }})
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label class="text-sm">Assessment Type</label>
+          <select name="assessment_type" required class="w-full border-c rounded px-3 py-2">
+            {% for t in assessment_types %}
+              <option value="{{ t.id }}">{{ t.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label class="text-sm">Assessment Category</label>
+          <select name="assessment_category" required class="w-full border-c rounded px-3 py-2">
+            {% for c in assessment_categories %}
+              <option value="{{ c.id }}">{{ c.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label class="text-sm">Task Title</label>
+          <input name="title" required class="w-full border-c rounded px-3 py-2">
+        </div>
+
+        <div>
+          <label class="text-sm">Total Marks</label>
+          <input type="number" step="0.01" name="total_marks" required class="w-full border-c rounded px-3 py-2">
+        </div>
+
+      </div>
+
+      <div class="flex justify-end mt-4 gap-2">
+        <button type="button"
+          onclick="this.closest('#createTaskModal').classList.add('hidden')"
+          class="px-4 py-2 border rounded">
+          Cancel
+        </button>
+        <button class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+          Create
+        </button>
+      </div>
+
+    </form>
+  </div>
 </div>
 
 {% endblock %}

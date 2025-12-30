@@ -1,0 +1,127 @@
+{% extends "users/dashboard/lecturer_dashboard_layout.html" %} {% block title %}
+Enter Scores {% endblock %} {% block content %}
+
+<div class="max-w-6xl mx-auto px-4 py-6 space-y-6">
+  <!-- HEADER -->
+  <div>
+    <div class="flex items-center gap-3 mb-3">
+      <a
+        href="{% url 'lecturer_assessments' %}"
+        class="text-gray-500 hover:text-gray-800 transition"
+        title="Back to assessments"
+      >
+        <i data-lucide="arrow-left"></i>
+      </a>
+
+      <h2 class="text-3xl font-semibold text-gray-800">{{ task.title }}</h2>
+    </div>
+
+    <div class="w-full flex items-center justify-between pl-1">
+      <div class="text-md text-gray-600 mt-1">
+        {{ task.course.course_code }} — {{ task.course.title }} ·
+        {{task.assessment_type.name }} ·
+        <strong>Total Marks: {{ task.total_marks }}</strong>
+      </div>
+      <a href="{% url 'download_task_scores_csv' task.id %}">
+        <button class="text-blue-600 hover:underline text-sm">
+          Download CSV Template
+        </button>
+      </a>
+    </div>
+  </div>
+
+  <div>
+    <form
+      action="{% url 'upload_task_scores_csv' task.id %}"
+      method="post"
+      enctype="multipart/form-data"
+    >
+      {% csrf_token %}
+      <input
+        type="file"
+        name="file"
+        accept=".csv"
+        required
+        {%
+        if
+        system_locked
+        %}disabled{%
+        endif
+        %}
+        class="border-c p-1 rounded"
+      />
+      <button class="bg-blue-600 text-white px-3 py-1 rounded">
+        Upload CSV
+      </button>
+    </form>
+  </div>
+
+  {% if system_locked %}
+  <div class="bg-red-50 text-red-700 p-3 rounded mb-4 text-sm">
+    Assessment entry is currently locked.
+  </div>
+  {% endif %}
+
+  <!-- SCORE FORM -->
+  <form method="POST" class="bg-white border-c rounded-lg overflow-hidden">
+    {% csrf_token %}
+
+    <table class="min-w-full text-sm divide-y divide-gray-200">
+      <thead class="bg-gray-50 text-left">
+        <tr>
+          <th class="px-4 py-3 text-gray-600">Student</th>
+          <th class="px-4 py-3 text-gray-600">Marks Obtained</th>
+          <th class="px-4 py-3 text-gray-600">Status</th>
+        </tr>
+      </thead>
+
+      <tbody class="divide-y divide-gray-100">
+        {% for s in scores %}
+        <tr class="hover:bg-gray-50">
+          <td class="px-4 py-3">
+            {{ s.student.last_name }}, {{ s.student.first_name }}
+          </td>
+
+          <td class="px-4 py-3">
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              max="{{ task.total_marks }}"
+              name="score_{{ s.student.id }}"
+              value="{{ s.marks_obtained|default_if_none:'' }}"
+              class="w-32 border-c rounded px-2 py-1"
+              {%
+              if
+              system_locked
+              %}disabled{%
+              endif
+              %}
+            />
+          </td>
+
+          <td class="px-4 py-3">
+            {% if s.marks_obtained is not None %}
+            <span class="text-green-600 text-xs font-medium">Graded</span>
+            {% else %}
+            <span class="text-gray-400 text-xs">Pending</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="flex justify-end p-4">
+      {% if not system_locked %}
+      <button
+        class="bg-blue-600 text-white px-5 py-2 rounded-md hover:bg-blue-700"
+      >
+        Save All Scores
+      </button>
+      {% endif %}
+    </div>
+  </form>
+</div>
+
+{% endblock %}

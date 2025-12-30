@@ -11,17 +11,11 @@ urlpatterns = [
     # path('courses/', views.manage_courses, name='manage_courses'),
     path('courses/<int:course_id>/assign-lecturer/', views.assign_lecturer, name='assign_lecturer'),
 
-     path(
-    "lecturer/course/<int:course_id>/semester/<int:semester_id>/download-template/",
-    views.download_score_template,
-    name="download_score_template"
-    ),
+    path("lecturer/course/<int:course_id>/semester/<int:semester_id>/download-template/", views.download_score_template, name="download_score_template"),
 
-    path(
-        "lecturer/course/<int:course_id>/semester/<int:semester_id>/upload-scores/",
-        views.upload_scores_csv,
-        name="upload_scores_csv"
-    ),
+    path("lecturer/course/<int:course_id>/semester/<int:semester_id>/upload-scores/", views.upload_scores_csv, name="upload_scores_csv"),
+
+    path("course-announcements/", views.course_announcements, name="course_announcements"),
 
     # TRANSCRIPT URLS
     path("admin/transition/", views.admin_transition_page, name="admin_transition_page"),

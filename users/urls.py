@@ -21,14 +21,19 @@ urlpatterns = [
     path("student/transcript/", views.student_request_transcript, name="student_request_transcript"),
     path("student/profile/", views.student_profile, name="student_profile"),
     path("student/transcript/view", views.student_view_transcript, name="student_view_transcript"),
+    path("student/fee-payments/", views.student_fee_payments, name="student_fee_payments"),
+    path("notifications/mark-read/", views.mark_announcement_read, name="mark_announcement_read"),
+
 
     path("lecturer/", views.lecturer_main, name="lecturer_main"),
     path("lecturer/courses/", views.lecturer_courses, name="lecturer_courses"),
     path("lecturer/assessments/", views.lecturer_assessments, name="lecturer_assessments"),
-    path("lecturer/courses/<int:course_id>/enter/<int:semester_id>/", views.lecturer_enter_assessments, name='lecturer_enter_assessments'),
+    path("lecturer/assessments/task/<int:task_id>/",   views.lecturer_assessment_detail,name="lecturer_assessment_detail",),
     path("lecturer/grades/", views.lecturer_grades, name="lecturer_grades"),
     path("lecturer/courses/<int:course_id>/", views.course_detail, name="course_detail"),
     path("lecturer/resources/<int:resource_id>/delete/", views.resource_delete, name="resource_delete"),
+    path("lecturer/assessments/task/<int:task_id>/download-csv/",views.download_task_scores_csv,name="download_task_scores_csv",),
+    path("lecturer/assessments/task/<int:task_id>/upload-csv/",views.upload_task_scores_csv,name="upload_task_scores_csv",),
    
 
     path("admin/", views.admin_main, name="admin_main"),
@@ -43,9 +48,9 @@ urlpatterns = [
     path("admin/reports/", views.admin_reports, name="admin_reports"),
     path("admin/upload-users/", views.upload_users, name="upload_users"),
     path("admin/save-uploaded-users/", views.save_uploaded_users, name="save_uploaded_users"),
+    path("program-fee/<int:fee_id>/toggle-allowed/",views.toggle_program_fee_allowed,name="toggle_program_fee_allowed",),
 
 
-    
     path("dean/", views.dean_main, name="dean_main"),
     path("dean/assign-lecturers/", views.assign_lecturers, name="assign_lecturers"),
     path("dean/manage-courses/", views.manage_courses, name="manage_courses"),
@@ -81,8 +86,6 @@ urlpatterns = [
 
     path("school/setup/", views.admin_school_setup, name="admin_school_setup"),
     path("admin/ajax/program-levels/<int:program_id>/", views.ajax_get_program_levels, name="ajax_program_levels"),
-    path("student/fee-payments/", views.student_fee_payments, name="student_fee_payments"),
-
     path("admin/announcements/", views.announcements_list, name="announcements_list"),
 
     path("logout/", views.logout_view, name="logout"),

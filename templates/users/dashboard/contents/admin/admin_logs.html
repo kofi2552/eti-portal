@@ -21,7 +21,7 @@
             <label class="text-sm text-gray-600">Search</label>
             <input type="text" name="search" value="{{ request.GET.search }}"
                    placeholder="Search logs..."
-                   class="border-c rounded px-3 py-2 w-64 bg-white">
+                   class="border-c rounded px-3 py-2 w-52 bg-white">
         </div>
 
         <div>
@@ -38,7 +38,7 @@
 
         <div>
             <label class="text-sm text-gray-600">User</label>
-            <select name="user" class="border-c rounded px-3 py-2 bg-white">
+            <select name="user" class="border-c rounded px-3 py-2 bg-white w-40">
                 <option value="">All Users</option>
                 {% for u in users %}
                     <option value="{{ u.id }}" {% if request.GET.user == u.id|stringformat:"s" %}selected{% endif %}>

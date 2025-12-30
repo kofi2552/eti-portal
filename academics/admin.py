@@ -1,5 +1,11 @@
 from django.contrib import admin
 from .models import Program, Course, Enrollment, Department, AcademicYear, Semester
+from .models import (
+    AssessmentCategory,
+    AssessmentType,
+    AssessmentTask,
+    AssessmentTaskScore,
+)
 
 
 @admin.register(Department)
@@ -53,3 +59,83 @@ class EnrollmentAdmin(admin.ModelAdmin):
     search_fields = ("student__username", "program__name", "level__name")
     list_filter = ("semester",)
     ordering = ("-date_enrolled",)
+
+
+
+
+
+
+@admin.register(AssessmentCategory)
+class AssessmentCategoryAdmin(admin.ModelAdmin):
+    list_display = ("name", "system_role", "weight_percentage", "created_at")
+    list_editable = ("weight_percentage",)
+    ordering = ("system_role",)
+    readonly_fields = ("system_role", "created_at")
+
+    def has_delete_permission(self, request, obj=None):
+        """
+        Prevent deletion if the category is already used by any task.
+        """
+        if obj and obj.tasks.exists():
+            return False
+        return super().has_delete_permission(request, obj)
+    
+
+@admin.register(AssessmentType)
+class AssessmentTypeAdmin(admin.ModelAdmin):
+    list_display = ("name", "created_at")
+    search_fields = ("name",)
+
+
+@admin.register(AssessmentTask)
+class AssessmentTaskAdmin(admin.ModelAdmin):
+    list_display = (
+        "title",
+        "course",
+        "semester",
+        "assessment_type",
+        "assessment_category",
+        "total_marks",
+        "created_by",
+        "created_at",
+    )
+
+    list_filter = (
+        "semester",
+        "assessment_category",
+        "assessment_type",
+    )
+
+    search_fields = ("title", "course__name")
+
+    readonly_fields = ("created_at", "updated_at")
+
+
+
+@admin.register(AssessmentTaskScore)
+class AssessmentTaskScoreAdmin(admin.ModelAdmin):
+    list_display = (
+        "task",
+        "student",
+        "marks_obtained",
+        "recorded_by",
+        "recorded_at",
+    )
+
+    list_filter = ("task__assessment_category",)
+    search_fields = ("student__username", "task__title")
+
+    readonly_fields = (
+        "task",
+        "student",
+        "recorded_by",
+        "recorded_at",
+    )
+
+
+
+
+
+
+
+

@@ -10,6 +10,7 @@ class CustomUser(AbstractUser):
         ('dean', 'Dean/HOD'),
         ('admin', 'Admin'),
         ('superadmin', 'Super Admin'),
+        ('finance', 'Finance'),
     ]
     role = models.CharField(max_length=10, choices=ROLE_CHOICES)
     level = models.ForeignKey(
@@ -53,11 +54,21 @@ class Payment(models.Model):
         limit_choices_to={'role': 'student'}
     )
 
+    program = models.ForeignKey(
+        Program,
+       on_delete=models.CASCADE,
+    )
+
     academic_year = models.ForeignKey(AcademicYear, on_delete=models.CASCADE)
     semester = models.ForeignKey(Semester, on_delete=models.CASCADE)
 
     amount_expected = models.DecimalField(max_digits=10, decimal_places=2)
     amount_paid = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    credit_balance = models.DecimalField(
+        max_digits=10, decimal_places=2, default=0,
+        help_text="Extra funds available due to overpayment"
+    )
+
 
     reference = models.CharField(max_length=100, unique=True)
     date_paid = models.DateTimeField(null=True, blank=True)
@@ -69,8 +80,8 @@ class Payment(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
 
-    class Meta:
-        unique_together = ("student", "academic_year", "semester")
+    # class Meta:
+    #     unique_together = ("student", "academic_year", "semester")
 
     def __str__(self):
         return f"{self.student} - {self.semester} - {self.amount_paid}"

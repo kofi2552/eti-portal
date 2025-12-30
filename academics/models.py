@@ -48,6 +48,7 @@ class Program(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
 
+    is_active = models.BooleanField(default=True)
    
     AWARD_CHOICES = [
         ("certificate", "Certificate"),
@@ -160,6 +161,8 @@ class Assessment(models.Model):
         limit_choices_to={'role__in': ['lecturer', 'admin']},
         related_name='assessments_recorded'
     )
+
+    is_allowed = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.student} - {self.course.code} ({self.grade})"
@@ -447,3 +450,201 @@ class ProgramCourse(models.Model):
 
         # final fallback
         return f"{initials}{base}"
+
+
+# NEW ASSESSMENTS TASKS AND SCORES
+
+class AssessmentCategory(models.Model):
+    INTERNAL = "INTERNAL"
+    EXTERNAL = "EXTERNAL"
+
+    SYSTEM_ROLE_CHOICES = [
+        (INTERNAL, "Internal"),
+        (EXTERNAL, "External"),
+    ]
+
+    # Admin-editable display name (e.g. "Continuous Assessment")
+    name = models.CharField(max_length=100, unique=True)
+
+    # System-controlled meaning (used for transcript logic)
+    system_role = models.CharField(
+        max_length=20,
+        choices=SYSTEM_ROLE_CHOICES,
+        unique=True,
+        help_text="System meaning of this category. Do not change after creation."
+    )
+
+    weight_percentage = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        help_text="Percentage contribution to final score (e.g. 40 for 40%)"
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Assessment Category"
+        verbose_name_plural = "Assessment Categories"
+
+    def __str__(self):
+        return f"{self.name} ({self.system_role})"
+    
+
+class AssessmentType(models.Model):
+    name = models.CharField(
+        max_length=100,
+        unique=True,
+        help_text="Type of assessment (e.g. Quiz, Assignment, Final Exam)"
+    )
+
+    description = models.TextField(blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Assessment Type"
+        verbose_name_plural = "Assessment Types"
+
+    def __str__(self):
+        return self.name
+    
+
+class AssessmentTask(models.Model):
+    course = models.ForeignKey(
+        'ProgramCourse',
+        on_delete=models.CASCADE,
+        related_name='assessment_tasks'
+    )
+
+    semester = models.ForeignKey(
+        'Semester',
+        on_delete=models.CASCADE,
+        related_name='assessment_tasks'
+    )
+
+    assessment_type = models.ForeignKey(
+        AssessmentType,
+        on_delete=models.PROTECT,
+        related_name='tasks'
+    )
+
+    assessment_category = models.ForeignKey(
+        AssessmentCategory,
+        on_delete=models.PROTECT,
+        related_name='tasks'
+    )
+
+    title = models.CharField(
+        max_length=150,
+        help_text="Task title (e.g. Mid-Sem Quiz)"
+    )
+
+    total_marks = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        help_text="Maximum obtainable marks for this task"
+    )
+
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        limit_choices_to={'role__in': ['lecturer', 'admin']},
+        related_name='created_assessment_tasks'
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Assessment Task"
+        verbose_name_plural = "Assessment Tasks"
+        unique_together = (
+            'course',
+            'semester',
+            'assessment_type',
+            'assessment_category',
+            'title',
+        )
+
+    def __str__(self):
+        return f"{self.course} - {self.title}"
+
+
+class AssessmentTaskScore(models.Model):
+    task = models.ForeignKey(
+        AssessmentTask,
+        on_delete=models.CASCADE,
+        related_name='scores'
+    )
+
+    student = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        limit_choices_to={'role': 'student'},
+        related_name='assessment_task_scores'
+    )
+
+    marks_obtained = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="NULL means score not yet entered"
+    )
+
+    recorded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        limit_choices_to={'role__in': ['lecturer', 'admin']},
+        related_name='task_scores_recorded'
+    )
+
+    recorded_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Assessment Task Score"
+        verbose_name_plural = "Assessment Task Scores"
+        unique_together = ('task', 'student')
+
+    def __str__(self):
+        return f"{self.student} - {self.task}"
+
+
+class CourseAnnouncement(models.Model):
+    # WHO posted it
+    sender = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="course_announcements"
+    )
+
+    # TARGET COURSE
+    course = models.ForeignKey(
+        "ProgramCourse",
+        on_delete=models.CASCADE,
+        related_name="announcements"
+    )
+
+    # CONTENT
+    title = models.CharField(max_length=255)
+    message = models.TextField()
+
+    # DELIVERY OPTIONS
+    send_as_notification = models.BooleanField(
+        default=True,
+        help_text="Show in student notifications"
+    )
+    is_active = models.BooleanField(default=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Course Announcement"
+        verbose_name_plural = "Course Announcements"
+
+    def __str__(self):
+        return f"{self.course} - {self.title}"

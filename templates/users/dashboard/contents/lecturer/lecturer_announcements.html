@@ -1,0 +1,279 @@
+{% extends "users/dashboard/lecturer_dashboard_layout.html" %} {% block title %}
+Course Announcements {% endblock %} {% block content %}
+<div class="max-w-7xl mx-auto px-4 py-6 space-y-8">
+  <!-- ========================= -->
+  <!-- HEADER -->
+  <!-- ========================= -->
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Course Announcements</h1>
+      <p class="text-sm text-gray-500">
+        Manage announcements for your assigned courses
+      </p>
+    </div>
+
+    <button
+      type="button"
+      class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+      data-action="open-create-modal"
+    >
+      + New Announcement
+    </button>
+  </div>
+
+  <!-- ========================= -->
+  <!-- ANNOUNCEMENTS TABLE -->
+  <!-- ========================= -->
+  <div class="bg-white border rounded-lg overflow-hidden">
+    <table class="w-full text-sm">
+      <thead class="bg-gray-50 border-b">
+        <tr>
+          <th class="px-4 py-3 text-left font-medium text-gray-600">Title</th>
+          <th class="px-4 py-3 text-left font-medium text-gray-600">Course</th>
+          <th class="px-4 py-3 text-left font-medium text-gray-600">Notify</th>
+          <th class="px-4 py-3 text-left font-medium text-gray-600">Created</th>
+          <th class="px-4 py-3 text-right font-medium text-gray-600">
+            Actions
+          </th>
+        </tr>
+      </thead>
+
+      <tbody class="divide-y">
+        {% for ann in announcements %}
+        <tr class="hover:bg-gray-50">
+          <td class="px-4 py-3 font-medium text-gray-900">{{ ann.title }}</td>
+
+          <td class="px-4 py-3">
+            <div class="font-medium text-gray-800">{{ ann.course.title }}</div>
+            <div class="text-xs text-gray-500">
+              {{ ann.course.program.name }} · {{ ann.course.level.level_name }}
+            </div>
+          </td>
+
+          <td class="px-4 py-3">
+            {% if ann.send_as_notification %}
+            <span
+              class="inline-flex items-center px-2 py-1 rounded text-xs bg-green-100 text-green-700"
+            >
+              Yes
+            </span>
+            {% else %}
+            <span
+              class="inline-flex items-center px-2 py-1 rounded text-xs bg-gray-100 text-gray-600"
+            >
+              No
+            </span>
+            {% endif %}
+          </td>
+
+          <td class="px-4 py-3 text-gray-600">
+            {{ ann.created_at|date:"M d, Y" }}
+          </td>
+
+          <td class="px-4 py-3 text-right space-x-3">
+            <button
+              type="button"
+              class="text-brand-600 hover:underline text-sm"
+              data-action="edit-announcement"
+              data-announcement-id="{{ ann.id }}"
+              data-title="{{ ann.title|escapejs }}"
+              data-message="{{ ann.message|escapejs }}"
+              data-course-id="{{ ann.course.id }}"
+              data-notify="{{ ann.send_as_notification|yesno:'true,false' }}"
+            >
+              Edit
+            </button>
+
+            <button
+              type="button"
+              class="text-red-600 hover:underline text-sm"
+              data-action="delete-announcement"
+              data-announcement-id="{{ ann.id }}"
+            >
+              Delete
+            </button>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="5" class="px-4 py-10 text-center text-gray-400">
+            No announcements created yet.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ========================= -->
+<!-- MODAL -->
+<!-- ========================= -->
+<div
+  id="announcementModal"
+  class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50"
+>
+  <div class="bg-white w-full max-w-lg rounded-lg shadow-lg p-6">
+    <h2 id="modalTitle" class="text-lg font-semibold text-gray-900 mb-4">
+      Add Announcement
+    </h2>
+
+    <form id="announcementForm" method="post">
+      {% csrf_token %}
+
+      <input type="hidden" name="action" id="formAction" value="create" />
+      <input type="hidden" name="announcement_id" id="announcementId" />
+
+      <div class="space-y-4">
+        <!-- COURSE -->
+        <div>
+          <label class="block text-sm font-medium mb-1">Course</label>
+          <select
+            name="course"
+            required
+            class="w-full border rounded-md px-3 py-2"
+          >
+            <option value="">Select course</option>
+            {% for pc in program_courses %}
+            <option value="{{ pc.id }}">
+              {{ pc.title }} — {{ pc.program.name }} ({{ pc.level.level_name }})
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- TITLE -->
+        <div>
+          <label class="block text-sm font-medium mb-1">Title</label>
+          <input
+            type="text"
+            name="title"
+            required
+            class="w-full border rounded-md px-3 py-2"
+          />
+        </div>
+
+        <!-- MESSAGE -->
+        <div>
+          <label class="block text-sm font-medium mb-1">Message</label>
+          <textarea
+            name="message"
+            rows="4"
+            required
+            class="w-full border rounded-md px-3 py-2"
+          ></textarea>
+        </div>
+
+        <!-- NOTIFY -->
+        <label class="flex items-center gap-2 text-sm">
+          <input type="checkbox" name="send_as_notification" checked />
+          Send as notification to students
+        </label>
+      </div>
+
+      <div class="flex justify-end gap-3 mt-6">
+        <button
+          type="button"
+          class="px-4 py-2 border rounded-md text-sm"
+          data-action="close-modal"
+        >
+          Cancel
+        </button>
+
+        <button
+          type="submit"
+          class="px-4 py-2 bg-brand-600 text-white rounded-md text-sm"
+        >
+          Save
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ========================= -->
+<!-- JAVASCRIPT (DATA-DRIVEN) -->
+<!-- ========================= -->
+<script>
+  document.addEventListener("click", function (e) {
+    /* OPEN CREATE MODAL */
+    if (e.target.closest("[data-action='open-create-modal']")) {
+      document.getElementById("modalTitle").innerText = "Add Announcement";
+      document.getElementById("formAction").value = "create";
+      document.getElementById("announcementId").value = "";
+      document.getElementById("announcementForm").reset();
+
+      const modal = document.getElementById("announcementModal");
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
+      return;
+    }
+
+    /* EDIT ANNOUNCEMENT */
+    const editBtn = e.target.closest("[data-action='edit-announcement']");
+    if (editBtn) {
+      document.getElementById("modalTitle").innerText = "Edit Announcement";
+      document.getElementById("formAction").value = "update";
+      document.getElementById("announcementId").value =
+        editBtn.dataset.announcementId;
+
+      document.querySelector("[name='title']").value = editBtn.dataset.title;
+      document.querySelector("[name='message']").value =
+        editBtn.dataset.message;
+      document.querySelector("[name='course']").value =
+        editBtn.dataset.courseId;
+      document.querySelector("[name='send_as_notification']").checked =
+        editBtn.dataset.notify === "true";
+
+      const modal = document.getElementById("announcementModal");
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
+      return;
+    }
+
+    /* DELETE ANNOUNCEMENT */
+    const deleteBtn = e.target.closest("[data-action='delete-announcement']");
+    if (deleteBtn) {
+      if (!confirm("Delete this announcement?")) return;
+
+      const formData = new FormData();
+      formData.append("csrfmiddlewaretoken", "{{ csrf_token }}");
+      formData.append("action", "delete");
+      formData.append("announcement_id", deleteBtn.dataset.announcementId);
+
+      fetch("", { method: "POST", body: formData }).then(() =>
+        window.location.reload()
+      );
+      return;
+    }
+
+    /* CLOSE MODAL */
+    if (e.target.closest("[data-action='close-modal']")) {
+      const modal = document.getElementById("announcementModal");
+      modal.classList.add("hidden");
+      modal.classList.remove("flex");
+    }
+  });
+
+  /* FORM SUBMIT */
+  document
+    .getElementById("announcementForm")
+    .addEventListener("submit", function (e) {
+      e.preventDefault();
+
+      fetch("", {
+        method: "POST",
+        body: new FormData(this),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success) {
+            window.location.reload();
+          } else {
+            alert("Something went wrong.");
+          }
+        });
+    });
+</script>
+
+{% endblock %}

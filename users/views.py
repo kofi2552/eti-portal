@@ -6,13 +6,16 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Q, Count
 from .models import CustomUser as User, Payment, RegistrationProgress, StudentRegistration
 from academics.models import Program, Course, AcademicYear, Semester, Assessment, Grade, ProgramLevel, Enrollment
-from academics.models import Department, Resource, TranscriptSettings, TranscriptRequest, ProgramCourse
+from academics.models import Department, Resource, TranscriptSettings, TranscriptRequest, ProgramCourse, AssessmentCategory, AssessmentType, AssessmentTask, AssessmentTaskScore
 from portal.models import SystemLog
 from school.models import School
 from django.core.paginator import Paginator
+from reportlab.lib.utils import ImageReader
+from django.conf import settings
+import os
 import csv, io
 import pandas as pd
-from django.http import HttpResponse
+from django.http import HttpResponse,JsonResponse
 import random
 import datetime
 from django.utils import timezone
@@ -27,10 +30,14 @@ from academics.forms import ResourceForm
 import json
 from portal.utils import log_event
 from portal.utils import generate_transcript_json  
-from django.http import JsonResponse
 from django.db import  IntegrityError
 from portal.models import SystemLock, Announcement
 from django.db.models import Sum, F, DecimalField, ExpressionWrapper
+from academics.services.assessment_tasks import create_task_with_scores
+from academics.services.assessment_aggregation import recalculate_student_assessment
+from decimal import ROUND_HALF_UP
+from finance.models import ProgramFee
+from academics.models import CourseAnnouncement
 
 
 # Example assumes your User model has a 'role' field with values:
@@ -48,8 +55,10 @@ def generate_student_id():
     random_part = get_random_string(4, allowed_chars='0123456789')
     return f"STU{year}{random_part}"
 
+
 def generate_pin():
     return get_random_string(6, allowed_chars='0123456789')
+
 
 def get_student_active_semester(student):
     return (
@@ -94,6 +103,7 @@ def student_login(request):
 
 
     # return render(request, "users/student_login.html")
+
 
 def lecturer_login(request):
     if system_is_locked():
@@ -199,14 +209,13 @@ def admin_logs(request):
 # DASHBOARD VIEWS (for redirect targets)
 # =============================
 
-
 @login_required(login_url='student_login')
 def student_dashboard(request):
     if request.user.role != "student":
         return redirect("student_login")
     
-    anns = Announcement.objects.filter(role="admin", is_active=True).order_by("-created_at")[:5]
-    return render(request, "users/dashboard/student_dashboard_layout.html", {"announcements": anns})
+    return render(request, "users/dashboard/student_dashboard_layout.html")
+
 
 @login_required(login_url='lecturer_login')
 def lecturer_dashboard(request):
@@ -214,11 +223,13 @@ def lecturer_dashboard(request):
         return redirect("lecturer_login")
     return render(request, "users/dashboard/lecturer_dashboard_layout.html")
 
+
 @login_required(login_url='dean_login')
 def dean_dashboard(request):
     if request.user.role != "dean":
         return redirect("dean_login")
     return render(request, "users/dashboard/dean_dashboard_layout.html")
+
 
 @login_required(login_url='admin_login')
 def admin_dashboard(request):
@@ -245,327 +256,6 @@ def student_profile(request):
         "active_year": active_year,
         "active_semester": active_semester,
     })
-
-
-# @login_required
-# def student_main(request):
-#     user = request.user
-
-#     if user.role != "student":
-#         messages.error(request, "Access denied.")
-#         return redirect("home")
-
-#     # active academic year
-#     active_year = AcademicYear.objects.filter(is_active=True).first()
-#     if not active_year:
-#         return registration_error(request, "No active academic year found.")
-
-#     # student's current level
-#     current_level = getattr(user, "level", None)
-#     if not current_level:
-#         return render(request, "users/dashboard/contents/student/student_main.html", {
-#             "enrolled_courses": 0,
-#             "gpa": None,
-#             "semester_number": "No registration",
-#             "level": None,
-#             "semesters": [],
-#             "selected_sem_id": None,
-#             "course_labels": [],
-#             "grade_points": [],
-#         })
-
-#     # find the active semester for this level & year
-#     active_semester = Semester.objects.filter(
-#         level=current_level,
-#         academic_year=active_year,
-#         is_active=True
-#     ).first()
-
-#     if not active_semester:
-#         return render(request, "users/dashboard/contents/student/student_main.html", {
-#             "enrolled_courses": 0,
-#             "gpa": None,
-#             "semester_number": "No registration",
-#             "level": current_level,
-#             "semesters": [],
-#             "selected_sem_id": None,
-#             "course_labels": [],
-#             "grade_points": [],
-#         })
-
-#     # -------------------------
-#     # ENROLLMENT = single source of truth that student has been registered/verified
-#     # -------------------------
-#     enrollment = Enrollment.objects.filter(
-#         student=user,
-#         level=current_level,
-#         semester=active_semester,
-#         is_current=True
-#     ).select_related("program").first()
-
-#     if not enrollment:
-#         # not registered / not verified yet
-#         return render(request, "users/dashboard/contents/student/student_main.html", {
-#             "enrolled_courses": 0,
-#             "gpa": None,
-#             "semester_number": "No registration",
-#             "level": current_level,
-#             "semesters": [],
-#             "selected_sem_id": None,
-#             "course_labels": [],
-#             "grade_points": [],
-#         })
-
-#     # -------------------------
-#     # Student has an enrollment (proof). Now try to get selected courses (optional)
-#     # If you prefer NOT to use StudentRegistration at all, set enrolled_courses = 0 or
-#     # count ProgramCourse instances instead. Below we prefer StudentRegistration if present.
-#     # -------------------------
-#     registration = StudentRegistration.objects.filter(
-#         student=user,
-#         academic_year=active_semester.academic_year,
-#         semester=active_semester
-#     ).first()
-
-#     if registration:
-#         student_courses_qs = registration.courses.filter(is_active=True)
-#         enrolled_courses = student_courses_qs.count()
-#         # student_courses = student_courses_qs
-#     else:
-#         # Student has enrollment (payment verified) but hasn't selected courses yet
-#         enrolled_courses = 0
-#         # student_courses = ProgramCourse.objects.none()
-
-#     # -------------------------
-#     # GPA (all assessments for student) using ProgramCourse or legacy Course
-#     # -------------------------
-#     assessments = Assessment.objects.filter(student=user).select_related("course")
-#     grade_point_map = {
-#         "A": 4.0, "A-": 3.7,
-#         "B+": 3.5, "B": 3.0, "B-": 2.7,
-#         "C+": 2.5, "C": 2.0,
-#         "D+": 1.5, "D": 1.0, "F": 0.0,
-#     }
-
-#     total_points = 0
-#     total_credits = 0
-#     for a in assessments:
-#         points = grade_point_map.get(a.grade, 0)
-#         credits = getattr(a.course, "credit_hours", None) or getattr(a.course, "credit_hours", 3)
-#         total_points += points * credits
-#         total_credits += credits
-
-#     gpa = round(total_points / total_credits, 2) if total_credits else None
-
-#     # --------------------------------------------------
-#     # GRAPH SEMESTERS (independent from registration)
-#     # --------------------------------------------------
-#     semesters = (
-#         Semester.objects.filter(
-#             id__in=Assessment.objects.filter(
-#                 student=user,
-#                 course__is_active=True
-#             ).values_list("semester_id", flat=True)
-#         )
-#         .select_related("academic_year")
-#         .order_by("start_date")
-#     )
-
-#     # Determine selected semester
-#     selected_sem_id = request.GET.get("semester")
-
-#     if selected_sem_id:
-#         selected_semester = semesters.filter(id=selected_sem_id).first()
-#     else:
-#         # Default to most recent semester with assessments
-#         selected_semester = semesters.last() if semesters else None
-#         selected_sem_id = selected_semester.id if selected_semester else None
-
-#     # ===================================================================
-#     # UPDATED GRAPH DATA → Using ProgramCourse codes + grades
-#     # ===================================================================
-#     course_labels = []
-#     grade_points = []
-
-#     if selected_semester:
-#         sem_assessments = (
-#             Assessment.objects.filter(
-#                 student=user,
-#                 semester=selected_semester,
-#                 course__is_active=True
-#             )
-#             .select_related("course")
-#             .order_by("course__course_code")
-#         )
-
-#         for a in sem_assessments:
-#             course_labels.append(a.course.course_code)
-#             grade_points.append(grade_point_map.get(a.grade, 0))
-
-#     # -------------------------
-#     # RENDER
-#     # -------------------------
-#     return render(request, "users/dashboard/contents/student/student_main.html", {
-#         "enrolled_courses": enrolled_courses,
-#         "gpa": gpa,
-#         "semester_number": active_semester.name if enrolled_courses > 0 else "No registration",
-#         "level": current_level,
-#         "semesters": semesters,
-#         "selected_sem_id": selected_sem_id,
-#         "course_labels": json.dumps(course_labels),
-#         "grade_points": json.dumps(grade_points),
-#     })
-
-
-# @login_required
-# def student_main(request):
-#     user = request.user
-
-#     if user.role != "student":
-#         messages.error(request, "Access denied.")
-#         return redirect("home")
-
-#     # ---------------------------------------------
-#     # Detect ACTIVE academic year
-#     # ---------------------------------------------
-#     active_year = AcademicYear.objects.filter(is_active=True).first()
-#     if not active_year:
-#         return registration_error(request, "No active academic year found.")
-
-#     # ---------------------------------------------
-#     # Find StudentRegistration for ACTIVE YEAR
-#     # ---------------------------------------------
-#     current_reg = StudentRegistration.objects.filter(
-#         student=user,
-#         academic_year=active_year
-#     ).select_related("semester").first()
-
-#     # CASE 1 → No registration yet for this academic year
-#     if not current_reg:
-#         context = {
-#             "enrolled_courses": 0,
-#             "gpa": None,
-#             "semester_number": None,
-#             "student_courses": [],
-#             "semesters": [],
-#             "selected_sem_id": None,
-#             "course_labels": [],
-#             "grade_points": [],
-#             "requires_new_registration": True,
-#             "active_year": active_year,
-#         }
-#         return render(
-#             request,
-#             "users/dashboard/contents/student/student_main.html",
-#             context
-#         )
-
-#     # ---------------------------------------------
-#     # CASE 2 → Student HAS registration for this year
-#     # ---------------------------------------------
-#     student_courses = current_reg.courses.filter(is_active=True)
-#     enrolled_courses = student_courses.count()
-
-#     # ---------------------------------------------
-#     # GPA CALCULATION (using ProgramCourse)
-#     # ---------------------------------------------
-#     assessments = (
-#         Assessment.objects
-#         .filter(student=user, course__is_active=True)
-#         .select_related("course")
-#     )
-
-#     grade_point_map = {
-#         "A": 4.0, "A-": 3.7,
-#         "B+": 3.5, "B": 3.0, "B-": 2.7,
-#         "C+": 2.5, "C": 2.0,
-#         "D+": 1.5, "D": 1.0,
-#         "F": 0.0,
-#     }
-
-#     total_points = 0
-#     total_credits = 0
-
-#     for a in assessments:
-#         points = grade_point_map.get(a.grade, 0)
-#         credits = a.course.credit_hours or 3
-#         total_points += points * credits
-#         total_credits += credits
-
-#     gpa = round(total_points / total_credits, 2) if total_credits else None
-
-#     # ===================================================================
-#     # UPDATED GRAPH LOGIC → Load ALL semesters with assessments
-#     # ===================================================================
-#     semesters = (
-#         Semester.objects.filter(
-#             id__in=Assessment.objects.filter(
-#                 student=user,
-#                 course__is_active=True
-#             ).values_list("semester_id", flat=True)
-#         )
-#         .select_related("academic_year")
-#         .order_by("start_date")
-#     )
-
-#     # Determine selected semester
-#     selected_sem_id = request.GET.get("semester")
-
-#     if selected_sem_id:
-#         selected_semester = semesters.filter(id=selected_sem_id).first()
-#     else:
-#         # Default to most recent semester with assessments
-#         selected_semester = semesters.last() if semesters else None
-#         selected_sem_id = selected_semester.id if selected_semester else None
-
-#     # ===================================================================
-#     # UPDATED GRAPH DATA → Using ProgramCourse codes + grades
-#     # ===================================================================
-#     course_labels = []
-#     grade_points = []
-
-#     if selected_semester:
-#         sem_assessments = (
-#             Assessment.objects.filter(
-#                 student=user,
-#                 semester=selected_semester,
-#                 course__is_active=True
-#             )
-#             .select_related("course")
-#             .order_by("course__course_code")
-#         )
-
-#         for a in sem_assessments:
-#             course_labels.append(a.course.course_code)
-#             grade_points.append(grade_point_map.get(a.grade, 0))
-
-#     # ---------------------------------------------
-#     # FINAL CONTEXT
-#     # ---------------------------------------------
-
-#     print("new level", user.level)
-
-#     context = {
-#         "enrolled_courses": enrolled_courses,
-#         "gpa": gpa,
-#         "semester_number": current_reg.semester.name,
-#         "student_courses": student_courses,
-#         "level": user.level,
-
-#         # Updated graph data
-#         "semesters": semesters,
-#         "selected_sem_id": selected_sem_id,
-#         "course_labels": json.dumps(course_labels),
-#         "grade_points": json.dumps(grade_points),
-
-#         "requires_new_registration": False,
-#     }
-
-#     return render(
-#         request,
-#         "users/dashboard/contents/student/student_main.html",
-#         context
-#     )
 
 
 @login_required
@@ -771,56 +461,34 @@ def student_course_details(request, course_id):
         .order_by("-created_at")
     )
 
+    # ✅ FETCH ANNOUNCEMENTS FOR THIS PROGRAM COURSE
+    announce = (
+        CourseAnnouncement.objects
+        .filter(
+            course=course,
+        )
+        .select_related("sender")
+        .order_by("-created_at")
+        
+    )
+
+
     return render(request,
         "users/dashboard/contents/student/student_course_details.html",
         {
             "course": course,
             "resources": resources,
             "lecturers": lecturers,
-            "registration": registration
+            "registration": registration,
+            "announce": announce,
         }
     )
-
 
 
 @login_required
 def register_semester(request):
     return render(request, "users/dashboard/contents/student/register_semester.html")
 
-# lecturer
-@login_required
-def lecturer_main(request):
-    return render(request, "users/dashboard/contents/lecturer/lecturer_main.html")
-
-# @login_required
-# def lecturer_courses(request):
-#     return render(request, "users/dashboard/contents/lecturer/lecturer_courses.html")
-
-
-@login_required
-def lecturer_courses(request):
-
-    if getattr(request.user, "role", None) not in ["lecturer", "admin"]:
-        messages.error(request, "Access denied.")
-        return redirect("home")
-
-    user = request.user
-
-    # BEST WAY: Use the reverse relation
-    courses = (
-        user.program_courses_taught
-        .select_related("program", "level", "semester", "semester__academic_year")
-        .filter(is_active=True)
-        .order_by("program__name", "level__order", "course_code")
-    )
-
-    # print("Courses taught:", courses)
-
-    return render(
-        request,
-        "users/dashboard/contents/lecturer/lecturer_courses.html",
-        {"courses": courses}
-    )
 
 
 @login_required
@@ -909,6 +577,7 @@ def resource_delete(request, resource_id):
         "resource": resource,
     })
 
+
 @login_required
 def lecturer_grades(request):
     return render(request, "users/dashboard/contents/lecturer/lecturer_grades.html")
@@ -932,6 +601,7 @@ def admin_main(request):
 def admin_manage_programs(request):
     return render(request, "users/dashboard/contents/admin/admin_manage_programs.html")
 
+
 @login_required
 def admin_reports(request):
     return render(request, "users/dashboard/contents/admin/admin_reports.html")
@@ -941,6 +611,7 @@ def logout_view(request):
     logout(request)
     # messages.success(request, "You have been logged out successfully.")
     return redirect("portal:home")
+
 
 # EXTERNAL FILES
 # ---------- EXPORT CSV ----------
@@ -1044,6 +715,7 @@ def admin_manage_users(request):
         "role_filter": role_filter,
     })
 
+
 # ========== EDIT USER ==========
 @login_required
 def edit_user(request, id):
@@ -1071,6 +743,7 @@ def edit_user(request, id):
                   "users/dashboard/contents/admin/edit_user.html",
                   {"user_obj": user})
 
+
 @login_required
 def delete_user(request, id):
     if request.user.role not in ['admin', 'superadmin']:
@@ -1087,6 +760,7 @@ def delete_user(request, id):
     return render(request,
                   "users/dashboard/contents/admin/confirm_delete_user.html",
                   {"user_obj": user})
+
 
 # ✅ Manage Programs (Admin)
 @login_required
@@ -1255,61 +929,95 @@ def student_enrollment(request):
     # Fetch all payments
     payments = Payment.objects.select_related("student", "academic_year", "semester").order_by("-created_at")
 
+     # ======================================
+    # SEARCH
+    # ======================================
+    search_query = request.GET.get("q", "").strip()
+
+    # print("query: ", search_query)
+
+    payments_qs = (
+        Payment.objects
+        .select_related("student", "academic_year", "semester")
+        .order_by("-created_at")
+    )
+
+    if search_query:
+        payments_qs = payments_qs.filter(
+            Q(student__first_name__icontains=search_query) |
+            Q(student__last_name__icontains=search_query) |
+            Q(student__username__icontains=search_query)
+        )
+
+    # ======================================
+    # PAGINATION
+    # ======================================
+    paginator = Paginator(payments_qs, 10)  # 10 per page
+    page_number = request.GET.get("page")
+    payments_page = paginator.get_page(page_number)
+
     # ============================
-    # CREATE PAYMENT RECORD
+    # MANAGE PROGRAM FEE RECORD
     # ============================
-    if request.method == "POST" and request.POST.get("create_payment"):
-        student_id = request.POST.get("student_id")
-        academic_year_id = request.POST.get("academic_year_id")
-        semester_id = request.POST.get("semester_id")
-        program_id = request.POST.get("program_id")
-        level_id = request.POST.get("level_id")
-        amount_expected = request.POST.get("amount_expected")
-        amount_paid = request.POST.get("amount_paid")
-        reference = request.POST.get("reference")
+    if request.method == "POST" and request.POST.get("fee_id"):
+        fee_id = request.POST.get("fee_id")
+        program_fee = get_object_or_404(ProgramFee, id=fee_id)
 
-        student = get_object_or_404(User, id=student_id, role="student")
-        academic_year = get_object_or_404(AcademicYear, id=academic_year_id)
-        semester = get_object_or_404(Semester, id=semester_id)
-        program = get_object_or_404(Program, id=program_id)
-        level = get_object_or_404(ProgramLevel, id=level_id)
 
-        try:
-            with transaction.atomic():
-                # Create payment
-                payment = Payment.objects.create(
-                    student=student,
-                    academic_year=academic_year,
-                    semester=semester,
-                    amount_expected=amount_expected,
-                    amount_paid=amount_paid,
-                    reference=reference,
-                    date_paid=timezone.now(),
-                    is_verified=False,
-                )
+        program_fee.is_allowed = not program_fee.is_allowed
+        program_fee.save(update_fields=["is_allowed"])
 
-                # Create enrollment linked to payment
-                Enrollment.objects.create(
-                    student=student,
-                    semester=semester,
-                    program=program,
-                    level=level,
-                    is_current=False,
-                    payment=payment,
-                )
+        status = "enabled" if program_fee.is_allowed else "disabled"
 
-                # Logging
-                log_event(
-                    request.user,
-                    "registration",
-                    f"Created payment record for student {student.get_full_name()} - Ref: {reference}"
-                )
+        print("toggled: is_allowed")
 
-            messages.success(request, "Payment record added successfully.")
-        except Exception as e:
-            messages.error(request, f"Failed to create payment and enrollment: {e}")
+        log_event(
+            request.user,
+            "Payments",
+            f"Admin {status} finance editing for "
+            f"Program: {program_fee.program.name} | "
+            f"Semester: {program_fee.semester.name}"
+        )
+
+        messages.success(
+            request,
+            f"Program fee for {program_fee.program.name} "
+            f"({program_fee.semester.name}) has been {status}."
+        )
 
         return redirect("student_enrollment")
+    
+    # ============================
+    # ARCHIVE PROGRAM FEE RECORD
+    # ============================
+    if request.method == "POST" and request.POST.get("delete_fee"):
+        fee_id = request.POST.get("del_fee_id")
+        program_fee = get_object_or_404(ProgramFee, id=fee_id)
+
+
+        program_fee.is_archived = not program_fee.is_archived
+        program_fee.save(update_fields=["is_archived"])
+
+        status = "archived" if program_fee.is_archived else "unarchived"
+
+        print("archived: is_archived")
+
+        log_event(
+            request.user,
+            "Payments",
+            f"Admin {status} fees for "
+            f"Program: {program_fee.program.name} | "
+            f"Semester: {program_fee.semester.name}"
+        )
+
+        messages.success(
+            request,
+            f"Program fee for {program_fee.program.name} "
+            f"({program_fee.semester.name}) has been {status}."
+        )
+
+        return redirect("student_enrollment")
+
 
    # ============================
     # VERIFY PAYMENT
@@ -1319,46 +1027,108 @@ def student_enrollment(request):
         payment = get_object_or_404(Payment, id=payment_id)
 
         student = payment.student
-
-        # Fetch enrollment for the same semester in the payment record
-        enrollment = Enrollment.objects.filter(
-            student=student,
-            semester=payment.semester
-        ).select_related("program", "level").first()
-
-        if not enrollment:
-            messages.error(request, "Enrollment record missing. Cannot verify payment.")
-            return redirect("student_enrollment")
-
-        # Extract connected data
-        program = enrollment.program
-        level = enrollment.level
-        department = program.department
+        program = payment.program
+        semester = payment.semester
+        academic_year = payment.academic_year
 
         try:
             with transaction.atomic():
-                # ---------------------------
-                # 1. Mark payment verified
-                # ---------------------------
+
+                # ---------------------------------
+                # 0. Fetch Program Fee
+                # ---------------------------------
+                program_fee = ProgramFee.objects.filter(
+                    program=program,
+                    academic_year=academic_year,
+                    semester=semester
+                ).first()
+
+                if not program_fee:
+                    messages.error(
+                        request,
+                        "Program fee has not been declared for this program and semester."
+                    )
+                    return redirect("student_enrollment")
+
+                # ---------------------------------
+                # 1. Sum PREVIOUSLY VERIFIED payments
+                # ---------------------------------
+                previously_verified_total = (
+                    Payment.objects.filter(
+                        student=student,
+                        program=program,
+                        academic_year=academic_year,
+                        semester=semester,
+                        is_verified=True
+                    )
+                    .exclude(id=payment.id)  # safety
+                    .aggregate(total=Sum("amount_paid"))["total"]
+                    or Decimal("0")
+                )
+
+                # ---------------------------------
+                # 2. Include CURRENT payment
+                # ---------------------------------
+                total_after_verification = (
+                    previously_verified_total + payment.amount_paid
+                )
+
+                # ---------------------------------
+                # 3. Enforce INITIAL PAYMENT RULE
+                # ---------------------------------
+                if total_after_verification < program_fee.initial_amount:
+                    messages.error(
+                        request,
+                        f"Initial payment not met. "
+                        f"Required: GHS {program_fee.initial_amount}, "
+                        f"Paid after verification: GHS {total_after_verification}."
+                    )
+                    return redirect("student_enrollment")
+
+                # ---------------------------------
+                # 4. Mark payment as verified
+                # ---------------------------------
                 payment.is_verified = True
-                        
-                Enrollment.objects.filter(student=student, is_current=True).exclude(pk=enrollment.pk).update(is_current=False)
+                payment.save()
 
-                # Activate the current enrollment
-                enrollment.is_current = True
-                enrollment.save()
+                # ---------------------------------
+                # 5. Get or create Enrollment
+                # ---------------------------------
+                enrollment, created = Enrollment.objects.get_or_create(
+                    student=student,
+                    semester=semester,
+                    defaults={
+                        "program": program,
+                        "level": student.level,
+                        "payment": payment,   
+                        "is_current": True,
+                    }
+                )
 
-                # ---------------------------
-                # 2. Update student fields
-                # ---------------------------
+                if not created:
+                    enrollment.program = program
+                    enrollment.level = student.level
+                    enrollment.payment = payment
+                    enrollment.is_current = True
+                    enrollment.save()
+
+                # Deactivate any other active enrollments
+                Enrollment.objects.filter(
+                    student=student,
+                    is_current=True
+                ).exclude(pk=enrollment.pk).update(is_current=False)
+
+                # ---------------------------------
+                # 6. Update student profile
+                # ---------------------------------
                 student.is_fee_paid = True
                 student.program = program
-                student.department = department
-                student.level = level  
+                student.department = program.department
+                student.level = enrollment.level
 
-                # ---------------------------
-                # 3. Generate ID + PIN (ONLY for first-time students)
-                # ---------------------------
+                # ---------------------------------
+                # 7. Generate ID & PIN (first time)
+                # ---------------------------------
                 first_time = False
 
                 if not student.student_id:
@@ -1369,35 +1139,42 @@ def student_enrollment(request):
                     student.pin_code = generate_pin()
                     first_time = True
 
-                # update username + password ONLY if credentials were newly generated
                 if first_time:
                     student.username = student.student_id
                     student.set_password(student.pin_code)
 
                 student.save()
 
-                # ---------------------------
-                # 4. Always mirror credentials on payment
-                # ---------------------------
+                # ---------------------------------
+                # 8. Mirror credentials on payment
+                # ---------------------------------
                 payment.generated_student_id = student.student_id
                 payment.generated_pin = student.pin_code
                 payment.save()
 
-                # LOGGING
+                # ---------------------------------
+                # LOG
+                # ---------------------------------
                 log_event(
                     request.user,
                     "registration",
-                    f"Verified payment for {student.get_full_name()} - "
-                    f"ID: {student.student_id}, PIN: {student.pin_code}, "
-                    f"Level: {level.level_name}, Program: {program.name}"
+                    f"Verified payment for {student.get_full_name()} | "
+                    f"Program: {program.name} | "
+                    f"Semester: {semester.name} | "
+                    f"Total paid so far: GHS {total_after_verification}"
                 )
 
-            messages.success(request, f"Payment verified for {student.get_full_name()}. Student ID: {student.student_id}, PIN: {student.pin_code}")
+            messages.success(
+                request,
+                f"Payment verified successfully for {student.get_full_name()}."
+            )
+
         except Exception as e:
-            messages.error(request, f"Failed to verify payment and enrollment: {e}")
+            messages.error(request, f"Verification failed: {e}")
 
         return redirect("student_enrollment")
-    
+
+
     # ============================
     # DELETE PAYMENT
     # ============================
@@ -1424,6 +1201,32 @@ def student_enrollment(request):
         sem_id = request.POST.get("semester_id")
         semester = get_object_or_404(Semester, id=sem_id)
 
+        # -------------------------------------------------
+        # BLOCK activation if no ProgramCourses exist
+        # -------------------------------------------------
+        if not semester.sem_reg_is_active:
+            has_courses = ProgramCourse.objects.filter(
+                semester=semester,
+                is_active=True
+            ).exists()
+
+            if not has_courses:
+                log_event(
+                    request.user,
+                    "registration",
+                    f"Blocked semester activation: {semester.name} has no program courses"
+                )
+
+                messages.error(
+                    request,
+                    f"Cannot activate registration for {semester.name}. "
+                    "No courses have been configured for this semester."
+                )
+                return redirect("student_enrollment")
+
+    # -------------------------------------------------
+    # Toggle state
+    # -------------------------------------------------
         semester.sem_reg_is_active = not semester.sem_reg_is_active
         semester.save()
 
@@ -1441,11 +1244,13 @@ def student_enrollment(request):
 
     # Render page
     return render(request, "users/dashboard/contents/admin/student_enrollment.html", {
-        "payments": payments,
+        "payments": payments_page,     
+        "search_query": search_query, 
         "students": User.objects.filter(role="student"),
         "years": AcademicYear.objects.all(),
         "semesters": Semester.objects.all(),
         "programs": Program.objects.all(),
+        "fees": ProgramFee.objects.all(),
         "levels": ProgramLevel.objects.all(),
     })
 
@@ -1462,20 +1267,73 @@ def generate_payment_pdf(request, payment_id):
     width, height = letter
 
     # ---------------------------------------------
-    # HEADER
+    # HEADER (SCHOOL BRANDING)
     # ---------------------------------------------
-    title = "STUDENT PAYMENT RECORD"
-    p.setFont("Helvetica-Bold", 18)
-    p.setFillColor(colors.HexColor("#222222"))
-    p.drawCentredString(width / 2, height - 60, title)
+    school = School.objects.first()
 
-    # Underline
- 
+    header_top = height - 50
+
+    # LOGO (LEFT)
+    if school and school.logo:
+        logo_path = os.path.join(settings.MEDIA_ROOT, school.logo.name)
+        if os.path.exists(logo_path):
+            p.drawImage(
+                ImageReader(logo_path),
+                50,
+                header_top - 50,
+                width=60,
+                height=60,
+                preserveAspectRatio=True,
+                mask="auto"
+            )
+
+    # SCHOOL NAME
+    p.setFont("Helvetica-Bold", 16)
+    p.setFillColor(colors.HexColor("#1f2937"))  # slate-800
+    p.drawCentredString(
+        width / 2,
+        header_top,
+        school.name.upper() if school else "OFFICIAL"
+    )
+
+    # SCHOOL DETAILS
+    p.setFont("Helvetica", 9)
+    p.setFillColor(colors.HexColor("#6b7280"))  # gray-500
+
+    details = []
+    if school:
+        if school.address:
+            details.append(school.address)
+        if school.phone:
+            details.append(f"Tel: {school.phone}")
+        if school.email:
+            details.append(school.email)
+
+    if details:
+        p.drawCentredString(
+            width / 2,
+            header_top - 18,
+            " | ".join(details)
+        )
+
+    # DIVIDER LINE (unchanged position)
+    p.setStrokeColor(colors.HexColor("#e5e7eb"))
+    p.setLineWidth(0.6)
+    p.line(50, header_top - 35, width - 50, header_top - 35)
+
+    # DOCUMENT TITLE — centered with breathing room
+    p.setFont("Helvetica-Bold", 14)
+    p.setFillColor(colors.HexColor("#111827"))
+    title_y = header_top - 80   # controls TOP space
+    p.drawCentredString(width / 2, title_y, "STUDENT PAYMENT RECORD")
+
+    # 🔑 THIS LINE CREATES THE BOTTOM SPACE
+    y = title_y - 40 
 
     # ---------------------------------------------
     # DATA TABLE CONFIG
     # ---------------------------------------------
-    y = height - 120
+    y = title_y - 40
     row_height = 28          # Taller rows for clean vertical spacing
     label_x = 60
     value_x = 240            # Second column begins here
@@ -1526,17 +1384,40 @@ def generate_payment_pdf(request, payment_id):
 
         y -= row_height
 
-    # ---------------------------------------------
-    # FOOTER
-    # ---------------------------------------------
-    timestamp = timezone.now().strftime("%Y-%m-%d %H:%M")
-    p.setFont("Helvetica-Oblique", 8)
-    p.setFillColor(colors.HexColor("#999999"))
-    p.drawRightString(width - 50, 40, f"Generated on {timestamp}")
+        # ---------------------------------------------
+        # FOOTER
+        # ---------------------------------------------
+        timestamp = timezone.now().strftime("%Y-%m-%d %H:%M")
+        p.setFont("Helvetica-Oblique", 8)
+        p.setFillColor(colors.HexColor("#999999"))
+        p.drawRightString(width - 50, 40, f"Generated on {timestamp}")
 
     p.showPage()
     p.save()
+
     return response
+
+
+@login_required
+def toggle_program_fee_allowed(request, fee_id):
+    if getattr(request.user, "role", None) not in ["admin", "superadmin"]:
+        messages.error(request, "Access denied.")
+        return redirect("semester_fee_list")
+
+    program_fee = get_object_or_404(ProgramFee, id=fee_id)
+
+    program_fee.is_allowed = not program_fee.is_allowed
+    program_fee.save(update_fields=["is_allowed"])
+
+    status = "enabled" if program_fee.is_allowed else "disabled"
+
+    messages.success(
+        request,
+        f"Program fee for {program_fee.program.name} "
+        f"({program_fee.semester.name}) has been {status}."
+    )
+
+    return redirect("semester_fee_list")
 
 
 # DEAN SECTION ------------------------------
@@ -1834,6 +1715,7 @@ def ajax_program_levels_courses(request, program_id):
         "courses": [{"id": c.id, "title": c.title, "code": c.code} for c in base_courses],
     })
 
+
 @login_required
 def ajax_level_semesters(request, level_id):
     level = get_object_or_404(ProgramLevel, id=level_id)
@@ -1932,7 +1814,6 @@ def ajax_delete_program_course(request):
 # -------------------------------------- END DEAN MANAGE COURSE --------------------------------------------------
 
 
-
 @login_required
 def admin_school_setup(request):
     if request.user.role != "admin":
@@ -2008,12 +1889,53 @@ def admin_school_setup(request):
 
         messages.success(request, "Grade deleted.")
         return redirect("admin_school_setup")
+    
+    # ============================
+    # ASSESSMENT TYPE CRUD
+    # ============================
+    assessment_types = AssessmentType.objects.order_by("name")
+
+    if request.method == "POST":
+
+        # CREATE
+        if request.POST.get("create_assessment_type"):
+            AssessmentType.objects.create(
+                name=request.POST.get("name"),
+                description=request.POST.get("description", "")
+            )
+            messages.success(request, "Assessment type created.")
+            return redirect("admin_grade_settings")
+
+        # UPDATE
+        if request.POST.get("update_assessment_type"):
+            at = get_object_or_404(
+                AssessmentType,
+                id=request.POST.get("assessment_type_id")
+            )
+            at.name = request.POST.get("name")
+            at.description = request.POST.get("description", "")
+            at.save()
+
+            messages.success(request, "Assessment type updated.")
+            return redirect("admin_grade_settings")
+
+        # DELETE
+        if request.POST.get("delete_assessment_type"):
+            at = get_object_or_404(
+                AssessmentType,
+                id=request.POST.get("assessment_type_id")
+            )
+            at.delete()
+
+            messages.success(request, "Assessment type deleted.")
+            return redirect("admin_grade_settings")
 
     return render(
         request,
         "users/dashboard/contents/admin/admin_school_setup.html",
         {
             "school": school, 
+            "assessment_types": assessment_types,
             "grades": grades
          }
     )
@@ -2731,6 +2653,28 @@ def registration_complete(request):
 
 
 
+# -----------------------------
+# Grade helpers
+# -----------------------------
+def resolve_letter_grade(percent, grade_rules):
+    for rule in grade_rules:
+        if rule.min_score <= percent <= rule.max_score:
+            return rule.letter
+    return "N/A"
+
+
+def resolve_grade_points(letter):
+    mapping = {
+        "A": 4.0, "A-": 3.7,
+        "B+": 3.5, "B": 3.0, "B-": 2.7,
+        "C+": 2.5, "C": 2.0,
+        "D+": 1.5, "D": 1.0,
+        "F": 0.0,
+    }
+    return Decimal(str(mapping.get(letter.upper(), 0.0)))
+
+
+
 @login_required
 def student_academics(request):
     user = request.user
@@ -2739,257 +2683,348 @@ def student_academics(request):
         messages.error(request, "Access denied.")
         return redirect("home")
 
-    # --------------------------------------------------
-    # LOAD ALL ACADEMIC YEARS FOR DROPDOWN
-    # --------------------------------------------------
+    # -----------------------------------------
+    # Academic year selection
+    # -----------------------------------------
     all_years = AcademicYear.objects.all().order_by("-start_date")
 
-    # --------------------------------------------------
-    # SAFE PARSE selected year id (ensure int or None)
-    # --------------------------------------------------
-    selected_year_id_raw = request.GET.get("year")
+    year_raw = request.GET.get("year")
     try:
-        selected_year_id_parsed = int(selected_year_id_raw) if selected_year_id_raw else None
+        year_id = int(year_raw) if year_raw else None
     except (ValueError, TypeError):
-        selected_year_id_parsed = None
+        year_id = None
 
-    # --------------------------------------------------
-    # SELECTED YEAR (via dropdown) — fallback to active
-    # --------------------------------------------------
-    if selected_year_id_parsed:
-        selected_year = all_years.filter(id=selected_year_id_parsed).first()
-    else:
-        selected_year = AcademicYear.objects.filter(is_active=True).first()
-
-    # ensure we always expose a string id for template comparisons
-    selected_year_id = str(selected_year.id) if selected_year else None
-
-    # --------------------------------------------------
-    # FETCH ASSESSMENTS ONLY FOR SELECTED ACADEMIC YEAR
-    # NOTE: DO NOT FILTER by course__is_active here — include historical records
-    # --------------------------------------------------
-    assessments = (
-        Assessment.objects
-        .filter(
-            student=user,
-            semester__academic_year=selected_year
-        )
-        .select_related("course", "semester", "semester__academic_year", "recorded_by")
-        .order_by("semester__start_date")
+    selected_year = (
+        all_years.filter(id=year_id).first()
+        if year_id
+        else AcademicYear.objects.filter(is_active=True).first()
     )
 
-    # If no records, show empty UI (but selected_year still displayed)
-    if not assessments.exists():
-        return render(
-            request,
-            "users/dashboard/contents/student/student_academics.html",
-            {
-                "semesters": {},
-                "cgpa": None,
-                "all_years": all_years,
-                "selected_year_id": selected_year_id,
-                "selected_year": selected_year,
-            }
-        )
+    selected_year_id = str(selected_year.id) if selected_year else None
 
-    # ----------------------------------------------------------
-    # LOAD ALL GRADE RULES (A, B+, B...) from DB
-    # ----------------------------------------------------------
+    # -----------------------------------------
+    # Grade rules
+    # -----------------------------------------
     grade_rules = Grade.objects.order_by("-min_score")
 
-    def get_grade_points(score_value):
-        """ Convert numeric score → GPA points """
-        score_value = Decimal(score_value)
-        for rule in grade_rules:
-            if rule.min_score <= score_value <= rule.max_score:
-                letter = rule.letter.upper()
-                point_map = {
-                    "A": 4.0, "A-": 3.7,
-                    "B+": 3.5, "B": 3.0, "B-": 2.7,
-                    "C+": 2.5, "C": 2.0,
-                    "D+": 1.5, "D": 1.0,
-                    "F": 0.0,
-                }
-                return point_map.get(letter, 0.0)
-        return 0.0
+    # -----------------------------------------
+    # Fetch assessment category weights
+    # -----------------------------------------
+    categories = {
+        c.system_role: c
+        for c in AssessmentCategory.objects.all()
+    }
 
-    # ----------------------------------------------------------
-    # GROUP ASSESSMENTS BY SEMESTER
-    # ----------------------------------------------------------
-    semester_groups = {}
-    for a in assessments:
-        sem_id = a.semester.id
-        if sem_id not in semester_groups:
-            semester_groups[sem_id] = {
-                "semester": a.semester,
-                "courses": [],
-                "gpa": None,
-            }
-        semester_groups[sem_id]["courses"].append(a)
+    internal_weight = Decimal(str(categories["INTERNAL"].weight_percentage))
+    external_weight = Decimal(str(categories["EXTERNAL"].weight_percentage))
 
-    # ----------------------------------------------------------
-    # CALCULATE GPA FOR EACH SEMESTER
-    # ----------------------------------------------------------
-    for sem_id, data in semester_groups.items():
+    # -----------------------------------------
+    # Fetch task scores
+    # -----------------------------------------
+    scores = (
+        AssessmentTaskScore.objects
+        .filter(
+            student=user,
+            task__semester__academic_year=selected_year,
+            marks_obtained__isnull=False
+        )
+        .select_related(
+            "task",
+            "task__course",
+            "task__semester",
+            "task__assessment_category",
+            "task__assessment_type",
+        )
+    )
+
+    semesters = {}
+
+    # -----------------------------------------
+    # Group tasks
+    # -----------------------------------------
+    for s in scores:
+        semester = s.task.semester
+        course = s.task.course
+        category = s.task.assessment_category.system_role
+
+        sem_block = semesters.setdefault(semester.id, {
+            "semester": semester,
+            "courses": {},
+
+            # RAW totals
+            "internal_raw": Decimal("0"),
+            "internal_max": Decimal("0"),
+            "external_raw": Decimal("0"),
+            "external_max": Decimal("0"),
+
+            # WEIGHTED totals (displayed)
+            "internal_total": Decimal("0"),
+            "external_total": Decimal("0"),
+
+            "overall_score": Decimal("0"),
+            "overall_grade": None,
+            "total_credits": Decimal("0"),
+            "gpa": None,
+        })
+
+        course_block = sem_block["courses"].setdefault(course.id, {
+            "course": course,
+            "tasks": [],
+            "course_total": Decimal("0"),
+        })
+
+        task_score = Decimal(str(s.marks_obtained))
+        task_total = (
+            Decimal(str(s.task.total_marks))
+            .quantize(Decimal("0"), rounding=ROUND_HALF_UP)
+        )
+
+        percent = (task_score / task_total) * Decimal("100")
+        task_grade = resolve_letter_grade(percent, grade_rules)
+
+        course_block["tasks"].append({
+            "title": s.task.title,
+            "category": category,
+            "type": s.task.assessment_type.name,
+            "marks": task_score,
+            "total": task_total,
+            "grade": task_grade,
+        })
+
+        # Accumulate RAW totals for semester
+        if category == "INTERNAL":
+            sem_block["internal_raw"] += task_score
+            sem_block["internal_max"] += task_total
+        else:
+            sem_block["external_raw"] += task_score
+            sem_block["external_max"] += task_total
+
+        # Course aggregation (for GPA)
+        course_block["course_total"] += task_score
+
+    # -----------------------------------------
+    # GPA, credits, weighted totals, overall grade
+    # -----------------------------------------
+    for sem_data in semesters.values():
         total_points = Decimal("0")
         total_credits = Decimal("0")
-        for a in data["courses"]:
-            score = Decimal(a.score)
-            g_points = get_grade_points(score)
-            credits = a.course.credit_hours or 3
-            total_points += Decimal(str(g_points)) * Decimal(credits)
-            total_credits += Decimal(credits)
-        data["gpa"] = round(total_points / total_credits, 2) if total_credits > 0 else None
 
-    # ----------------------------------------------------------
-    # CALCULATE CGPA FOR THE SELECTED ACADEMIC YEAR
-    # ----------------------------------------------------------
-    total_points = Decimal("0")
-    total_credits = Decimal("0")
-    for data in semester_groups.values():
-        for a in data["courses"]:
-            score = Decimal(a.score)
-            g_points = get_grade_points(score)
-            credits = a.course.credit_hours or 3
-            total_points += Decimal(str(g_points)) * Decimal(credits)
-            total_credits += Decimal(credits)
-    cgpa = round(total_points / total_credits, 2) if total_credits else None
+        # GPA calculation (standard, per course)
+        for course_data in sem_data["courses"].values():
+            course = course_data["course"]
+            credits = Decimal(str(course.credit_hours or 3))
 
-    # ----------------------------------------------------------
-    # SORT SEMESTERS (latest first)
-    # ----------------------------------------------------------
-    sorted_semesters = dict(
+            percent = course_data["course_total"]  # assumed out of 100
+            letter = resolve_letter_grade(percent, grade_rules)
+            points = resolve_grade_points(letter)
+
+            total_points += points * credits
+            total_credits += credits
+
+        sem_data["total_credits"] = total_credits
+        sem_data["gpa"] = (
+            round(total_points / total_credits, 2)
+            if total_credits > 0 else None
+        )
+
+        # -----------------------------------------
+        # APPLY WEIGHTS (40 / 60 or admin-defined)
+        # -----------------------------------------
+        weighted_internal = Decimal("0")
+        weighted_external = Decimal("0")
+
+        if sem_data["internal_max"] > 0:
+            weighted_internal = (
+                (sem_data["internal_raw"] / sem_data["internal_max"])
+                * internal_weight
+            ).quantize(Decimal("0.0"), rounding=ROUND_HALF_UP)
+
+        if sem_data["external_max"] > 0:
+            weighted_external = (
+                (sem_data["external_raw"] / sem_data["external_max"])
+                * external_weight
+            ).quantize(Decimal("0.0"), rounding=ROUND_HALF_UP)
+
+
+        sem_data["internal_total"] = weighted_internal
+        sem_data["external_total"] = weighted_external
+
+        overall = weighted_internal + weighted_external
+
+        # Clamp and round to whole number (no decimals)
+        sem_data["overall_score"] = min(
+            overall,
+            Decimal("100")
+        ).quantize(Decimal("0"), rounding=ROUND_HALF_UP)
+
+        sem_data["overall_grade"] = resolve_letter_grade(
+            sem_data["overall_score"],
+            grade_rules
+        )
+
+    # -----------------------------------------
+    # Sort semesters (latest first)
+    # -----------------------------------------
+    semesters = dict(
         sorted(
-            semester_groups.items(),
+            semesters.items(),
             key=lambda x: x[1]["semester"].start_date or datetime.date.min,
             reverse=True
         )
     )
 
-    # ----------------------------------------------------------
-    # RENDER TEMPLATE
-    # ----------------------------------------------------------
     return render(
         request,
         "users/dashboard/contents/student/student_academics.html",
         {
-            "semesters": sorted_semesters,
-            "cgpa": cgpa,
+            "semesters": semesters,
             "all_years": all_years,
-            "selected_year_id": selected_year_id,
             "selected_year": selected_year,
+            "selected_year_id": selected_year_id,
         }
     )
 
 
+# LECTURERS DASHBOARD ------------------------------------------------------------------------------------------------------------------------
 
 @login_required
-def lecturer_assessments(request):
-    # ----------------------------------------------
-    # ACCESS CONTROL
-    # ----------------------------------------------
-    if getattr(request.user, "role", None) != "lecturer":
-        log_event(request.user, "auth", "Unauthorized access attempt to lecturer assessments page")
+def lecturer_main(request):
+    return render(request, "users/dashboard/contents/lecturer/lecturer_main.html")
+
+
+@login_required
+def lecturer_courses(request):
+
+    if getattr(request.user, "role", None) not in ["lecturer", "admin"]:
         messages.error(request, "Access denied.")
         return redirect("home")
 
     user = request.user
-    log_event(user, "assessment", "Opened lecturer assessments page")
 
-    # ----------------------------------------------
-    # LOAD ACTIVE SEMESTERS
-    # ----------------------------------------------
-    semesters = (
-        Semester.objects.filter(is_active=True)
-        .select_related("academic_year")
-        .order_by("-start_date")
+    # BEST WAY: Use the reverse relation
+    courses = (
+        user.program_courses_taught
+        .select_related("program", "level", "semester", "semester__academic_year")
+        .filter(is_active=True)
+        .order_by("program__name", "level__order", "course_code")
     )
 
-    # ----------------------------------------------
-    # HANDLE FILTERS
-    # ----------------------------------------------
-    semester_id = request.GET.get("semester_id")
-    search = request.GET.get("search", "").strip()
+    # print("Courses taught:", courses)
 
-    selected_semester = None
-    if semester_id:
-        selected_semester = Semester.objects.filter(id=semester_id).first()
-        log_event(user, "assessment", f"Filter applied → Semester: {selected_semester}")
-
-    if search:
-        log_event(user, "assessment", f"Search performed → Query: '{search}'")
-
-    # ----------------------------------------------
-    # BASE ProgramCourse QUERY (courses the lecturer teaches)
-    # ----------------------------------------------
-    base_qs = (
-        ProgramCourse.objects
-        .filter(assigned_lecturers=user, is_active=True)
-        .select_related("program", "level", "semester")  # base_course omitted intentionally
-        .prefetch_related("assigned_lecturers")
-        .order_by("program__name", "course_code")
-    )
-
-    # Filter by semester if provided
-    if selected_semester:
-        base_qs = base_qs.filter(semester=selected_semester)
-
-    # Search filter — use ProgramCourse fields and program name
-    if search:
-        base_qs = base_qs.filter(
-            Q(course_code__icontains=search)
-            | Q(title__icontains=search)
-            | Q(program__name__icontains=search)
-            | Q(base_course__code__icontains=search)  # optional helpful match
-            | Q(base_course__title__icontains=search)  # optional
-        )
-
-    # ----------------------------------------------
-    # PAGINATION (use queryset so count() works)
-    # ----------------------------------------------
-    paginator = Paginator(base_qs, 10)
-    page_number = request.GET.get("page")
-    if page_number:
-        log_event(user, "assessment", f"Visited assessments page → Page number: {page_number}")
-
-    page_obj = paginator.get_page(page_number)
-    courses_on_page = list(page_obj.object_list)  # ProgramCourse objects shown on this page
-
-    # ----------------------------------------------
-    # STUDENT COUNT per ProgramCourse (aggregated)
-    # ----------------------------------------------
-    # Get ids of ProgramCourse displayed on this page
-    pc_ids = [c.id for c in courses_on_page]
-
-    if pc_ids:
-        counts_qs = (
-            StudentRegistration.objects
-            .filter(courses__in=pc_ids)
-            .values("courses")
-            .annotate(student_count=Count("student"))
-        )
-        counts_map = {item["courses"]: item["student_count"] for item in counts_qs}
-    else:
-        counts_map = {}
-
-    # Attach the computed student_count to each ProgramCourse instance
-    for c in courses_on_page:
-        c.student_count = counts_map.get(c.id, 0)
-
-    # ----------------------------------------------
-    # RENDER PAGE
-    # ----------------------------------------------
     return render(
         request,
-        "users/dashboard/contents/lecturer/lecturer_assessments.html",
-        {
-            "courses": courses_on_page,
-            "semesters": semesters,
-            "selected_semester": selected_semester,
-            "page_obj": page_obj,
-            "search": search,
-        }
+        "users/dashboard/contents/lecturer/lecturer_courses.html",
+        {"courses": courses}
     )
+
+
+# @login_required
+# def lecturer_assessments(request):
+#     # ----------------------------------------------
+#     # ACCESS CONTROL
+#     # ----------------------------------------------
+#     if getattr(request.user, "role", None) != "lecturer":
+#         log_event(request.user, "auth", "Unauthorized access attempt to lecturer assessments page")
+#         messages.error(request, "Access denied.")
+#         return redirect("home")
+
+#     user = request.user
+#     log_event(user, "assessment", "Opened lecturer assessments page")
+
+#     # ----------------------------------------------
+#     # LOAD ACTIVE SEMESTERS
+#     # ----------------------------------------------
+#     semesters = (
+#         Semester.objects.filter(is_active=True)
+#         .select_related("academic_year")
+#         .order_by("-start_date")
+#     )
+
+#     # ----------------------------------------------
+#     # HANDLE FILTERS
+#     # ----------------------------------------------
+#     semester_id = request.GET.get("semester_id")
+#     search = request.GET.get("search", "").strip()
+
+#     selected_semester = None
+#     if semester_id:
+#         selected_semester = Semester.objects.filter(id=semester_id).first()
+#         log_event(user, "assessment", f"Filter applied → Semester: {selected_semester}")
+
+#     if search:
+#         log_event(user, "assessment", f"Search performed → Query: '{search}'")
+
+#     # ----------------------------------------------
+#     # BASE ProgramCourse QUERY (courses the lecturer teaches)
+#     # ----------------------------------------------
+#     base_qs = (
+#         ProgramCourse.objects
+#         .filter(assigned_lecturers=user, is_active=True)
+#         .select_related("program", "level", "semester")  # base_course omitted intentionally
+#         .prefetch_related("assigned_lecturers")
+#         .order_by("program__name", "course_code")
+#     )
+
+#     # Filter by semester if provided
+#     if selected_semester:
+#         base_qs = base_qs.filter(semester=selected_semester)
+
+#     # Search filter — use ProgramCourse fields and program name
+#     if search:
+#         base_qs = base_qs.filter(
+#             Q(course_code__icontains=search)
+#             | Q(title__icontains=search)
+#             | Q(program__name__icontains=search)
+#             | Q(base_course__code__icontains=search)  # optional helpful match
+#             | Q(base_course__title__icontains=search)  # optional
+#         )
+
+#     # ----------------------------------------------
+#     # PAGINATION (use queryset so count() works)
+#     # ----------------------------------------------
+#     paginator = Paginator(base_qs, 10)
+#     page_number = request.GET.get("page")
+#     if page_number:
+#         log_event(user, "assessment", f"Visited assessments page → Page number: {page_number}")
+
+#     page_obj = paginator.get_page(page_number)
+#     courses_on_page = list(page_obj.object_list)  # ProgramCourse objects shown on this page
+
+#     # ----------------------------------------------
+#     # STUDENT COUNT per ProgramCourse (aggregated)
+#     # ----------------------------------------------
+#     # Get ids of ProgramCourse displayed on this page
+#     pc_ids = [c.id for c in courses_on_page]
+
+#     if pc_ids:
+#         counts_qs = (
+#             StudentRegistration.objects
+#             .filter(courses__in=pc_ids)
+#             .values("courses")
+#             .annotate(student_count=Count("student"))
+#         )
+#         counts_map = {item["courses"]: item["student_count"] for item in counts_qs}
+#     else:
+#         counts_map = {}
+
+#     # Attach the computed student_count to each ProgramCourse instance
+#     for c in courses_on_page:
+#         c.student_count = counts_map.get(c.id, 0)
+
+#     # ----------------------------------------------
+#     # RENDER PAGE
+#     # ----------------------------------------------
+#     return render(
+#         request,
+#         "users/dashboard/contents/lecturer/lecturer_assessments.html",
+#         {
+#             "courses": courses_on_page,
+#             "semesters": semesters,
+#             "selected_semester": selected_semester,
+#             "page_obj": page_obj,
+#             "search": search,
+#         }
+#     )
 
 
 def get_letter_grade(score):
@@ -2997,124 +3032,415 @@ def get_letter_grade(score):
     grade_obj = Grade.objects.filter(min_score__lte=score, max_score__gte=score).first()
     return grade_obj.letter if grade_obj else "N/A"
 
-
 @login_required
-def lecturer_enter_assessments(request, course_id, semester_id):
+def lecturer_assessments(request):
     user = request.user
 
-    # Ensure lecturer
+    # -----------------------------
+    # ACCESS CONTROL
+    # -----------------------------
+    if request.method == "POST":
+        if system_is_locked():
+            messages.error(
+                request,
+                "Cannot create assessments. System is currently locked."
+            )
+            return redirect("lecturer_assessments")
+    
     if getattr(user, "role", None) != "lecturer":
         messages.error(request, "Access denied.")
         return redirect("home")
 
-    # Validate course ownership
-    course = get_object_or_404(
-        ProgramCourse.objects.select_related("program", "semester"),
-        id=course_id,
-        assigned_lecturers=user
+    # -----------------------------
+    # LOAD SEMESTERS
+    # -----------------------------
+    semesters = (
+        Semester.objects.filter(is_active=True)
+        .select_related("academic_year")
+        .order_by("-start_date")
     )
 
-    semester = get_object_or_404(Semester, id=semester_id)
+    # -----------------------------
+    # FILTERS
+    # -----------------------------
+    semester_id = request.GET.get("semester_id")
+    search = request.GET.get("search", "").strip()
 
-    # Students registered for this course in this semester
-    registrations = StudentRegistration.objects.filter(
-        program=course.program,
-        semester=semester,
-        courses=course
-    ).select_related("student")
+    selected_semester = None
+    if semester_id:
+        selected_semester = Semester.objects.filter(id=semester_id).first()
+    else:
+        # auto-select latest active semester
+        selected_semester = semesters.first()
 
-    students = [reg.student for reg in registrations]
+    # -----------------------------
+    # BASE QUERYSET (ONLY OWN TASKS)
+    # -----------------------------
+    qs = (
+        AssessmentTask.objects
+        .filter(created_by=user)
+        .select_related(
+            "course",
+            "course__program",
+            "assessment_type",
+            "assessment_category",
+            "semester",
+        )
+        .order_by("-created_at")
+    )
 
-    # Existing assessments → dict keyed by student_id
-    existing = {
-        a.student_id: a
-        for a in Assessment.objects.filter(course=course, semester=semester)
-    }
+    if selected_semester:
+        qs = qs.filter(semester=selected_semester)
 
-    # ================
-    #  GRADE MAPPING
-    # ================
-    def get_letter_grade(score):
-        grade_obj = Grade.objects.filter(
-            min_score__lte=score,
-            max_score__gte=score
-        ).first()
-        return grade_obj.letter if grade_obj else "N/A"
+    if search:
+        qs = qs.filter(
+            Q(title__icontains=search)
+            | Q(course__course_code__icontains=search)
+            | Q(course__title__icontains=search)
+            | Q(course__program__name__icontains=search)
+        )
 
-    # ===========================
-    #  SAVE ASSESSMENTS (POST)
-    # ===========================
+    # -----------------------------
+    # PAGINATION
+    # -----------------------------
+    paginator = Paginator(qs, 10)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    tasks_on_page = list(page_obj.object_list)
+
+    # -----------------------------
+    # PROGRESS (graded / total)
+    # -----------------------------
+    task_ids = [t.id for t in tasks_on_page]
+
+    progress_map = {}
+    if task_ids:
+        total_qs = (
+            AssessmentTaskScore.objects
+            .filter(task_id__in=task_ids)
+            .values("task_id")
+            .annotate(total=Count("id"))
+        )
+
+        graded_qs = (
+            AssessmentTaskScore.objects
+            .filter(task_id__in=task_ids, marks_obtained__isnull=False)
+            .values("task_id")
+            .annotate(graded=Count("id"))
+        )
+
+        total_map = {i["task_id"]: i["total"] for i in total_qs}
+        graded_map = {i["task_id"]: i["graded"] for i in graded_qs}
+
+        for task_id in task_ids:
+            progress_map[task_id] = {
+                "graded": graded_map.get(task_id, 0),
+                "total": total_map.get(task_id, 0),
+            }
+
+    # attach progress to task objects
+    for task in tasks_on_page:
+        task.progress = progress_map.get(task.id, {"graded": 0, "total": 0})
+
+    # -----------------------------
+    # COURSES FOR MODAL (LECTURER ONLY)
+    # -----------------------------
+    lecturer_courses = (
+        ProgramCourse.objects
+        .filter(assigned_lecturers=user, is_active=True)
+        .select_related("program")
+        .order_by("program__name", "course_code")
+    )
+
+    assessment_types = AssessmentType.objects.all()
+    assessment_categories = AssessmentCategory.objects.all()
+
+    # -----------------------------
+    # CREATE TASK (POST FROM MODAL)
+    # -----------------------------
     if request.method == "POST":
-        for stu in students:
-            raw_score = request.POST.get(f"score_{stu.id}")
+        try:
+            course = ProgramCourse.objects.get(
+                id=request.POST.get("course_id"),
+                assigned_lecturers=user
+            )
 
-            if raw_score:
-                try:
-                    score = float(raw_score)
-                except ValueError:
-                    continue
+            semester = Semester.objects.get(
+                id=request.POST.get("semester_id")
+            )
 
-                grade = get_letter_grade(score)
+            task = AssessmentTask.objects.create(
+                course=course,
+                semester=semester,
+                assessment_type_id=request.POST.get("assessment_type"),
+                assessment_category_id=request.POST.get("assessment_category"),
+                title=request.POST.get("title").strip(),
+                total_marks=request.POST.get("total_marks"),
+                created_by=user,
+            )
 
-                if stu.id in existing:
-                    # UPDATE
-                    a = existing[stu.id]
-                    a.score = score
-                    a.grade = grade
-                    a.recorded_by = user
-                    a.save()
-                else:
-                    # CREATE
-                    Assessment.objects.create(
-                        student=stu,
-                        course=course,
-                        program=course.program,
-                        semester=semester,
-                        score=score,
-                        grade=grade,
-                        recorded_by=user
-                    )
+            # auto-create student score rows
+            create_task_with_scores(task=task)
 
-        messages.success(request, "Assessments saved successfully!")
-        return redirect("lecturer_enter_assessments", course_id, semester_id)
+            messages.success(request, "Assessment task created successfully.")
 
-    # ===========================
-    #  FETCH RECORDS FOR DISPLAY
-    # ===========================
-    records = {
-        a.student_id: a
-        for a in Assessment.objects.filter(course=course, semester=semester)
-    }
+        except Exception as e:
+            messages.error(request, f"Failed to create task: {e}")
 
-    # Attach assessment object to each student (for template)
-    for stu in students:
-        stu.assessment = records.get(stu.id)
+        return redirect("lecturer_assessments")
 
-    # ===========================
-    #  RENDER TEMPLATE
-    # ===========================
+    # -----------------------------
+    # RENDER
+    # -----------------------------
     return render(
         request,
-        "users/dashboard/contents/lecturer/lecturer_enter_assessments.html",
+        "users/dashboard/contents/lecturer/lecturer_assessments.html",
         {
-            "course": course,
-            "semester": semester,
-            "students": students,
+            "tasks": tasks_on_page,
+            "page_obj": page_obj,
+            "semesters": semesters,
+            "selected_semester": selected_semester,
+            "search": search,
+            "system_locked": system_is_locked(),
+
+            # modal data
+            "lecturer_courses": lecturer_courses,
+            "assessment_types": assessment_types,
+            "assessment_categories": assessment_categories,
         }
     )
 
 
 @login_required
+def lecturer_assessment_detail(request, task_id):
+    user = request.user
+
+    # ---------------------------------
+    # ACCESS CONTROL
+    # ---------------------------------
+    if getattr(user, "role", None) != "lecturer":
+        messages.error(request, "Access denied.")
+        return redirect("home")
+
+    task = get_object_or_404(
+        AssessmentTask.objects.select_related(
+            "course",
+            "semester",
+            "assessment_type",
+            "assessment_category",
+        ),
+        id=task_id,
+        created_by=user,
+    )
+
+    # ---------------------------------
+    # SYSTEM LOCK CHECK (POST ONLY)
+    # ---------------------------------
+    if request.method == "POST" and system_is_locked():
+        messages.error(
+            request,
+            "Assessment entry is locked. Please contact administration."
+        )
+        return redirect("lecturer_assessment_detail", task_id=task.id)
+
+    # ---------------------------------
+    # LOAD STUDENT SCORES
+    # ---------------------------------
+    scores_qs = (
+        AssessmentTaskScore.objects
+        .filter(task=task)
+        .select_related("student")
+        .order_by("student__last_name", "student__first_name")
+    )
+
+    # ---------------------------------
+    # SAVE SCORES
+    # ---------------------------------
+    if request.method == "POST":
+        errors = False
+        affected_students = set()
+
+        for score_obj in scores_qs:
+            raw = request.POST.get(f"score_{score_obj.student.id}", "").strip()
+
+            if raw == "":
+                score_obj.marks_obtained = None
+                score_obj.recorded_by = user
+                score_obj.save()
+                affected_students.add(score_obj.student)
+                continue
+
+            try:
+                value = Decimal(raw)
+            except Exception:
+                errors = True
+                continue
+
+            if value < 0 or value > Decimal(str(task.total_marks)):
+                errors = True
+                continue
+
+            score_obj.marks_obtained = value
+            score_obj.recorded_by = user
+            score_obj.save()
+            affected_students.add(score_obj.student)
+
+        # ---------------------------------
+        # RECALCULATE FINAL ASSESSMENTS
+        # ---------------------------------
+        for student in affected_students:
+            recalculate_student_assessment(
+                student=student,
+                course=task.course,
+                semester=task.semester,
+                recorded_by=user
+            )
+
+        # ---------------------------------
+        # FEEDBACK + REDIRECT (ONCE)
+        # ---------------------------------
+        if errors:
+            messages.warning(
+                request,
+                "Some scores were invalid and were not saved. Please review highlighted entries."
+            )
+        else:
+            messages.success(request, "Assessment scores saved successfully.")
+
+        return redirect("lecturer_assessment_detail", task_id=task.id)
+
+    # ---------------------------------
+    # RENDER (GET REQUEST)
+    # ---------------------------------
+    return render(
+        request,
+        "users/dashboard/contents/lecturer/lecturer_assessment_detail.html",
+        {
+            "task": task,
+            "scores": scores_qs,
+        }
+    )
+
+
+@login_required
+def download_task_scores_csv(request, task_id):
+    user = request.user
+
+    task = get_object_or_404(
+        AssessmentTask,
+        id=task_id,
+        created_by=user
+    )
+
+    scores = (
+        AssessmentTaskScore.objects
+        .filter(task=task)
+        .select_related("student")
+    )
+
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = f'attachment; filename="{task.title}.csv"'
+
+    writer = csv.writer(response)
+    writer.writerow(["student_id", "student_name", "email", "marks_obtained"])
+
+    for s in scores:
+        writer.writerow([
+            s.student.id,
+            s.student.get_full_name(),
+            s.student.email,
+            s.marks_obtained or "",
+        ])
+
+    return response
+
+
+@login_required
+def upload_task_scores_csv(request, task_id):
+    user = request.user
+
+    if request.method == "POST":
+        if system_is_locked():
+            messages.error(
+                request,
+                "Assessment entry is locked. Please contact administration."
+            )
+            return redirect("lecturer_assessment_detail", task_id=task.id)
+
+    task = get_object_or_404(
+        AssessmentTask,
+        id=task_id,
+        created_by=user
+    )
+
+    if request.method != "POST":
+        return redirect("lecturer_assessment_detail", task_id=task.id)
+
+    file = request.FILES.get("file")
+    if not file:
+        messages.error(request, "No file uploaded.")
+        return redirect("lecturer_assessment_detail", task_id=task.id)
+
+    decoded = file.read().decode("utf-8").splitlines()
+    reader = csv.DictReader(decoded)
+
+    score_map = {
+        s.student_id: s
+        for s in AssessmentTaskScore.objects.filter(task=task)
+    }
+
+    errors = []
+
+    for row in reader:
+        try:
+            student_id = int(row["student_id"])
+            raw_score = row["marks_obtained"].strip()
+
+            if raw_score == "":
+                continue
+
+            score = float(raw_score)
+
+            if score < 0 or score > float(task.total_marks):
+                raise ValueError("Score out of range")
+
+            score_obj = score_map.get(student_id)
+            if not score_obj:
+                raise ValueError("Student not part of task")
+
+            score_obj.marks_obtained = score
+            score_obj.recorded_by = user
+            score_obj.save()
+
+        except Exception as e:
+            errors.append(str(e))
+
+    if errors:
+        messages.warning(request, "Some rows failed validation.")
+    else:
+        messages.success(request, "Scores uploaded successfully.")
+
+    return redirect("lecturer_assessment_detail", task_id=task.id)
+
+
+# -------------------end lecturer -------------------------------------------------------------------------------------------------------------------
+
+@login_required
 def student_manage_courses(request):
     user = request.user
 
-    # Unauthorized access
+    # ------------------------------------------------------------------
+    # AUTHORIZATION
+    # ------------------------------------------------------------------
     if user.role != "student":
         log_event(user, "auth", "Unauthorized attempt to access manage courses")
         messages.error(request, "Access denied.")
         return redirect("home")
 
-    # Load latest registration
+    # ------------------------------------------------------------------
+    # LOAD ACTIVE REGISTRATION
+    # ------------------------------------------------------------------
     registration = (
         StudentRegistration.objects
         .filter(student=user)
@@ -3123,97 +3449,128 @@ def student_manage_courses(request):
     )
 
     if not registration:
-        log_event(user, "registration", "Tried to manage courses without valid registration")
-        return registration_error(request, "You have not completed registration yet.")
+        log_event(user, "registration", "Tried to manage courses without registration")
+        return registration_error(
+            request,
+            "You have not completed registration yet."
+        )
 
     semester = registration.semester
+    program = registration.program
 
-    # 🔥 Registration closed
+    # ------------------------------------------------------------------
+    # REGISTRATION WINDOW CHECK
+    # ------------------------------------------------------------------
     if not semester.sem_reg_is_active:
         log_event(
             user,
             "registration",
-            f"Attempted course changes but registration window closed for semester {semester.name}"
+            f"Course modification blocked — registration closed for {semester.name}"
         )
         return registration_error(
             request,
-            "Course registration is currently closed. Please contact the administrator."
+            "Course registration is currently closed."
         )
 
-    program = registration.program
-
-    # List available courses
+    # ------------------------------------------------------------------
+    # LOAD AVAILABLE COURSES (ACTIVE ONLY)
+    # ------------------------------------------------------------------
     available_courses = ProgramCourse.objects.filter(
         program=program,
-        semester=semester
+        semester=semester,
+        is_active=True
     ).order_by("course_code")
 
-    registered_ids = set(registration.courses.values_list("id", flat=True))
+    registered_ids = set(
+        registration.courses.values_list("id", flat=True)
+    )
 
-    # -------------------------------------------------------------------
-    # PROCESS ADD / REMOVE
-    # -------------------------------------------------------------------
+    # ------------------------------------------------------------------
+    # HANDLE ADD / REMOVE ACTIONS
+    # ------------------------------------------------------------------
     if request.method == "POST":
 
-        # Extra safety: block POST if closed mid-session
+        # Safety check (in case admin closes window mid-session)
         if not semester.sem_reg_is_active:
             log_event(
                 user,
                 "registration",
-                f"POST blocked: registration closed mid-session for {semester.name}"
+                f"POST blocked — registration closed mid-session ({semester.name})"
             )
             return registration_error(
                 request,
-                "Registration is now closed. Your request could not be processed."
+                "Registration is now closed."
             )
 
         course_id = request.POST.get("course_id")
         action = request.POST.get("action")
 
-        if not course_id:
-            log_event(user, "registration", "POST error: Missing course_id")
-            return registration_error(request, "Invalid course selection.")
+        if not course_id or not action:
+            log_event(user, "registration", "Invalid POST payload")
+            return registration_error(request, "Invalid request.")
 
-        # Validate course existence
         try:
             course = ProgramCourse.objects.get(
                 id=course_id,
                 program=program,
-                semester=semester
+                semester=semester,
+                is_active=True
             )
         except ProgramCourse.DoesNotExist:
             log_event(
                 user,
                 "registration",
-                f"Tried to modify non-existing or unauthorized course (ID: {course_id})"
+                f"Unauthorized course modification attempt (ID: {course_id})"
             )
             return registration_error(request, "Course not found.")
 
-        # ADD action
+        # -----------------------------
+        # ADD COURSE
+        # -----------------------------
         if action == "add":
-            registration.courses.add(course)
-            registration.save()
+            if course.id in registered_ids:
+                messages.info(
+                    request,
+                    f"{course.course_code} is already registered."
+                )
+            else:
+                registration.courses.add(course)
+                registration.save()
 
-            log_event(
-                user,
-                "registration",
-                f"Added course {course.code} - {course.title}"
-            )
+                log_event(
+                    user,
+                    "registration",
+                    f"Added course {course.course_code} - {course.title}"
+                )
 
-            messages.success(request, f"{course.code} added successfully.")
+                messages.success(
+                    request,
+                    f"{course.course_code} added successfully."
+                )
 
-        # REMOVE action
+        # -----------------------------
+        # REMOVE COURSE
+        # -----------------------------
         elif action == "remove":
-            registration.courses.remove(course)
-            registration.save()
+            if course.id not in registered_ids:
+                messages.warning(
+                    request,
+                    f"{course.course_code} is not registered."
+                )
+            else:
+                registration.courses.remove(course)
+                registration.save()
 
-            log_event(
-                user,
-                "registration",
-                f"Removed course {course.code} - {course.title}"
-            )
+                log_event(
+                    user,
+                    "registration",
+                    f"Removed course {course.course_code} - {course.title}"
+                )
 
-            messages.warning(request, f"{course.code} removed successfully.")
+                messages.warning(
+                    request,
+                    f"{course.course_code} removed successfully."
+                )
 
         else:
             log_event(
@@ -3225,9 +3582,9 @@ def student_manage_courses(request):
 
         return redirect("student_manage_courses")
 
-    # -------------------------------------------------------------------
+    # ------------------------------------------------------------------
     # RENDER PAGE
-    # -------------------------------------------------------------------
+    # ------------------------------------------------------------------
     return render(
         request,
         "users/dashboard/contents/student/manage_courses.html",
@@ -3239,9 +3596,6 @@ def student_manage_courses(request):
             "semester": semester,
         }
     )
-
-
- # ------------------------------------------------------------------------------------------------------------------------------------
 
 
 # DATA UPLOAD # ------------------------------------------------------------------------------------------------------------------------------------ 
@@ -3342,6 +3696,7 @@ def save_uploaded_users(request):
         messages.error(request, f"Errors: {errors}")
 
     return redirect("admin_manage_users")
+
 
 # TRANSCRIPT SYSTEM
 @login_required
@@ -3672,6 +4027,7 @@ def admin_clear_all_transcript_requests(request):
     messages.success(request, "All transcript requests have been cleared.")
     return redirect("admin_transcript_requests")
 
+
 @login_required
 def student_fee_payments(request):
     user = request.user
@@ -3683,53 +4039,64 @@ def student_fee_payments(request):
     payments = (
         Payment.objects
         .filter(student=user)
-        .select_related("academic_year", "semester")
-        .order_by("-date_paid")
+        .select_related("academic_year", "semester", "program")
+        .prefetch_related("breakdowns__component__component")
+        .order_by("academic_year__start_date", "semester__start_date", "created_at")
     )
 
-    # --------------------------------------
-    # CALCULATE BALANCES
-    # --------------------------------------
-    total_expected = 0
-    total_paid = 0
+    # Lookup declared program fees
+    program_fees = {
+        (pf.academic_year_id, pf.semester_id): pf
+        for pf in ProgramFee.objects.filter(program=user.program)
+    }
 
-    for p in payments:
-        p.balance = float(p.amount_expected or 0) - float(p.amount_paid or 0)
-        total_expected += float(p.amount_expected or 0)
-        total_paid += float(p.amount_paid or 0)
+    finance_blocks = {}
 
-    total_balance = total_expected - total_paid
+    for payment in payments:
+        key = (payment.academic_year, payment.semester)
 
-    # Determine current semester payment status
-    latest_semester = None
-    current_semester_balance = None
-    has_paid_current_semester = None
+        if key not in finance_blocks:
+            pf = program_fees.get((payment.academic_year_id, payment.semester_id))
 
+            finance_blocks[key] = {
+                "academic_year": payment.academic_year,
+                "semester": payment.semester,
+                "program_fee": pf,
+                "payments": [],
+                "total_paid": Decimal("0.00"),
+                "credit": Decimal("0.00"),
+                "balance": None,
+                "is_fully_paid": False,
+            }
 
-    if payments.exists():
-        latest_semester = payments.first().semester
-        current_semester = payments.first()
+        block = finance_blocks[key]
 
-        current_semester_balance = float(current_semester.amount_expected or 0) - float(current_semester.amount_paid or 0)
-        has_paid_current_semester = current_semester_balance <= 0
+        block["payments"].append(payment)
+        block["total_paid"] += payment.amount_paid
+        block["credit"] += payment.credit_balance
+
+    # Final balance per semester
+    for block in finance_blocks.values():
+        pf = block["program_fee"]
+        if pf:
+            block["balance"] = max(
+                Decimal("0.00"),
+                pf.total_amount - block["total_paid"]
+            )
+            block["is_fully_paid"] = block["balance"] == 0
+        else:
+            block["balance"] = None
 
     return render(
         request,
         "users/dashboard/contents/student/fee_payments.html",
         {
-            "payments": payments,
-            "total_balance": total_balance,
-            "has_paid_current_semester": has_paid_current_semester,
-            "current_semester_balance": current_semester_balance,
-            "latest_semester": latest_semester,
-            "total_paid": total_paid,
-            "total_expected": total_expected,
+            "finance_blocks": finance_blocks,
         }
     )
 
 
 # -------------------------ANNOUNCEMENTS ------------------------
-
 @login_required
 def announcements_list(request):
     user = request.user
@@ -3772,3 +4139,25 @@ def announcements_list(request):
     return render(request, "users/dashboard/contents/admin/announcement_list.html", {
         "announcements": announcements
     })
+
+@login_required
+def mark_announcement_read(request):
+    ann_id = request.POST.get("announcement_id")
+
+    print("notif clicked")
+
+    announcement = CourseAnnouncement.objects.filter(
+        id=ann_id,
+        is_active=True
+    ).first()
+
+    if not announcement:
+        return JsonResponse({"success": False})
+
+    # 🔐 Optional extra safety: ensure student belongs to the course
+    # (recommended if you want to be strict)
+
+    announcement.is_active = False
+    announcement.save(update_fields=["is_active"])
+
+    return JsonResponse({"success": True})

@@ -13,6 +13,7 @@ from django.http import JsonResponse, HttpResponseBadRequest
 from django.core.exceptions import ValidationError
 from academics.transition_service import run_program_transition
 from portal.models import SystemLock
+from academics.models import CourseAnnouncement
 
 
 # -------------------------------
@@ -323,3 +324,93 @@ def generate_transcript_data(student):
 
 
 
+
+
+@login_required
+def course_announcements(request):
+    user = request.user
+
+    # =============================
+    # POST ACTIONS (CRUD)
+    # =============================
+    if request.method == "POST":
+        action = request.POST.get("action")
+
+        # -------- CREATE --------
+        if action == "create":
+            program_course_id = request.POST.get("course")
+
+            # lecturer must be assigned to the program course
+            program_course = get_object_or_404(
+                ProgramCourse,
+                id=program_course_id,
+                assigned_lecturers=user
+            )
+
+            CourseAnnouncement.objects.create(
+                sender=user,
+                course=program_course,
+                title=request.POST.get("title"),
+                message=request.POST.get("message"),
+                send_as_notification=bool(
+                    request.POST.get("send_as_notification")
+                )
+            )
+
+            return JsonResponse({"success": True})
+
+        # -------- UPDATE --------
+        if action == "update":
+            ann = get_object_or_404(
+                CourseAnnouncement,
+                id=request.POST.get("announcement_id"),
+                sender=user
+            )
+
+            program_course = get_object_or_404(
+                ProgramCourse,
+                id=request.POST.get("course"),
+                assigned_lecturers=user
+            )
+
+            ann.course = program_course
+            ann.title = request.POST.get("title")
+            ann.message = request.POST.get("message")
+            ann.send_as_notification = bool(
+                request.POST.get("send_as_notification")
+            )
+            ann.save()
+
+            return JsonResponse({"success": True})
+
+        # -------- DELETE --------
+        if action == "delete":
+            ann = get_object_or_404(
+                CourseAnnouncement,
+                id=request.POST.get("announcement_id"),
+                sender=user
+            )
+            ann.delete()
+            return JsonResponse({"success": True})
+
+        return JsonResponse({"success": False, "error": "Invalid action"})
+
+    # =============================
+    # GET (LIST PAGE)
+    # =============================
+
+    # Lecturer announcements
+    announcements = CourseAnnouncement.objects.filter(
+        sender=user
+    ).select_related("course", "course__program", "course__level")
+
+    # Lecturer program courses only
+    program_courses = ProgramCourse.objects.filter(
+        assigned_lecturers=user,
+        is_active=True
+    ).select_related("program", "level")
+
+    return render(request, "users/dashboard/contents/lecturer/lecturer_announcements.html", {
+        "announcements": announcements,
+        "program_courses": program_courses
+    })

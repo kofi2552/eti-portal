@@ -1,0 +1,126 @@
+{% extends "finance_dashboard_layout.html" %}
+<!-- ------------------------------- -->
+{% block title %}Student Finance Summary{% endblock %}
+<!-- ------------------------------- -->
+
+{% block content %}
+<div class="space-y-8 p-4" id="printableArea">
+  <!-- HEADER -->
+  <div class="bg-white border rounded-xl p-6 flex justify-between items-start">
+    <div>
+      <h2 class="text-xl font-bold">{{ student.get_full_name }}</h2>
+      <p class="text-sm text-gray-500">{{ student.program.name }}</p>
+    </div>
+
+    <button onclick="window.print()" class="border px-4 py-2 rounded">
+      Print
+    </button>
+  </div>
+
+  <!-- ACADEMIC YEAR / SEMESTER GROUPS -->
+  {% for key, block in finance_data.items %}
+  <div class="bg-white border rounded-xl p-6 space-y-6">
+    <!-- TITLE -->
+    <div class="flex justify-between">
+      <div>
+        <h3 class="font-semibold text-lg">
+          {{ block.academic_year.name }} — {{ block.semester.name }}
+        </h3>
+        {% if block.program_fee %}
+        <p class="text-sm text-gray-500">
+          Program Fee: GHS {{ block.program_fee.total_amount }}
+        </p>
+        {% endif %}
+      </div>
+
+      <div class="text-right text-sm">
+        <div>Total Paid: <strong>GHS {{ block.total_paid }}</strong></div>
+
+        {% if block.program_fee %} {% if block.is_fully_paid %}
+        <div class="text-green-600 font-semibold">Fully Paid</div>
+        {% else %}
+        <div class="text-red-600 font-semibold">
+          Owing: GHS {{ block.balance }}
+        </div>
+        {% endif %} {% endif %} {% if block.credit > 0 %}
+        <div class="text-blue-600">Credit: GHS {{ block.credit }}</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- COMPONENT BREAKDOWN -->
+    <div>
+      <h4 class="font-semibold mb-2">Fee Breakdown</h4>
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="p-3 text-left">Component</th>
+            <th class="p-3 text-right">Expected</th>
+            <th class="p-3 text-right">Paid</th>
+            <th class="p-3 text-right">Balance</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y">
+          {% for name, c in block.components.items %}
+          <tr>
+            <td class="p-3">{{ name }}</td>
+            <td class="p-3 text-right">GHS {{ c.expected }}</td>
+            <td class="p-3 text-right">GHS {{ c.paid }}</td>
+            <td class="p-3 text-right">GHS {{ c.balance }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- PAYMENT HISTORY -->
+    <div>
+      <h4 class="font-semibold mb-2">Payment History</h4>
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50">
+          <tr class="text-left">
+            <th class="p-3">Date</th>
+            <th class="p-3">Amount Paid</th>
+            <th class="p-3">Credit</th>
+            <th class="p-3">Status</th>
+            <th class="p-3 text-right">Reference</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y">
+          {% for p in block.payments %}
+          <tr class="text-left">
+            <td class="p-3">{{ p.date_paid|date:"Y-m-d H:i" }}</td>
+            <td class="p-3">GHS {{ p.amount_paid }}</td>
+            <td class="p-3">GHS {{ p.credit_balance }}</td>
+            <td class="p-3">
+              {% if p.is_verified %}
+              <span class="text-green-600">Verified</span>
+              {% else %}
+              <span class="text-yellow-600">Pending</span>
+              {% endif %}
+            </td>
+            <td class="p-3 text-right">{{ p.reference }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+<style>
+  @media print {
+    body * {
+      visibility: hidden;
+    }
+    #printableArea,
+    #printableArea * {
+      visibility: visible;
+    }
+    #printableArea {
+      position: absolute;
+      inset: 0;
+    }
+  }
+</style>
+{% endblock %}

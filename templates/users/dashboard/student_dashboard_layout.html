@@ -268,15 +268,15 @@
         <!-- FOOTER -->
         <div class="p-4 border-t-2 border-slate-200 bg-slate-50">
           <a
-            href="{% url 'logout' %}"
-            class="flex items-center gap-3 p-3 rounded-xl text-slate-500 hover:bg-red-50 hover:text-red-600 font-medium transition-colors"
+            href="https://wa.me/+233594955819"
+            class="flex items-center gap-3 p-3 rounded-xl text-slate-500 hover:bg-blue-50 hover:text-blue-600 font-medium transition-colors"
           >
             <span
-              class="w-6 h-6 flex items-center justify-center flex-shrink-0"
+              class="w-6 h-6 flex text-center items-center justify-center flex-shrink-0"
             >
-              <i data-lucide="log-out" class="w-5 h-5"></i>
+              <i data-lucide="info" class="w-5 h-5"></i>
             </span>
-            <span class="sidebar-label">Sign Out</span>
+            <span class="sidebar-label">Help Center</span>
           </a>
         </div>
       </aside>
@@ -337,14 +337,79 @@
             </div>
 
             <!-- Notifications -->
-            <button
-              class="relative p-2 rounded-xl text-slate-400 hover:bg-brand-50 hover:text-brand-500"
-            >
-              <i data-lucide="bell" class="w-6 h-6"></i>
-              <span
-                class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-white"
-              ></span>
-            </button>
+            <div x-data="{ open: false }" class="relative">
+              <button
+                type="button"
+                @click="open = !open"
+                class="relative p-2 rounded-xl text-slate-400 hover:bg-brand-50 hover:text-brand-500"
+                aria-label="Notifications"
+              >
+                <i data-lucide="bell" class="w-6 h-6"></i>
+
+                {% if has_active_announcements %}
+                <span
+                  class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-white"
+                ></span>
+                {% endif %}
+              </button>
+
+              <!-- Dropdown -->
+              <div
+                x-show="open"
+                @click.away="open = false"
+                x-transition
+                class="absolute right-0 mt-3 w-96 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden z-50"
+              >
+                <div class="px-4 py-3 border-b bg-slate-50">
+                  <h3 class="text-sm font-semibold text-slate-700">
+                    Notifications
+                  </h3>
+                </div>
+
+                {% if announcements %}
+                <div class="max-h-96 overflow-y-auto py-2 divide-y">
+                  {% for ann in announcements %}
+                  <a
+                    data-action="mark-notification-read"
+                    data-announcement-id="{{ ann.id }}"
+                    href="{% url 'student_course_details' ann.course.id %}"
+                    class="block px-4 py-3 hover:bg-slate-50"
+                  >
+                    <div class="flex justify-between items-start mb-1">
+                      <p class="text-sm font-semibold text-slate-800">
+                        {{ ann.title|truncatechars:30 }}
+                      </p>
+                      <span class="text-xs text-slate-400">
+                        {{ ann.created_at|timesince }} ago
+                      </span>
+                    </div>
+
+                    <p class="text-xs text-slate-600 line-clamp-2">
+                      {{ ann.message|truncatechars:40 }}
+                    </p>
+
+                    <p class="text-[11px] text-slate-400 mt-1">
+                      {{ ann.course.title }}
+                    </p>
+                  </a>
+                  {% endfor %}
+                </div>
+
+                <!-- <div class="border-t bg-slate-50">
+                  <a
+                    class="block text-center text-sm font-semibold text-brand-600 px-4 py-2 hover:bg-slate-100"
+                  >
+                    View all notifications
+                  </a>
+                </div> -->
+
+                {% else %}
+                <div class="px-4 py-6 text-center text-sm text-slate-500">
+                  No new notifications
+                </div>
+                {% endif %}
+              </div>
+            </div>
 
             <!-- Profile Dropdown -->
             <div x-data="{ open: false }" class="relative">
@@ -364,13 +429,13 @@
               >
                 <a
                   href="{% url 'student_profile' %}"
-                  class="block px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50"
+                  class="block px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
                 >
                   Profile
                 </a>
                 <a
                   href="{% url 'logout' %}"
-                  class="block px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50"
+                  class="block px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
                 >
                   Logout
                 </a>
@@ -407,20 +472,9 @@
           <aside
             class="w-48 bg-gray-50 border-l border-gray-200 hidden lg:block p-4"
           >
-            <h3 class="font-semibold text-sm">Guide</h3>
+            <h3 class="font-semibold text-sm mb-3">Platform Guide</h3>
 
             <div class="space-y-4 text-xs text-gray-600 leading-relaxed">
-              <!-- Courses Explainer -->
-              <div class="border-b pb-3">
-                <!-- <p class="font-semibold text-gray-800 mb-1">📚 Announcements</p> -->
-                {% for ann in announcements %}
-                <div class="text-sm p-3 bg-yellow-50 border rounded mb-2">
-                  <strong>{{ ann.title }}</strong>
-                  <p>{{ ann.message }}</p>
-                </div>
-                {% endfor %}
-              </div>
-
               <!-- Academics Explainer -->
               <div class="border-b pb-3">
                 <p class="font-semibold text-gray-800 mb-1">Academics</p>
@@ -578,6 +632,23 @@
 
     <!-- SIDEBAR TOGGLE SCRIPT -->
     <script>
+      document.addEventListener("click", function (e) {
+        const item = e.target.closest("[data-action='mark-notification-read']");
+        if (!item) return;
+
+        const annId = item.dataset.announcementId;
+
+        const formData = new FormData();
+        formData.append("csrfmiddlewaretoken", "{{ csrf_token }}");
+        formData.append("announcement_id", annId);
+
+        // Fire-and-forget (do NOT block navigation)
+        fetch("{% url 'mark_announcement_read' %}", {
+          method: "POST",
+          body: formData,
+        });
+      });
+
       function openCourseDrawer() {
         document
           .getElementById("courseDrawer")

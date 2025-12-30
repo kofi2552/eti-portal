@@ -1,0 +1,695 @@
+{% extends "finance_dashboard_layout.html" %}
+<!-- -------------------------------- -->
+{% block title %}Semester Fees {% endblock %}
+<!-- -------------------------------- -->
+{% block content %}
+<div class="max-w-5xl mx-auto pt-6">
+  <!-- ================= SEMESTER FEES ================= -->
+  <div class="space-y-6">
+    <div class="flex justify-between items-center">
+      <h2 class="text-xl font-bold">Semester Fees</h2>
+
+      <button
+        type="button"
+        id="openProgramFeeModal"
+        class="px-4 py-2 bg-blue-600 text-white rounded-lg"
+      >
+        Declare Fee
+      </button>
+    </div>
+
+    <div class="bg-white border rounded-xl">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50">
+          <tr class="text-left">
+            <th class="p-3">Academic Year</th>
+            <th class="p-3">Semester</th>
+            <th class="p-3">Program</th>
+            <th class="p-3">Initial Amount</th>
+            <th class="p-3">Full Amount</th>
+            <th class="p-3">Fee Breakdown</th>
+          </tr>
+        </thead>
+
+        <tbody class="divide-y">
+          {% for fee in fees %}
+          <tr class="align-top text-left">
+            <!-- Academic Year -->
+            <td class="p-3">{{ fee.academic_year.name }}</td>
+
+            <!-- Semester -->
+            <td class="p-3">{{ fee.semester.name }}</td>
+
+            <!-- Program -->
+            <td class="p-3">{{ fee.program.name }}</td>
+
+            <!-- Expected / Initial Amount -->
+            <td class="p-3 font-semibold">GHS {{ fee.initial_amount }}</td>
+
+            <!-- Total Fee -->
+            <td class="p-3 font-bold text-blue-700">
+              GHS {{ fee.total_amount }}
+            </td>
+
+            <!-- Fee Components -->
+            <td class="p-3">
+              {% if fee.program_fee_components.all %}
+              <ul class="space-y-1">
+                {% for pfc in fee.program_fee_components.all %}
+                <li class="flex justify-between gap-4">
+                  <span class="text-gray-600"> {{ pfc.component.name }} </span>
+                  <span class="font-semibold"> GHS {{ pfc.total_fee }} </span>
+                </li>
+                {% endfor %}
+              </ul>
+              {% else %}
+              <span class="text-gray-400 text-sm">
+                No components assigned
+              </span>
+              {% endif %} {% if fee.is_allowed %}
+              <button
+                type="button"
+                class="mt-2 text-sm text-blue-600 border px-4 py-1 font-semibold hover:underline edit-program-fee-btn"
+                data-fee-id="{{ fee.id }}"
+              >
+                Edit Fee
+              </button>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6" class="p-6 text-center text-gray-400">
+              No semester fees declared yet.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ================= FEE COMPONENTS CRUD ================= -->
+  <div class="space-y-4 mt-8">
+    <h3 class="text-lg font-bold">Fee Components</h3>
+
+    <!-- ADD COMPONENT -->
+    <form method="post" class="flex gap-3">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="create_component" />
+      <input
+        type="text"
+        name="name"
+        placeholder="New component name"
+        class="border rounded px-3 py-2 w-64"
+        required
+      />
+      <input
+        type="text"
+        name="total_fee"
+        placeholder="Expected Total Amount"
+        class="border rounded px-3 py-2 w-64"
+        required
+      />
+      <button class="px-4 py-2 bg-green-600 text-white rounded">Add</button>
+    </form>
+
+    <!-- COMPONENT TABLE -->
+    <div class="bg-white border rounded-xl">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="p-3 text-left">Name</th>
+            <th class="p-3 text-left">Amount</th>
+            <th class="p-3 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y">
+          {% for c in components %}
+          <tr>
+            <td class="p-3">{{ c.name }}</td>
+            <td class="p-3">{{ c.totalFee }}</td>
+            <td class="p-3 text-right space-x-3">
+              <!-- EDIT -->
+              <button
+                type="button"
+                class="edit-btn text-blue-600 font-medium"
+                data-id="{{ c.id }}"
+                data-name="{{ c.name }}"
+                data-total-fee="{{ c.totalFee }}"
+              >
+                Edit
+              </button>
+
+              <!-- DELETE -->
+              <form
+                method="post"
+                class="inline"
+                onsubmit="return confirm('Delete this component?')"
+              >
+                {% csrf_token %}
+                <input type="hidden" name="action" value="delete_component" />
+                <input type="hidden" name="component_id" value="{{ c.id }}" />
+                <button class="text-red-600 font-medium">Delete</button>
+              </form>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="2" class="p-6 text-center text-gray-400">
+              No fee components defined.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ================= EDIT COMPONENT MODAL ================= -->
+  <div
+    id="editModal"
+    class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50"
+  >
+    <div class="bg-white rounded-xl w-full max-w-md p-6 space-y-4">
+      <div class="flex justify-between items-center">
+        <h3 class="text-lg font-bold">Edit Fee Component</h3>
+        <button type="button" id="closeModal" class="text-gray-400 text-xl">
+          &times;
+        </button>
+      </div>
+
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="update_component" />
+        <input type="hidden" name="component_id" id="modalComponentId" />
+
+        <div>
+          <label class="text-sm font-semibold">Component Name</label>
+          <input
+            type="text"
+            name="name"
+            id="modalComponentName"
+            class="w-full border rounded px-3 py-2 mt-1"
+            required
+          />
+        </div>
+        <div class="mt-2">
+          <label class="text-sm font-semibold">Component Amount</label>
+          <input
+            type="text"
+            name="total_fee"
+            id="modalComponentAmount"
+            class="w-full border rounded px-3 py-2 mt-1"
+            required
+          />
+        </div>
+
+        <div class="flex justify-end gap-3 pt-4">
+          <button
+            type="button"
+            id="cancelModal"
+            class="px-4 py-2 border rounded"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            class="px-4 py-2 bg-blue-600 text-white rounded"
+          >
+            Save Changes
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= ADD PROGRAM FEE MODAL ================= -->
+  <div
+    id="programFeeModal"
+    class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50"
+  >
+    <div class="bg-white rounded-xl w-full max-w-3xl p-6 space-y-6">
+      <div class="flex justify-between items-center">
+        <h3 class="text-lg font-bold">Declare Program Semester Fee</h3>
+        <button
+          type="button"
+          id="closeProgramFeeModal"
+          class="text-gray-400 text-xl"
+        >
+          &times;
+        </button>
+      </div>
+
+      <form method="post" id="programFeeForm" class="space-y-6">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="save_program_fee" />
+        <input
+          type="hidden"
+          name="use_default_components"
+          id="useDefaultHidden"
+        />
+        <input type="hidden" name="total_amount" id="totalAmountHidden" />
+
+        <!-- BASIC INFO -->
+        <div class="grid grid-cols-3 gap-4">
+          <select
+            name="academic_year"
+            required
+            class="border rounded px-3 py-2"
+          >
+            {% for y in academic_years %}
+            <option value="{{ y.id }}">{{ y.name }}</option>
+            {% endfor %}
+          </select>
+
+          <select name="semester" required class="border rounded px-3 py-2">
+            {% for s in semesters %}
+            <option value="{{ s.id }}">{{ s.name }}</option>
+            {% endfor %}
+          </select>
+
+          <select name="program" required class="border rounded px-3 py-2">
+            {% for p in programs %}
+            <option value="{{ p.id }}">{{ p.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- INITIAL AMOUNT -->
+        <input
+          type="number"
+          step="0.01"
+          name="initial_amount"
+          placeholder="Initial required amount"
+          class="border rounded px-3 py-2 w-full"
+          required
+        />
+
+        <!-- COMPONENT SECTION -->
+        <div class="space-y-4">
+          <div class="flex items-center justify-between">
+            <h4 class="font-semibold">Fee Breakdown</h4>
+
+            <label class="flex items-center gap-2 text-sm font-medium">
+              <input type="checkbox" id="useDefaultComponents" />
+              Use default fee components
+            </label>
+          </div>
+
+          <!-- MANUAL MODE -->
+          <div id="manualComponentControls" class="flex gap-3">
+            <select id="componentSelect" class="border rounded px-3 py-2">
+              <option value="">Select component</option>
+              {% for c in components %}
+              <option value="{{ c.id }}" data-name="{{ c.name }}">
+                {{ c.name }}
+              </option>
+              {% endfor %}
+            </select>
+
+            <button
+              type="button"
+              id="addComponentBtn"
+              class="px-4 py-2 bg-gray-200 rounded"
+            >
+              Add
+            </button>
+          </div>
+
+          <div id="componentList" class="space-y-2"></div>
+
+          <!-- DEFAULT MODE -->
+          <div id="defaultComponentList" class="space-y-2 hidden">
+            {% for c in components %}
+            <label
+              class="flex items-center justify-between border rounded px-4 py-2"
+            >
+              <div class="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  name="component_id"
+                  value="{{ c.id }}"
+                  class="default-component-checkbox"
+                  data-id="{{ c.id }}"
+                  data-amount="{{ c.totalFee }}"
+                />
+                <span>{{ c.name }}</span>
+              </div>
+              <span class="font-semibold">GHS {{ c.totalFee }}</span>
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- LIVE TOTAL -->
+        <div class="flex justify-between items-center border-t pt-4">
+          <span class="font-semibold">Total Program Fee</span>
+          <span class="text-xl font-bold text-blue-700">
+            GHS <span id="totalFeeDisplay">0.00</span>
+          </span>
+        </div>
+
+        <!-- ACTIONS -->
+        <div class="flex justify-end gap-3">
+          <button
+            type="submit"
+            class="px-6 py-2 bg-blue-600 text-white rounded"
+          >
+            Save Fee
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= EDIT PROGRAM FEE MODAL ================= -->
+  <div
+    id="editProgramFeeModal"
+    class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50"
+  >
+    <div class="bg-white rounded-xl w-full max-w-3xl p-6 space-y-6">
+      <div class="flex justify-between items-center">
+        <h3 class="text-lg font-bold">Edit Program Semester Fee</h3>
+        <button
+          type="button"
+          onclick="closeEditProgramFee()"
+          class="text-gray-400 text-xl"
+        >
+          &times;
+        </button>
+      </div>
+
+      <form method="post" id="editProgramFeeForm" class="space-y-6">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="update_program_fee" />
+        <input type="hidden" name="program_fee_id" id="editProgramFeeId" />
+        <input type="hidden" name="total_amount" id="editTotalAmountHidden" />
+
+        <!-- READ ONLY INFO -->
+        <div class="grid grid-cols-3 gap-4">
+          <input
+            id="editAcademicYear"
+            class="border rounded px-3 py-2 bg-gray-100"
+            disabled
+          />
+          <input
+            id="editSemester"
+            class="border rounded px-3 py-2 bg-gray-100"
+            disabled
+          />
+          <input
+            id="editProgram"
+            class="border rounded px-3 py-2 bg-gray-100"
+            disabled
+          />
+        </div>
+
+        <!-- INITIAL AMOUNT -->
+        <input
+          type="number"
+          step="0.01"
+          name="initial_amount"
+          id="editInitialAmount"
+          class="border rounded px-3 py-2 w-full"
+          required
+        />
+
+        <!-- COMPONENTS -->
+        <div class="space-y-4">
+          <h4 class="font-semibold">Fee Breakdown</h4>
+
+          <div id="editComponentList" class="space-y-2"></div>
+        </div>
+
+        <!-- TOTAL -->
+        <div class="flex justify-between border-t pt-4">
+          <span class="font-semibold">Total Program Fee</span>
+          <span class="text-xl font-bold text-blue-700">
+            GHS <span id="editTotalFeeDisplay">0.00</span>
+          </span>
+        </div>
+
+        <!-- ACTIONS -->
+        <div class="flex justify-end gap-3">
+          <button
+            type="submit"
+            class="px-6 py-2 bg-blue-600 text-white rounded"
+          >
+            Update Fee
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ================= JS ================= -->
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll(".edit-program-fee-btn").forEach((btn) => {
+      btn.addEventListener("click", function () {
+        const feeId = this.dataset.feeId;
+        if (!feeId) return;
+
+        openEditProgramFee(feeId);
+      });
+    });
+  });
+
+  function recalculateEditTotal() {
+    let total = 0;
+
+    document
+      .querySelectorAll("#editComponentList input[name='component_amount']")
+      .forEach((input) => {
+        const val = parseFloat(input.value);
+        if (!isNaN(val)) total += val;
+      });
+
+    document.getElementById("editTotalFeeDisplay").textContent =
+      total.toFixed(2);
+
+    document.getElementById("editTotalAmountHidden").value = total.toFixed(2);
+  }
+
+  function openEditProgramFee(feeId) {
+    fetch(`/finance/ajax/program-fee/${feeId}/detail/`)
+      .then((res) => res.json())
+      .then((data) => {
+        document.getElementById("editProgramFeeId").value = data.id;
+        document.getElementById("editAcademicYear").value = data.academic_year;
+        document.getElementById("editSemester").value = data.semester;
+        document.getElementById("editProgram").value = data.program;
+        document.getElementById("editInitialAmount").value =
+          data.initial_amount;
+
+        const list = document.getElementById("editComponentList");
+        list.innerHTML = "";
+
+        let total = 0;
+
+        data.components.forEach((c) => {
+          total += parseFloat(c.amount);
+
+          const row = document.createElement("div");
+          row.className = "flex justify-between items-center";
+
+          row.innerHTML = `
+          <input type="hidden" name="component_id" value="${c.id}" />
+          <span>${c.name}</span>
+          <input
+            type="number"
+            step="0.01"
+            name="component_amount"
+            value="${c.amount}"
+            class="border rounded px-2 py-1 w-32 edit-component-amount"
+          />
+        `;
+
+          list.appendChild(row);
+
+          row
+            .querySelector(".edit-component-amount")
+            .addEventListener("input", recalculateEditTotal);
+        });
+
+        document.getElementById("editTotalFeeDisplay").textContent =
+          total.toFixed(2);
+        document.getElementById("editTotalAmountHidden").value =
+          total.toFixed(2);
+
+        document
+          .getElementById("editProgramFeeModal")
+          .classList.remove("hidden");
+        document.getElementById("editProgramFeeModal").classList.add("flex");
+      });
+  }
+
+  function closeEditProgramFee() {
+    document.getElementById("editProgramFeeModal").classList.add("hidden");
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const useDefault = document.getElementById("useDefaultComponents");
+    const useDefaultHidden = document.getElementById("useDefaultHidden");
+
+    const manualControls = document.getElementById("manualComponentControls");
+    const manualList = document.getElementById("componentList");
+
+    const defaultList = document.getElementById("defaultComponentList");
+
+    const totalDisplay = document.getElementById("totalFeeDisplay");
+    const totalHidden = document.getElementById("totalAmountHidden");
+
+    const componentSelect = document.getElementById("componentSelect");
+    const addBtn = document.getElementById("addComponentBtn");
+
+    function recalcTotal() {
+      let total = 0;
+
+      if (useDefault.checked) {
+        defaultList
+          .querySelectorAll(".default-component-checkbox:checked")
+          .forEach((cb) => {
+            total += parseFloat(cb.dataset.amount);
+          });
+      } else {
+        manualList.querySelectorAll(".component-amount").forEach((inp) => {
+          total += parseFloat(inp.value || 0);
+        });
+      }
+
+      total = total.toFixed(2);
+      totalDisplay.textContent = total;
+      totalHidden.value = total;
+    }
+
+    function clearManual() {
+      manualList.innerHTML = "";
+    }
+
+    function clearDefault() {
+      defaultList
+        .querySelectorAll("input")
+        .forEach((cb) => (cb.checked = false));
+    }
+
+    useDefault.addEventListener("change", () => {
+      useDefaultHidden.value = useDefault.checked ? "on" : "";
+
+      if (useDefault.checked) {
+        clearManual();
+        manualControls.classList.add("hidden");
+        defaultList.classList.remove("hidden");
+      } else {
+        clearDefault();
+        defaultList.classList.add("hidden");
+        manualControls.classList.remove("hidden");
+      }
+
+      recalcTotal();
+    });
+
+    addBtn.addEventListener("click", () => {
+      const option = componentSelect.selectedOptions[0];
+      if (!option) return;
+
+      const id = option.value;
+      const name = option.dataset.name;
+
+      if (manualList.querySelector(`[data-id="${id}"]`)) return;
+
+      const row = document.createElement("div");
+      row.className = "flex items-center gap-3";
+      row.dataset.id = id;
+
+      row.innerHTML = `
+      <input type="hidden" name="component_id" value="${id}" />
+      <span class="w-16">${name}</span>
+      <input type="number" step="0.01" name="component_amount"
+        class="border rounded px-2 py-1 w-32 component-amount" required />
+      <button type="button" class="text-red-600 remove">Remove</button>
+    `;
+
+      row
+        .querySelector(".component-amount")
+        .addEventListener("input", recalcTotal);
+      row.querySelector(".remove").addEventListener("click", () => {
+        row.remove();
+        recalcTotal();
+      });
+
+      manualList.appendChild(row);
+    });
+
+    defaultList
+      .querySelectorAll(".default-component-checkbox")
+      .forEach((cb) => {
+        cb.addEventListener("change", recalcTotal);
+      });
+  });
+
+  document.addEventListener("DOMContentLoaded", function () {
+    const modal = document.getElementById("programFeeModal");
+    const openBtn = document.getElementById("openProgramFeeModal");
+    const closeBtn = document.getElementById("closeProgramFeeModal");
+    const cancelBtn = document.getElementById("cancelProgramFeeModal");
+
+    function openModal() {
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
+    }
+
+    function closeModal() {
+      modal.classList.add("hidden");
+      modal.classList.remove("flex");
+    }
+
+    openBtn?.addEventListener("click", openModal);
+    closeBtn?.addEventListener("click", closeModal);
+    cancelBtn?.addEventListener("click", closeModal);
+
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) closeModal();
+    });
+  });
+
+  document.addEventListener("DOMContentLoaded", function () {
+    const modal = document.getElementById("editModal");
+    const nameInput = document.getElementById("modalComponentName");
+    const amountInput = document.getElementById("modalComponentAmount");
+    const idInput = document.getElementById("modalComponentId");
+
+    function openModal(id, name, totalFee) {
+      idInput.value = id;
+      nameInput.value = name;
+      amountInput.value = totalFee;
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
+      nameInput.focus();
+    }
+
+    function closeModal() {
+      modal.classList.add("hidden");
+      modal.classList.remove("flex");
+    }
+
+    document.querySelectorAll(".edit-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        openModal(btn.dataset.id, btn.dataset.name, btn.dataset.totalFee);
+      });
+    });
+
+    document.getElementById("closeModal").addEventListener("click", closeModal);
+    document
+      .getElementById("cancelModal")
+      .addEventListener("click", closeModal);
+
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) closeModal();
+    });
+  });
+</script>
+
+{% endblock %}

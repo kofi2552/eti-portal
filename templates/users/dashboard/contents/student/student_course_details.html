@@ -46,10 +46,43 @@
         </div>
       </div>
 
+      <!-- <div
+        class="px-6 py-3 rounded-xl bg-slate-100 text-slate-400 font-extrabold text-sm uppercase tracking-wide"
+      ></div> -->
+
+      <!-- ========================= -->
+      <!-- LECTURER PROFILE -->
+      <!-- ========================= -->
       <div
-        class="px-6 py-3 rounded-xl bg-slate-100 text-slate-400 font-extrabold text-sm uppercase tracking-wide cursor-not-allowed"
+        class="bg-white rounded-3xl px-6 py-3 border-2 border-slate-200 shadow-card"
       >
-        Timetable
+        <!-- <h3
+          class="text-md font-black text-slate-800 mb-3 uppercase tracking-tight"
+        >
+          Lecturer(s)
+        </h3> -->
+
+        {% if lecturers %}
+        <div class="space-y-4">
+          {% for lec in lecturers %}
+          <div class="flex items-center gap-4">
+            <div
+              class="w-12 h-12 rounded-xl bg-brand-100 text-brand-600 flex items-center justify-center font-black"
+            >
+              {{ lec.first_name|first }}{{ lec.last_name|first }}
+            </div>
+            <div>
+              <div class="text-md font-bold text-slate-800">
+                {{ lec.get_full_name }}
+              </div>
+              <div class="text-xs text-slate-500">{{ lec.email }}</div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-slate-400 text-sm italic">No lecturer assigned yet.</p>
+        {% endif %}
       </div>
     </div>
 
@@ -150,6 +183,35 @@
           </h3>
         </div>
         {% endif %}
+
+        <!-- FULL ANNOUNCEMENT VIEW -->
+        <div
+          id="announcementPreview"
+          class="hidden mt-6 bg-white border rounded-lg p-5 relative"
+        >
+          <button
+            type="button"
+            data-action="close-announcement"
+            class="absolute top-3 right-3 text-slate-400 hover:text-slate-600"
+          >
+            ✕
+          </button>
+
+          <h3
+            id="previewTitle"
+            class="text-lg font-semibold text-gray-900 mb-1"
+          ></h3>
+
+          <div class="text-xs text-gray-400 mb-3">
+            <span id="previewDate"></span> ·
+            <span id="previewAuthor"></span>
+          </div>
+
+          <p
+            id="previewMessage"
+            class="text-sm text-gray-700 whitespace-pre-line"
+          ></p>
+        </div>
       </div>
 
       <!-- ========================= -->
@@ -180,41 +242,6 @@
           </div>
         </div>
 
-        <!-- ========================= -->
-        <!-- LECTURER PROFILE -->
-        <!-- ========================= -->
-        <div
-          class="bg-white rounded-3xl p-6 border-2 border-slate-200 shadow-card"
-        >
-          <h3
-            class="text-lg font-black text-slate-800 mb-4 uppercase tracking-tight"
-          >
-            Lecturer(s)
-          </h3>
-
-          {% if lecturers %}
-          <div class="space-y-4">
-            {% for lec in lecturers %}
-            <div class="flex items-center gap-4">
-              <div
-                class="w-12 h-12 rounded-xl bg-brand-100 text-brand-600 flex items-center justify-center font-black"
-              >
-                {{ lec.first_name|first }}{{ lec.last_name|first }}
-              </div>
-              <div>
-                <div class="font-bold text-slate-800">
-                  {{ lec.get_full_name }}
-                </div>
-                <div class="text-xs text-slate-500">{{ lec.email }}</div>
-              </div>
-            </div>
-            {% endfor %}
-          </div>
-          {% else %}
-          <p class="text-slate-400 text-sm italic">No lecturer assigned yet.</p>
-          {% endif %}
-        </div>
-
         <!-- ANNOUNCEMENTS -->
         <div
           class="bg-white rounded-3xl p-6 border-2 border-slate-200 shadow-card"
@@ -224,16 +251,89 @@
           >
             Announcements
           </h3>
+          {% if announce %}
+          <div class="space-y-4">
+            {% for ann in announce %}
+            <div class="border-b pb-3 last:border-b-0 last:pb-0">
+              <div
+                class="bg-slate-50 border-2 border-slate-200 border-dashed rounded-xl p-4 text-slate-400 text-sm"
+              >
+                <div class="mb-1">
+                  <h3 class="font-medium text-gray-800">
+                    {{ ann.title|truncatechars:20 }}
+                  </h3>
+                </div>
 
+                <!-- <p class="text-sm text-gray-700 whitespace-pre-line">
+                {{ ann.message }}
+              </p> -->
+
+                <div class="flex items-center justify-between mt-2">
+                  <!-- <span class="text-xs text-gray-400">
+                  Posted by
+                  {{ann.sender.get_full_name|default:ann.sender.username}}
+                </span> -->
+                  <span class="text-xs text-gray-400">
+                    {{ ann.created_at|date:"M d, Y" }}
+                  </span>
+
+                  <!-- READ MORE -->
+                  <button
+                    type="button"
+                    class="text-xs text-brand-600 hover:underline"
+                    data-action="read-announcement"
+                    data-title="{{ ann.title|escapejs }}"
+                    data-message="{{ ann.message|escapejs }}"
+                    data-author="{{ ann.sender.get_full_name|default:ann.sender.username }}"
+                    data-date="{{ ann.created_at|date:'M d, Y' }}"
+                  >
+                    Read more
+                  </button>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+
+          {% else %}
           <div
             class="bg-slate-50 border-2 border-slate-200 border-dashed rounded-xl p-4 text-center text-slate-400 text-sm"
           >
             No announcements yet.
           </div>
+          {% endif %}
         </div>
       </div>
     </div>
   </div>
 </div>
+<script>
+  document.addEventListener("click", function (e) {
+    /* READ ANNOUNCEMENT */
+    const readBtn = e.target.closest("[data-action='read-announcement']");
+    if (readBtn) {
+      document.getElementById("previewTitle").innerText = readBtn.dataset.title;
+
+      document.getElementById("previewMessage").innerText =
+        readBtn.dataset.message;
+
+      document.getElementById("previewAuthor").innerText =
+        readBtn.dataset.author;
+
+      document.getElementById("previewDate").innerText = readBtn.dataset.date;
+
+      const preview = document.getElementById("announcementPreview");
+      preview.classList.remove("hidden");
+      preview.scrollIntoView({ behavior: "smooth", block: "start" });
+
+      return;
+    }
+
+    /* CLOSE PREVIEW */
+    if (e.target.closest("[data-action='close-announcement']")) {
+      document.getElementById("announcementPreview").classList.add("hidden");
+    }
+  });
+</script>
 
 {% endblock %}

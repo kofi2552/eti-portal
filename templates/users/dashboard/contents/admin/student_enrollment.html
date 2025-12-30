@@ -1,19 +1,24 @@
 {% extends "users/dashboard/admin_dashboard_layout.html" %} {% block title %}
 Fee Payments {% endblock %} {% block content %}
 
-<div class="max-w-5xl mx-auto px-4 py-6 space-y-8">
-  <h2 class="text-2xl font-semibold">Student Registration</h2>
-  <div class="w-full mx-auto bg-white p-6 rounded-md border-c">
-    <div class="flex justify-between items-center mb-4">
+<div class="max-w-5xl mx-auto px-4 pt-6 pb-8">
+  <div class="w-full flex items-center justify-between">
+    <h2 class="text-xl font-semibold mb-3">Student Registration</h2>
+    <form method="GET" class="flex gap-3 mb-4">
+      <input
+        type="text"
+        name="q"
+        value="{{ search_query }}"
+        placeholder="Search student name..."
+        class="border rounded px-3 py-2 w-64"
+      />
+      <button class="px-4 py-2 bg-gray-100 rounded">Search</button>
+    </form>
+  </div>
+  <div class="w-full mx-auto bg-white p-6 rounded-md border py-6 space-y-8">
+    <!-- <div class="flex justify-between items-center mb-4">
       <h2 class="text-lg font-semibold">Student Fee Payments</h2>
-
-      <button
-        onclick="openCreatePayment()"
-        class="ml-0 px-4 py-2 border-c text-gray-600 text-sm rounded hover:bg-gray-100 cursor-pointer"
-      >
-        Add Payment
-      </button>
-    </div>
+    </div> -->
     <!-- PAYMENT TABLE -->
     <div class="bg-white">
       <table class="min-w-full text-sm divide-y divide-gray-200">
@@ -22,7 +27,7 @@ Fee Payments {% endblock %} {% block content %}
             <th class="px-4 py-2">Student</th>
             <!-- <th class=" px-4 py-2">Year</th> -->
             <th class="px-4 py-2">Semester</th>
-            <th class="px-4 py-2">Amount</th>
+            <th class="px-4 py-2">Initial Amount</th>
             <th class="px-4 py-2">Paid</th>
             <th class="px-4 py-2">Verified</th>
             <th class="px-4 py-2">Actions</th>
@@ -62,7 +67,7 @@ Fee Payments {% endblock %} {% block content %}
                 <input type="hidden" name="verify_payment" value="1" />
                 <input type="hidden" name="payment_id" value="{{ p.id }}" />
                 <button
-                  class="text-blue-600 hover:underline cursor-pointer mr-4"
+                  class="text-xs text-blue-600 hover:underline cursor-pointer mr-4 border px-4 py-1"
                 >
                   Verify
                 </button>
@@ -73,7 +78,9 @@ Fee Payments {% endblock %} {% block content %}
                 {% csrf_token %}
                 <input type="hidden" name="delete_payment" value="1" />
                 <input type="hidden" name="payment_id" value="{{ p.id }}" />
-                <button class="text-red-600 hover:underline cursor-pointer">
+                <button
+                  class="text-xs text-red-600 hover:underline cursor-pointer border px-4 py-1"
+                >
                   Delete
                 </button>
               </form>
@@ -83,7 +90,9 @@ Fee Payments {% endblock %} {% block content %}
                 style="display: inline"
                 class=""
               >
-                <button class="text-gray-700 hover:underline cursor-pointer">
+                <button
+                  class="text-xs text-gray-700 hover:underline cursor-pointer border px-4 py-1"
+                >
                   Save PDF
                 </button>
               </form>
@@ -94,7 +103,71 @@ Fee Payments {% endblock %} {% block content %}
       </table>
     </div>
   </div>
-  <div class="bg-white border-c rounded-md p-6 mb-8">
+
+  <div class="bg-white border rounded-md p-6 mb-8 mt-8">
+    <h3 class="text-xl font-semibold mb-4">Program Fee Control</h3>
+
+    <table class="min-w-full text-sm divide-y divide-gray-200">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="px-4 py-2 text-left">Academic Year</th>
+          <th class="px-4 py-2 text-left">Semester</th>
+          <th class="px-4 py-2 text-left">Total Program Cost</th>
+          <th class="px-4 py-2 text-left">Status</th>
+          <th class="px-4 py-2 text-left">Action</th>
+        </tr>
+      </thead>
+
+      <tbody class="divide-y divide-gray-100">
+        {% for fee in fees %}
+        <tr class="text-left">
+          <td class="p-3">{{ fee.academic_year.name }}</td>
+          <td class="p-3">{{ fee.semester.name }}</td>
+          <td class="p-3 font-semibold">GHS {{ fee.total_amount }}</td>
+
+          <!-- STATUS -->
+          <td class="p-3">
+            {% if fee.is_allowed %}
+            <span class="text-green-600 font-semibold">Allowed</span>
+            {% else %}
+            <span class="text-red-600 font-semibold">Locked</span>
+            {% endif %}
+          </td>
+
+          <!-- ACTION -->
+          <td class="p-3 flex items-center gap-4">
+            <form method="POST">
+              {% csrf_token %}
+
+              <input type="hidden" name="fee_id" value="{{ fee.id }}" />
+
+              <button
+                class="px-3 py-1 rounded text-sm font-semibold {% if fee.is_allowed %} bg-red-100 text-red-700 {% else %} bg-green-100 text-green-700 {% endif %}"
+              >
+                {% if fee.is_allowed %} Disable Editing {% else %} Allow Editing
+                {% endif %}
+              </button>
+            </form>
+            <form method="POST">
+              {% csrf_token %}
+
+              <input type="hidden" name="delete_fee" value="1" />
+              <input type="hidden" name="del_fee_id" value="{{ fee.id }}" />
+
+              <button
+                class="px-3 py-1 rounded text-sm font-semibold {% if fee.is_archived %} border border-green-500 text-green-700 {% else %} border border-red-500 text-red-700 {% endif %}"
+              >
+                {% if fee.is_archived %} Recover {% else %} Archive {% endif %}
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="bg-white border rounded-md p-6 mb-8 mt-8">
     <h3 class="text-xl font-semibold mb-4">Semester Enrollment Control</h3>
 
     <table class="min-w-full text-sm divide-y divide-gray-200">
@@ -129,15 +202,15 @@ Fee Payments {% endblock %} {% block content %}
 
               {% if s.sem_reg_is_active %}
               <button
-                class="px-3 py-1 bg-red-600 text-sm text-white rounded hover:bg-red-700 cursor-pointer"
+                class="px-3 py-1 bg-red-600 text-sm text-white hover:bg-red-700 cursor-pointer"
               >
-                Deactivate
+                Deactivate Sem Registration
               </button>
               {% else %}
               <button
-                class="px-3 py-1 bg-green-600 text-sm text-white rounded hover:bg-green-700 cursor-pointer"
+                class="px-3 py-1 bg-green-600 text-sm text-white hover:bg-green-700 cursor-pointer"
               >
-                Activate
+                Activate Sem Registration
               </button>
               {% endif %}
             </form>
@@ -146,6 +219,38 @@ Fee Payments {% endblock %} {% block content %}
         {% endfor %}
       </tbody>
     </table>
+  </div>
+  {% if payments.has_other_pages %}
+  <div class="flex justify-between items-center mt-4 text-sm">
+    <div>Page {{ payments.number }} of {{ payments.paginator.num_pages }}</div>
+
+    <div class="flex gap-2">
+      {% if payments.has_previous %}
+      <a
+        href="?page={{ payments.previous_page_number }}&q={{ search_query }}"
+        class="px-3 py-1 border rounded"
+      >
+        Prev
+      </a>
+      {% endif %} {% if payments.has_next %}
+      <a
+        href="?page={{ payments.next_page_number }}&q={{ search_query }}"
+        class="px-3 py-1 border rounded"
+      >
+        Next
+      </a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <div>
+    <a
+      href="{% url 'finance_export_payments_csv' %}"
+      class="px-4 py-2 text-blue-600 border rounded text-sm hover:bg-gray-100"
+    >
+      Download Full Student Finance Data (CSV)
+    </a>
   </div>
 </div>
 
