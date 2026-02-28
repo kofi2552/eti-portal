@@ -475,6 +475,23 @@ def finance_create_student_payment(request):
     page_number = request.GET.get("page")
     payments_page = paginator.get_page(page_number)
 
+    # Bulk fetch ProgramFees for the displayed payments to display true amount owing
+    program_fee_map = {}
+    program_fees = ProgramFee.objects.filter(
+        program__in=[p.program for p in payments_page],
+        academic_year__in=[p.academic_year for p in payments_page],
+        semester__in=[p.semester for p in payments_page],
+    )
+    for pf in program_fees:
+        key = (pf.program_id, pf.academic_year_id, pf.semester_id)
+        program_fee_map[key] = pf
+
+    for p in payments_page:
+        pf_key = (p.program_id, p.academic_year_id, p.semester_id)
+        pf = program_fee_map.get(pf_key)
+        total_fee = pf.total_amount if pf else p.amount_expected
+        p.amount_owing = max(0, total_fee - p.amount_paid)
+
 
     # ============================
     # CREATE PAYMENT RECORD
@@ -527,6 +544,7 @@ def finance_create_student_payment(request):
             payment = Payment.objects.create(
                 student=student,
                 program=program,
+                level=level,
                 academic_year=year,
                 semester=semester,
                 amount_expected=amount_expected,

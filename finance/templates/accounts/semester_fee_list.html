@@ -9,11 +9,7 @@
     <div class="flex justify-between items-center">
       <h2 class="text-xl font-bold">Semester Fees</h2>
 
-      <button
-        type="button"
-        id="openProgramFeeModal"
-        class="px-4 py-2 bg-blue-600 text-white rounded-lg"
-      >
+      <button type="button" id="openProgramFeeModal" class="px-4 py-2 bg-blue-600 text-white rounded-lg">
         Declare Fee
       </button>
     </div>
@@ -67,11 +63,9 @@
                 No components assigned
               </span>
               {% endif %} {% if fee.is_allowed %}
-              <button
-                type="button"
+              <button type="button"
                 class="mt-2 text-sm text-blue-600 border px-4 py-1 font-semibold hover:underline edit-program-fee-btn"
-                data-fee-id="{{ fee.id }}"
-              >
+                data-fee-id="{{ fee.id }}">
                 Edit Fee
               </button>
               {% endif %}
@@ -97,20 +91,9 @@
     <form method="post" class="flex gap-3">
       {% csrf_token %}
       <input type="hidden" name="action" value="create_component" />
-      <input
-        type="text"
-        name="name"
-        placeholder="New component name"
-        class="border rounded px-3 py-2 w-64"
-        required
-      />
-      <input
-        type="text"
-        name="total_fee"
-        placeholder="Expected Total Amount"
-        class="border rounded px-3 py-2 w-64"
-        required
-      />
+      <input type="text" name="name" placeholder="New component name" class="border rounded px-3 py-2 w-64" required />
+      <input type="text" name="total_fee" placeholder="Expected Total Amount" class="border rounded px-3 py-2 w-64"
+        required />
       <button class="px-4 py-2 bg-green-600 text-white rounded">Add</button>
     </form>
 
@@ -120,7 +103,7 @@
         <thead class="bg-gray-50">
           <tr>
             <th class="p-3 text-left">Name</th>
-            <th class="p-3 text-left">Amount</th>
+            <th class="p-3 text-left">Default Amount</th>
             <th class="p-3 text-right">Actions</th>
           </tr>
         </thead>
@@ -131,22 +114,13 @@
             <td class="p-3">{{ c.totalFee }}</td>
             <td class="p-3 text-right space-x-3">
               <!-- EDIT -->
-              <button
-                type="button"
-                class="edit-btn text-blue-600 font-medium"
-                data-id="{{ c.id }}"
-                data-name="{{ c.name }}"
-                data-total-fee="{{ c.totalFee }}"
-              >
+              <button type="button" class="edit-btn text-blue-600 font-medium" data-id="{{ c.id }}"
+                data-name="{{ c.name }}" data-total-fee="{{ c.totalFee }}">
                 Edit
               </button>
 
               <!-- DELETE -->
-              <form
-                method="post"
-                class="inline"
-                onsubmit="return confirm('Delete this component?')"
-              >
+              <form method="post" class="inline" onsubmit="return confirm('Delete this component?')">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="delete_component" />
                 <input type="hidden" name="component_id" value="{{ c.id }}" />
@@ -167,10 +141,7 @@
   </div>
 
   <!-- ================= EDIT COMPONENT MODAL ================= -->
-  <div
-    id="editModal"
-    class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50"
-  >
+  <div id="editModal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
     <div class="bg-white rounded-xl w-full max-w-md p-6 space-y-4">
       <div class="flex justify-between items-center">
         <h3 class="text-lg font-bold">Edit Fee Component</h3>
@@ -186,37 +157,20 @@
 
         <div>
           <label class="text-sm font-semibold">Component Name</label>
-          <input
-            type="text"
-            name="name"
-            id="modalComponentName"
-            class="w-full border rounded px-3 py-2 mt-1"
-            required
-          />
+          <input type="text" name="name" id="modalComponentName" class="w-full border rounded px-3 py-2 mt-1"
+            required />
         </div>
         <div class="mt-2">
           <label class="text-sm font-semibold">Component Amount</label>
-          <input
-            type="text"
-            name="total_fee"
-            id="modalComponentAmount"
-            class="w-full border rounded px-3 py-2 mt-1"
-            required
-          />
+          <input type="text" name="total_fee" id="modalComponentAmount" class="w-full border rounded px-3 py-2 mt-1"
+            required />
         </div>
 
         <div class="flex justify-end gap-3 pt-4">
-          <button
-            type="button"
-            id="cancelModal"
-            class="px-4 py-2 border rounded"
-          >
+          <button type="button" id="cancelModal" class="px-4 py-2 border rounded">
             Cancel
           </button>
-          <button
-            type="submit"
-            class="px-4 py-2 bg-blue-600 text-white rounded"
-          >
+          <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">
             Save Changes
           </button>
         </div>
@@ -225,18 +179,11 @@
   </div>
 
   <!-- ================= ADD PROGRAM FEE MODAL ================= -->
-  <div
-    id="programFeeModal"
-    class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50"
-  >
+  <div id="programFeeModal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
     <div class="bg-white rounded-xl w-full max-w-3xl p-6 space-y-6">
       <div class="flex justify-between items-center">
         <h3 class="text-lg font-bold">Declare Program Semester Fee</h3>
-        <button
-          type="button"
-          id="closeProgramFeeModal"
-          class="text-gray-400 text-xl"
-        >
+        <button type="button" id="closeProgramFeeModal" class="text-gray-400 text-xl">
           &times;
         </button>
       </div>
@@ -244,20 +191,12 @@
       <form method="post" id="programFeeForm" class="space-y-6">
         {% csrf_token %}
         <input type="hidden" name="action" value="save_program_fee" />
-        <input
-          type="hidden"
-          name="use_default_components"
-          id="useDefaultHidden"
-        />
+        <input type="hidden" name="use_default_components" id="useDefaultHidden" />
         <input type="hidden" name="total_amount" id="totalAmountHidden" />
 
         <!-- BASIC INFO -->
         <div class="grid grid-cols-3 gap-4">
-          <select
-            name="academic_year"
-            required
-            class="border rounded px-3 py-2"
-          >
+          <select name="academic_year" required class="border rounded px-3 py-2">
             {% for y in academic_years %}
             <option value="{{ y.id }}">{{ y.name }}</option>
             {% endfor %}
@@ -277,14 +216,8 @@
         </div>
 
         <!-- INITIAL AMOUNT -->
-        <input
-          type="number"
-          step="0.01"
-          name="initial_amount"
-          placeholder="Initial required amount"
-          class="border rounded px-3 py-2 w-full"
-          required
-        />
+        <input type="number" step="0.01" name="initial_amount" placeholder="Initial required amount"
+          class="border rounded px-3 py-2 w-full" required />
 
         <!-- COMPONENT SECTION -->
         <div class="space-y-4">
@@ -308,11 +241,7 @@
               {% endfor %}
             </select>
 
-            <button
-              type="button"
-              id="addComponentBtn"
-              class="px-4 py-2 bg-gray-200 rounded"
-            >
+            <button type="button" id="addComponentBtn" class="px-4 py-2 bg-gray-200 rounded">
               Add
             </button>
           </div>
@@ -322,18 +251,10 @@
           <!-- DEFAULT MODE -->
           <div id="defaultComponentList" class="space-y-2 hidden">
             {% for c in components %}
-            <label
-              class="flex items-center justify-between border rounded px-4 py-2"
-            >
+            <label class="flex items-center justify-between border rounded px-4 py-2">
               <div class="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  name="component_id"
-                  value="{{ c.id }}"
-                  class="default-component-checkbox"
-                  data-id="{{ c.id }}"
-                  data-amount="{{ c.totalFee }}"
-                />
+                <input type="checkbox" name="component_id" value="{{ c.id }}" class="default-component-checkbox"
+                  data-id="{{ c.id }}" data-amount="{{ c.totalFee }}" />
                 <span>{{ c.name }}</span>
               </div>
               <span class="font-semibold">GHS {{ c.totalFee }}</span>
@@ -352,10 +273,7 @@
 
         <!-- ACTIONS -->
         <div class="flex justify-end gap-3">
-          <button
-            type="submit"
-            class="px-6 py-2 bg-blue-600 text-white rounded"
-          >
+          <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded">
             Save Fee
           </button>
         </div>
@@ -364,18 +282,11 @@
   </div>
 
   <!-- ================= EDIT PROGRAM FEE MODAL ================= -->
-  <div
-    id="editProgramFeeModal"
-    class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50"
-  >
+  <div id="editProgramFeeModal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
     <div class="bg-white rounded-xl w-full max-w-3xl p-6 space-y-6">
       <div class="flex justify-between items-center">
         <h3 class="text-lg font-bold">Edit Program Semester Fee</h3>
-        <button
-          type="button"
-          onclick="closeEditProgramFee()"
-          class="text-gray-400 text-xl"
-        >
+        <button type="button" onclick="closeEditProgramFee()" class="text-gray-400 text-xl">
           &times;
         </button>
       </div>
@@ -388,32 +299,14 @@
 
         <!-- READ ONLY INFO -->
         <div class="grid grid-cols-3 gap-4">
-          <input
-            id="editAcademicYear"
-            class="border rounded px-3 py-2 bg-gray-100"
-            disabled
-          />
-          <input
-            id="editSemester"
-            class="border rounded px-3 py-2 bg-gray-100"
-            disabled
-          />
-          <input
-            id="editProgram"
-            class="border rounded px-3 py-2 bg-gray-100"
-            disabled
-          />
+          <input id="editAcademicYear" class="border rounded px-3 py-2 bg-gray-100" disabled />
+          <input id="editSemester" class="border rounded px-3 py-2 bg-gray-100" disabled />
+          <input id="editProgram" class="border rounded px-3 py-2 bg-gray-100" disabled />
         </div>
 
         <!-- INITIAL AMOUNT -->
-        <input
-          type="number"
-          step="0.01"
-          name="initial_amount"
-          id="editInitialAmount"
-          class="border rounded px-3 py-2 w-full"
-          required
-        />
+        <input type="number" step="0.01" name="initial_amount" id="editInitialAmount"
+          class="border rounded px-3 py-2 w-full" required />
 
         <!-- COMPONENTS -->
         <div class="space-y-4">
@@ -432,10 +325,7 @@
 
         <!-- ACTIONS -->
         <div class="flex justify-end gap-3">
-          <button
-            type="submit"
-            class="px-6 py-2 bg-blue-600 text-white rounded"
-          >
+          <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded">
             Update Fee
           </button>
         </div>

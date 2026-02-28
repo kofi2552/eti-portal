@@ -8,3 +8,6 @@ package-lock.json
 node_modules/
 requirement.txt
 requirements.txt
+
+# Debug
+debug/

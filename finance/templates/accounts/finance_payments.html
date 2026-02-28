@@ -7,31 +7,22 @@
 
 <div class="max-w-5xl mx-auto px-4 py-6 space-y-8">
   <div>
-    <a
-      href="{% url 'finance_export_payments_csv' %}"
-      class="px-4 py-2 text-blue-600 border rounded text-sm hover:bg-gray-100"
-    >
+    <a href="{% url 'finance_export_payments_csv' %}"
+      class="px-4 py-2 text-blue-600 border rounded text-sm hover:bg-gray-100">
       Download Full Student Finance Data (CSV)
     </a>
   </div>
   <div class="flex justify-between items-center mb-4">
-    <h2 class="text-xl font-semibold">Student Fee Payments</h2>
+    <h2 class="text-xl font-semibold">Student Fee Payments (Ghc)</h2>
     <div class="flex items-center gap-3">
       <form method="GET" class="flex gap-3 mb-4">
-        <input
-          type="text"
-          name="q"
-          value="{{ search_query }}"
-          placeholder="Search student name..."
-          class="border rounded px-3 py-2 w-64"
-        />
+        <input type="text" name="q" value="{{ search_query }}" placeholder="Search student name..."
+          class="border rounded px-3 py-2 w-64" />
         <button class="px-4 py-2 bg-gray-100 rounded">Search</button>
       </form>
     </div>
-    <button
-      onclick="openCreatePayment()"
-      class="ml-0 px-4 py-2 border-c text-gray-600 text-sm rounded hover:bg-gray-100 cursor-pointer"
-    >
+    <button onclick="openCreatePayment()"
+      class="ml-0 px-4 py-2 border-c text-gray-600 text-sm rounded hover:bg-gray-100 cursor-pointer">
       Add Payment
     </button>
   </div>
@@ -46,6 +37,7 @@
             <th class="px-4 py-2">Semester</th>
             <th class="px-4 py-2">Initial Amount</th>
             <th class="px-4 py-2">Paid</th>
+            <th class="px-4 py-2">Owing</th>
             <th class="px-4 py-2">Verified</th>
             <th class="px-4 py-2">Actions</th>
           </tr>
@@ -64,12 +56,11 @@
             <!-- <td class="px-4 py-2"></td> -->
             <td class="flex flex-col text-left px-4 py-2">
               <span>{{ p.semester.name }}</span>
-              <span class="text-xs text-gray-400"
-                >({{ p.academic_year.name }})</span
-              >
+              <span class="text-xs text-gray-400">({{ p.academic_year.name }})</span>
             </td>
             <td class="px-4 py-2">{{ p.amount_expected }}</td>
             <td class="px-4 py-2">{{ p.amount_paid }}</td>
+            <td class="px-4 py-2">{{ p.amount_owing }}</td>
             <td class="px-4 py-2">
               {% if p.is_verified %}
               <span class="text-green-600 font-semibold">Verified</span>
@@ -78,15 +69,8 @@
               {% endif %}
             </td>
             <td class="px-4 py-2 space-x-3 space-y-1">
-              <form
-                method="GET"
-                action="{% url 'payment_pdf' p.id %}"
-                style="display: inline"
-                class=""
-              >
-                <button
-                  class="text-gray-700 hover:underline cursor-pointer text-xs border px-4 py-1"
-                >
+              <form method="GET" action="{% url 'payment_pdf' p.id %}" style="display: inline" class="">
+                <button class="text-gray-700 hover:underline cursor-pointer text-xs border px-4 py-1">
                   Save PDF
                 </button>
               </form>
@@ -104,17 +88,11 @@
 
       <div class="flex gap-2">
         {% if payments.has_previous %}
-        <a
-          href="?page={{ payments.previous_page_number }}&q={{ search_query }}"
-          class="px-3 py-1 border rounded"
-        >
+        <a href="?page={{ payments.previous_page_number }}&q={{ search_query }}" class="px-3 py-1 border rounded">
           Prev
         </a>
         {% endif %} {% if payments.has_next %}
-        <a
-          href="?page={{ payments.next_page_number }}&q={{ search_query }}"
-          class="px-3 py-1 border rounded"
-        >
+        <a href="?page={{ payments.next_page_number }}&q={{ search_query }}" class="px-3 py-1 border rounded">
           Next
         </a>
         {% endif %}
@@ -125,10 +103,7 @@
 </div>
 
 <!-- CREATE PAYMENT MODAL -->
-<div
-  id="createPaymentModal"
-  class="w-full hidden fixed inset-0 bg-black/40 flex items-center justify-center"
->
+<div id="createPaymentModal" class="w-full hidden fixed inset-0 bg-black/40 flex items-center justify-center">
   <div class="max-w-7xl bg-white mx-auto p-6 rounded-md border-c shadow-sm">
     <h3 class="text-lg font-semibold mb-3">Add Payment</h3>
 
@@ -151,12 +126,7 @@
           <div class="grid grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-medium mb-1">Program</label>
-              <select
-                name="program_id"
-                id="programSelect"
-                required
-                class="w-full border px-3 py-2"
-              >
+              <select name="program_id" id="programSelect" required class="w-full border px-3 py-2">
                 <option value="">Select program</option>
                 {% for p in programs %}
                 <option value="{{ p.id }}">{{ p.name }}</option>
@@ -166,12 +136,7 @@
 
             <div>
               <label class="block text-sm font-medium mb-1">Level</label>
-              <select
-                name="level_id"
-                id="levelSelect"
-                required
-                class="w-full border px-3 py-2"
-              >
+              <select name="level_id" id="levelSelect" required class="w-full border px-3 py-2">
                 <option value="">Select level</option>
                 {% for lvl in levels %}
                 <option value="{{ lvl.id }}">{{ lvl.name }}</option>
@@ -183,15 +148,8 @@
           <!-- YEAR / SEMESTER -->
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium mb-1"
-                >Academic Year</label
-              >
-              <select
-                name="academic_year_id"
-                id="yearSelect"
-                required
-                class="w-full border px-3 py-2"
-              >
+              <label class="block text-sm font-medium mb-1">Academic Year</label>
+              <select name="academic_year_id" id="yearSelect" required class="w-full border px-3 py-2">
                 {% for y in years %}
                 <option value="{{ y.id }}">{{ y.name }}</option>
                 {% endfor %}
@@ -200,12 +158,7 @@
 
             <div>
               <label class="block text-sm font-medium mb-1">Semester</label>
-              <select
-                name="semester_id"
-                id="semesterSelect"
-                required
-                class="w-full border px-3 py-2"
-              >
+              <select name="semester_id" id="semesterSelect" required class="w-full border px-3 py-2">
                 {% for sem in semesters %}
                 <option value="{{ sem.id }}">{{ sem.name }}</option>
                 {% endfor %}
@@ -216,39 +169,22 @@
           <!-- EXPECTED / PAID -->
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium mb-1"
-                >Expected (Initial)</label
-              >
-              <input
-                type="number"
-                name="amount_expected"
-                id="expectedAmount"
-                readonly
-                class="w-full border px-3 py-2 bg-gray-100"
-              />
+              <label class="block text-sm font-medium mb-1">Expected (Initial)</label>
+              <input type="number" name="amount_expected" id="expectedAmount" readonly
+                class="w-full border px-3 py-2 bg-gray-100" />
             </div>
 
             <div>
-              <label class="block text-sm font-medium mb-1"
-                >Payment Amount</label
-              >
-              <input
-                type="number"
-                step="0.01"
-                name="amount_paid"
-                id="amountPaid"
-                required
-                class="w-full border px-3 py-2"
-              />
+              <label class="block text-sm font-medium mb-1">Payment Amount</label>
+              <input type="number" step="0.01" name="amount_paid" id="amountPaid" required
+                class="w-full border px-3 py-2" />
             </div>
           </div>
         </div>
 
         <!-- COMPONENT BREAKDOWN -->
         <div>
-          <label class="block text-sm font-medium mb-1"
-            >Allocate payable amount</label
-          >
+          <label class="block text-sm font-medium mb-1">Allocate payable amount</label>
           <div class="border rounded p-3 space-y-4" style="width: 300px">
             <!-- <h4 class="font-semibold mb-2">Payment Breakdown</h4> -->
 
@@ -269,20 +205,11 @@
 
       <!-- REFERENCE -->
       <label class="block text-sm font-medium">Bank Reference</label>
-      <input
-        name="reference"
-        required
-        class="w-full border px-3 py-2"
-        style="width: 600px"
-      />
+      <input name="reference" required class="w-full border px-3 py-2" style="width: 600px" />
 
       <!-- ACTIONS -->
       <div class="flex justify-end gap-3 pt-2">
-        <button
-          type="button"
-          onclick="closeCreatePayment()"
-          class="px-4 py-2 border rounded"
-        >
+        <button type="button" onclick="closeCreatePayment()" class="px-4 py-2 border rounded">
           Cancel
         </button>
         <button class="px-4 py-2 bg-blue-600 text-white rounded">

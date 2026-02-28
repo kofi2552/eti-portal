@@ -59,6 +59,13 @@ class Payment(models.Model):
        on_delete=models.CASCADE,
     )
 
+    level = models.ForeignKey(
+        ProgramLevel,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+
     academic_year = models.ForeignKey(AcademicYear, on_delete=models.CASCADE)
     semester = models.ForeignKey(Semester, on_delete=models.CASCADE)
 

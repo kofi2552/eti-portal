@@ -29,6 +29,18 @@
       <option value="lecturer" {% if user_obj.role == "lecturer" %}selected{% endif %}>Lecturer</option>
       <option value="student" {% if user_obj.role == "student" %}selected{% endif %}>Student</option>
     </select>
+    
+    {% if user_obj.role == "student" %}
+    <label class="block mb-2 text-gray-700">Student Level</label>
+    <select name="level" class="w-full border border-gray-300 rounded px-3 py-2 mb-4">
+      <option value="">- Select Level -</option>
+      {% for level in levels %}
+      <option value="{{ level.id }}" {% if user_obj.level and user_obj.level.id == level.id %}selected{% endif %}>
+        {{ level.program.name }} - {{ level.level_name }}
+      </option>
+      {% endfor %}
+    </select>
+    {% endif %}
 
     <label class="block mb-2 text-gray-700">New Password (optional)</label>
     <input type="password" name="password"

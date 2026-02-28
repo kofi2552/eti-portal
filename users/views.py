@@ -3,6 +3,8 @@ from django.contrib.auth import authenticate, login
 from django.contrib import messages
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
 from django.db.models import Q, Count
 from .models import CustomUser as User, Payment, RegistrationProgress, StudentRegistration
 from academics.models import Program, Course, AcademicYear, Semester, Assessment, Grade, ProgramLevel, Enrollment
@@ -84,8 +86,11 @@ def student_login(request):
         })
 
     if request.method == "POST":
-        username = request.POST.get("username")
-        password = request.POST.get("password")
+        username = request.POST.get("username", "").strip()
+        # Convert student ID to uppercase as they are strictly uppercase (e.g., STU...)
+        username = username.upper()
+        
+        password = request.POST.get("password", "").strip()
 
         user = authenticate(request, username=username, password=password)
 
@@ -347,21 +352,30 @@ def student_main(request):
     current_gpa = round(total_points / total_credits, 2) if total_credits else None
 
     # ---------------------------
-    # FEE BALANCE (ACTIVE SEMESTER)
+    # FEE BALANCE (ALL-TIME)
     # ---------------------------
-    fee_aggregation = Payment.objects.filter(
+    verified_payments = Payment.objects.filter(
         student=user,
         is_verified=True
-    ).aggregate(
-        total_balance=Sum(
-            ExpressionWrapper(
-                F("amount_expected") - F("amount_paid"),
-                output_field=DecimalField(max_digits=10, decimal_places=2)
-            )
-        )
-    )
+    ).select_related("program", "academic_year", "semester")
 
-    fee_balance = fee_aggregation["total_balance"] or 0
+    program_fee_map = {}
+    if verified_payments.exists():
+        program_fees = ProgramFee.objects.filter(
+            program__in=[p.program_id for p in verified_payments],
+            academic_year__in=[p.academic_year_id for p in verified_payments],
+            semester__in=[p.semester_id for p in verified_payments],
+        )
+        for pf in program_fees:
+            key = (pf.program_id, pf.academic_year_id, pf.semester_id)
+            program_fee_map[key] = pf
+
+    fee_balance = Decimal("0.00")
+    for p in verified_payments:
+        pf_key = (p.program_id, p.academic_year_id, p.semester_id)
+        pf = program_fee_map.get(pf_key)
+        total_fee = pf.total_amount if pf else p.amount_expected
+        fee_balance += max(Decimal("0.00"), total_fee - p.amount_paid)
 
     # ---------------------------
     # GRAPH DATA (UNCHANGED)
@@ -472,6 +486,24 @@ def student_course_details(request, course_id):
         
     )
 
+    # ✅ FETCH ASSESSMENT TASKS AND SCORES
+    from academics.models import AssessmentTask, AssessmentTaskScore
+
+    tasks = AssessmentTask.objects.filter(course=course).order_by("-created_at")
+    scores = AssessmentTaskScore.objects.filter(
+        task__in=tasks,
+        student=user
+    ).select_related("task")
+
+    score_map = {score.task_id: score for score in scores}
+
+    task_data = []
+    for task in tasks:
+        task_data.append({
+            "task": task,
+            "score": score_map.get(task.id)
+        })
+
 
     return render(request,
         "users/dashboard/contents/student/student_course_details.html",
@@ -481,6 +513,7 @@ def student_course_details(request, course_id):
             "lecturers": lecturers,
             "registration": registration,
             "announce": announce,
+            "task_data": task_data,
         }
     )
 
@@ -671,6 +704,7 @@ def admin_manage_users(request):
         # Check duplicate email
         if User.objects.filter(email=email).exists():
             messages.error(request, "A user with this email already exists.")
+            request.session['add_user_form'] = request.POST.dict()
             return redirect("admin_manage_users")
 
         # Create user
@@ -681,13 +715,30 @@ def admin_manage_users(request):
             role=role,
             username=email  # or whatever you prefer
         )
+        
+        # Validate password strength
+        try:
+            validate_password(password, user=user)
+        except ValidationError as e:
+            messages.error(request, f"Password error: {' '.join(e.messages)}")
+            request.session['add_user_form'] = request.POST.dict()
+            return redirect("admin_manage_users")
+            
         user.set_password(password)
         user.save()
+
+        # Clear session form data on success
+        if 'add_user_form' in request.session:
+            del request.session['add_user_form']
 
         messages.success(request, f"{role.capitalize()} added successfully.")
         return redirect("admin_manage_users")
 
     # ---------- VIEW (GET) ----------
+    
+    # Retrieve any saved form data
+    form_data = request.session.pop('add_user_form', {})
+    
     users = User.objects.all().order_by("first_name")
 
     # SEARCH
@@ -713,6 +764,7 @@ def admin_manage_users(request):
         "page_obj": page_obj,
         "search": search_query,
         "role_filter": role_filter,
+        "form_data": form_data,
     })
 
 
@@ -733,15 +785,32 @@ def edit_user(request, id):
 
         new_password = request.POST.get("password")
         if new_password:
-            user.set_password(new_password)
+            try:
+                validate_password(new_password, user=user)
+                user.set_password(new_password)
+            except ValidationError as e:
+                messages.error(request, f"Password error: {' '.join(e.messages)}")
+                return redirect("edit_user", id=id)
+
+        if user.role == "student":
+            level_id = request.POST.get("level")
+            if level_id:
+                level = ProgramLevel.objects.filter(id=level_id).first()
+                if level:
+                    user.level = level
+                    log_event(request.user, "user_update", f"Admin updated level to {level.level_name} for {user.username}")
+            else:
+                user.level = None
 
         user.save()
         messages.success(request, "User updated successfully.")
         return redirect("admin_manage_users")
 
+    levels = ProgramLevel.objects.all().select_related("program").order_by("program__name", "level_name")
+
     return render(request,
                   "users/dashboard/contents/admin/edit_user.html",
-                  {"user_obj": user})
+                  {"user_obj": user, "levels": levels})
 
 
 @login_required
@@ -926,9 +995,6 @@ def student_enrollment(request):
         messages.error(request, "Access denied.")
         return redirect("home")
 
-    # Fetch all payments
-    payments = Payment.objects.select_related("student", "academic_year", "semester").order_by("-created_at")
-
      # ======================================
     # SEARCH
     # ======================================
@@ -982,7 +1048,7 @@ def student_enrollment(request):
         messages.success(
             request,
             f"Program fee for {program_fee.program.name} "
-            f"({program_fee.semester.name}) has been {status}."
+            f"({program_fee.semester.name}) has been {status} for editing."
         )
 
         return redirect("student_enrollment")
@@ -1094,12 +1160,15 @@ def student_enrollment(request):
                 # ---------------------------------
                 # 5. Get or create Enrollment
                 # ---------------------------------
+                # Fallback to student.level if payment.level is somehow missing
+                assigned_level = payment.level or student.level
+
                 enrollment, created = Enrollment.objects.get_or_create(
                     student=student,
                     semester=semester,
                     defaults={
                         "program": program,
-                        "level": student.level,
+                        "level": assigned_level,
                         "payment": payment,   
                         "is_current": True,
                     }
@@ -1107,7 +1176,7 @@ def student_enrollment(request):
 
                 if not created:
                     enrollment.program = program
-                    enrollment.level = student.level
+                    enrollment.level = assigned_level
                     enrollment.payment = payment
                     enrollment.is_current = True
                     enrollment.save()
@@ -1125,6 +1194,7 @@ def student_enrollment(request):
                 student.program = program
                 student.department = program.department
                 student.level = enrollment.level
+                student.save()
 
                 # ---------------------------------
                 # 7. Generate ID & PIN (first time)
@@ -1158,7 +1228,7 @@ def student_enrollment(request):
                 log_event(
                     request.user,
                     "registration",
-                    f"Verified payment for {student.get_full_name()} | "
+                    f"Verified payment (ID: {payment.id}) for {student.get_full_name()} | "
                     f"Program: {program.name} | "
                     f"Semester: {semester.name} | "
                     f"Total paid so far: GHS {total_after_verification}"
@@ -1273,7 +1343,7 @@ def generate_payment_pdf(request, payment_id):
 
     header_top = height - 50
 
-    # LOGO (LEFT)
+    # LOGO (LEFT) & WATERMARK
     if school and school.logo:
         logo_path = os.path.join(settings.MEDIA_ROOT, school.logo.name)
         if os.path.exists(logo_path):
@@ -1286,6 +1356,25 @@ def generate_payment_pdf(request, payment_id):
                 preserveAspectRatio=True,
                 mask="auto"
             )
+            
+            # WATERMARK (CENTER)
+            p.saveState()
+            try:
+                p.setFillAlpha(0.03)  # 3% Opacity for washed out look
+            except Exception:
+                pass
+            
+            watermark_size = 550
+            p.drawImage(
+                ImageReader(logo_path),
+                (width - watermark_size) / 2,
+                (height - watermark_size) / 2 - 50,
+                width=watermark_size,
+                height=watermark_size,
+                preserveAspectRatio=True,
+                mask="auto"
+            )
+            p.restoreState()
 
     # SCHOOL NAME
     p.setFont("Helvetica-Bold", 16)
@@ -1339,18 +1428,24 @@ def generate_payment_pdf(request, payment_id):
     value_x = 240            # Second column begins here
     vertical_line_x = 220    # Divider line position
 
+    enroll = payment.enrollment_payment.first()
+    lvl_name = enroll.level.level_name if (enroll and enroll.level) else (payment.student.level.level_name if payment.student.level else "N/A")
+
     data = [
         ("Student", payment.student.get_full_name()),
         ("Student ID", payment.generated_student_id or "N/A"),
         ("PIN", payment.generated_pin or "N/A"),
         ("Email", payment.student.email),
+        ("Program", payment.student.program.name if getattr(payment.student, 'program', None) else "N/A"),
+        ("Department", payment.student.department.name if getattr(payment.student, 'department', None) else "N/A"),
+        ("Current Level", lvl_name),
         ("Academic Year", payment.academic_year.name),
         ("Semester", payment.semester.name),
         ("Amount Expected", f"GHS {payment.amount_expected}"),
         ("Amount Paid", f"GHS {payment.amount_paid}"),
         ("Verified", "Yes" if payment.is_verified else "No"),
         ("Reference No.", payment.reference),
-        ("Date Paid", payment.date_paid.strftime("%Y-%m-%d %H:%M") if payment.date_paid else "N/A"),
+        ("Date Paid", payment.date_paid.strftime("%Y-%m-%d %I:%M %p") if payment.date_paid else "N/A"),
     ]
 
     # ---------------------------------------------
@@ -2392,9 +2487,14 @@ def registration_step_3(request):
     if not enrollment:
         return registration_error(request, "No active enrollment found.")
 
-    program = user.program
-    semester = enrollment.semester
+    # Use the program selected in step 2
+    program = progress.program if progress.program else user.program
+    
+    # Strict rule: Level must be set
     level = user.level
+    if not level:
+         return registration_error(request, "Your academic level is not set. Please contact the administrator before registering for courses.")
+    semester = enrollment.semester
     active_semester = enrollment.semester
 
     # print("program: ", program)
@@ -2638,6 +2738,17 @@ def registration_complete(request):
     # ---------------------------------------------
     # FINAL RENDER
     # ---------------------------------------------
+
+    school = School.objects.first()
+
+    # LOGO (LEFT) & WATERMARK
+    if school and school.logo:
+        logo_url = request.build_absolute_uri(school.logo.url)
+    else:
+        logo_url = request.build_absolute_uri(static('images/logo.png'))
+
+    from django.utils.timezone import now
+    
     return render(
         request,
         "users/dashboard/contents/student/registration_complete.html",
@@ -2648,6 +2759,9 @@ def registration_complete(request):
             "semester": registration.semester,
             "selected_courses": courses_with_lecturers,
             "is_registration_open": registration.semester.sem_reg_is_active,
+            "logo_url": logo_url,
+            "level_name": registration.level.level_name if registration.level else getattr(user.level, 'level_name', "N/A"),
+            "current_date": now().strftime("%b %d, %Y • %I:%M %p"),
         }
     )
 

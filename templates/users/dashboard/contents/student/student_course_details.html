@@ -5,26 +5,21 @@
 {% block content %}
 
 <div class="max-w-5xl mx-auto space-y-10">
-  <div
-    class="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-10 py-6"
-  >
+  <div class="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-10 py-6">
     <!-- ========================= -->
     <!-- COURSE HEADER -->
     <!-- ========================= -->
     <div
-      class="bg-white p-8 rounded-3xl border-2 border-slate-200 shadow-card flex flex-col md:flex-row md:items-center justify-between gap-6"
-    >
+      class="bg-white p-8 rounded-3xl border-2 border-slate-200 shadow-card flex flex-col md:flex-row md:items-center justify-between gap-6">
       <div class="flex items-start gap-6">
         <div
-          class="w-20 h-20 bg-brand-500 rounded-2xl flex items-center justify-center text-white text-3xl font-black border-b-8 border-brand-700"
-        >
+          class="w-20 h-20 bg-brand-500 rounded-2xl flex items-center justify-center text-white text-3xl font-black border-b-8 border-brand-700">
           {{ course.course_code|slice:":1" }}
         </div>
 
         <div>
           <div
-            class="inline-block px-3 py-1 bg-brand-50 text-brand-600 rounded-lg text-[10px] font-black uppercase tracking-widest mb-2"
-          >
+            class="inline-block px-3 py-1 bg-brand-50 text-brand-600 rounded-lg text-[10px] font-black uppercase tracking-widest mb-2">
             Academic Resources
           </div>
 
@@ -37,9 +32,7 @@
               {{ course.program.name }}
             </div>
             <div class="w-1 h-1 bg-slate-300 rounded-full"></div>
-            <div
-              class="text-slate-500 font-bold text-sm uppercase tracking-wide"
-            >
+            <div class="text-slate-500 font-bold text-sm uppercase tracking-wide">
               {{ course.course_code }}
             </div>
           </div>
@@ -53,9 +46,7 @@
       <!-- ========================= -->
       <!-- LECTURER PROFILE -->
       <!-- ========================= -->
-      <div
-        class="bg-white rounded-3xl px-6 py-3 border-2 border-slate-200 shadow-card"
-      >
+      <div class="bg-white rounded-3xl px-6 py-3 border-2 border-slate-200 shadow-card">
         <!-- <h3
           class="text-md font-black text-slate-800 mb-3 uppercase tracking-tight"
         >
@@ -66,9 +57,7 @@
         <div class="space-y-4">
           {% for lec in lecturers %}
           <div class="flex items-center gap-4">
-            <div
-              class="w-12 h-12 rounded-xl bg-brand-100 text-brand-600 flex items-center justify-center font-black"
-            >
+            <div class="w-12 h-12 rounded-xl bg-brand-100 text-brand-600 flex items-center justify-center font-black">
               {{ lec.first_name|first }}{{ lec.last_name|first }}
             </div>
             <div>
@@ -93,11 +82,78 @@
       <!-- ========================= -->
       <!-- RESOURCES -->
       <!-- ========================= -->
-      <div class="lg:col-span-2 space-y-6">
+      <div class="lg:col-span-2 space-y-4">
+        <div class="flex flex-col">
+          <div class="flex items-center justify-between px-2 pb-3">
+            <h2 class="text-lg font-black text-slate-800 uppercase tracking-tight">
+              Assessment Tasks & Scores
+            </h2>
+            <span class="text-slate-400 font-bold text-sm">
+              {{ task_data|length }} Task{{ task_data|length|pluralize }}
+            </span>
+          </div>
+
+          {% if task_data %}
+          <div class="space-y-4">
+            {% for record in task_data %}
+            <div
+              class="bg-white rounded-2xl border-2 border-slate-200 p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+
+              <div class="flex items-start gap-4">
+                <!-- Task Icon -->
+                <div
+                  class="w-12 h-12 rounded-xl flex items-center justify-center text-xl font-black border-b-4 bg-purple-50 text-purple-600 border-purple-200 flex-shrink-0">
+                  <i data-lucide="clipboard-list" class="w-6 h-6"></i>
+                </div>
+
+                <!-- Task Info -->
+                <div>
+                  <h3 class="text-lg font-black text-slate-800">
+                    {{ record.task.title }}
+                  </h3>
+                  <div class="flex items-center gap-3 text-slate-400 font-bold text-xs mt-1 uppercase tracking-wide">
+                    <span class="text-purple-600 bg-purple-50 px-2 py-0.5 rounded-md">
+                      {{ record.task.assessment_type.name }}
+                    </span>
+                    <span class="w-1 h-1 bg-slate-200 rounded-full"></span>
+                    <span>Max: {{ record.task.total_marks|floatformat:0 }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Score Display -->
+              <div class="text-right flex-shrink-0">
+                {% if record.score and record.score.marks_obtained is not None %}
+                <div class="text-2xl font-black text-green-600">
+                  {{ record.score.marks_obtained|floatformat:1 }}
+                </div>
+                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                  Score Awarded
+                </div>
+                {% else %}
+                <div
+                  class="px-3 py-1.5 bg-slate-100 text-slate-500 rounded-lg text-xs font-bold uppercase tracking-widest">
+                  Pending
+                </div>
+                {% endif %}
+              </div>
+
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="bg-slate-50 border-2 border-slate-200 border-dashed rounded-3xl p-8 text-center">
+            <h3 class="text-lg font-black text-slate-400">
+              No assessment tasks posted yet
+            </h3>
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="h-4"></div>
+
         <div class="flex items-center justify-between px-2">
-          <h2
-            class="text-xl font-black text-slate-800 uppercase tracking-tight"
-          >
+          <h2 class="text-lg font-black text-slate-800 uppercase tracking-tight">
             Shared Resources
           </h2>
           <span class="text-slate-400 font-bold text-sm">
@@ -108,32 +164,22 @@
         {% if resources %}
         <div class="space-y-4">
           {% for r in resources %}
-          <div
-            x-data="{ open: false }"
-            class="bg-white rounded-2xl border-2 border-slate-200 hover:border-brand-300 transition-all"
-          >
+          <div x-data="{ open: false }"
+            class="bg-white rounded-2xl border-2 border-slate-200 hover:border-brand-300 transition-all">
             <!-- CLICK HEADER -->
-            <button
-              @click="open = !open"
-              class="w-full p-5 flex items-center justify-between text-left group"
-            >
+            <button @click="open = !open" class="w-full p-5 flex items-center justify-between text-left group">
               <div class="flex items-center gap-5">
                 <div
-                  class="w-14 h-14 rounded-xl flex items-center justify-center text-xs font-black border-b-4 bg-blue-50 text-blue-600 border-blue-200"
-                >
+                  class="w-14 h-14 rounded-xl flex items-center justify-center text-xs font-black border-b-4 bg-blue-50 text-blue-600 border-blue-200">
                   <i data-lucide="link"></i>
                 </div>
 
                 <div>
-                  <h3
-                    class="text-lg font-black text-slate-800 group-hover:text-brand-600 transition-colors"
-                  >
+                  <h3 class="text-lg font-black text-slate-800 group-hover:text-brand-600 transition-colors">
                     {{ r.title }}
                   </h3>
 
-                  <div
-                    class="flex items-center gap-3 text-slate-400 font-bold text-xs mt-1 uppercase tracking-wide"
-                  >
+                  <div class="flex items-center gap-3 text-slate-400 font-bold text-xs mt-1 uppercase tracking-wide">
                     <span>{{ r.created_at|date:"M d, Y" }}</span>
                     <span class="w-1 h-1 bg-slate-200 rounded-full"></span>
                     <span>
@@ -145,27 +191,20 @@
                 </div>
               </div>
 
-              <div
-                class="text-slate-400 font-bold text-xs uppercase tracking-wide"
-                x-text="open ? 'Hide' : 'View'"
-              ></div>
+              <div class="text-slate-400 font-bold text-xs uppercase tracking-wide" x-text="open ? 'Hide' : 'View'">
+              </div>
             </button>
 
             <!-- ACCORDION BODY -->
             <div x-show="open" x-collapse class="px-5 pb-5">
               {% if r.summary %}
-              <div
-                class="bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm text-slate-700 leading-relaxed"
-              >
+              <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm text-slate-700 leading-relaxed">
                 {{ r.summary }}
               </div>
               {% endif %} {% if r.external_link %}
               <div class="mt-4">
-                <a
-                  href="{{ r.external_link }}"
-                  target="_blank"
-                  class="inline-flex items-center gap-2 bg-brand-500 text-white px-5 py-2 rounded-xl font-extrabold text-xs uppercase tracking-wide border-b-4 border-brand-700 hover:brightness-110 active:border-b-0 active:translate-y-1 transition-all"
-                >
+                <a href="{{ r.external_link }}" target="_blank"
+                  class="inline-flex items-center gap-2 bg-brand-500 text-white px-5 py-2 rounded-xl font-extrabold text-xs uppercase tracking-wide border-b-4 border-brand-700 hover:brightness-110 active:border-b-0 active:translate-y-1 transition-all">
                   Open Resource
                 </a>
               </div>
@@ -175,9 +214,7 @@
           {% endfor %}
         </div>
         {% else %}
-        <div
-          class="bg-slate-50 border-2 border-slate-200 border-dashed rounded-3xl p-12 text-center"
-        >
+        <div class="bg-slate-50 border-2 border-slate-200 border-dashed rounded-3xl p-12 text-center">
           <h3 class="text-lg font-black text-slate-400">
             No resources shared yet
           </h3>
@@ -185,43 +222,29 @@
         {% endif %}
 
         <!-- FULL ANNOUNCEMENT VIEW -->
-        <div
-          id="announcementPreview"
-          class="hidden mt-6 bg-white border rounded-lg p-5 relative"
-        >
-          <button
-            type="button"
-            data-action="close-announcement"
-            class="absolute top-3 right-3 text-slate-400 hover:text-slate-600"
-          >
+        <div id="announcementPreview" class="hidden mt-6 bg-white border rounded-lg p-5 relative">
+          <button type="button" data-action="close-announcement"
+            class="absolute top-3 right-3 text-slate-400 hover:text-slate-600">
             ✕
           </button>
 
-          <h3
-            id="previewTitle"
-            class="text-lg font-semibold text-gray-900 mb-1"
-          ></h3>
+          <h3 id="previewTitle" class="text-lg font-semibold text-gray-900 mb-1"></h3>
 
           <div class="text-xs text-gray-400 mb-3">
             <span id="previewDate"></span> ·
             <span id="previewAuthor"></span>
           </div>
 
-          <p
-            id="previewMessage"
-            class="text-sm text-gray-700 whitespace-pre-line"
-          ></p>
+          <p id="previewMessage" class="text-sm text-gray-700 whitespace-pre-line"></p>
         </div>
       </div>
 
       <!-- ========================= -->
       <!-- SIDEBAR -->
       <!-- ========================= -->
-      <div class="space-y-6">
+      <div class="lg:col-span-1 space-y-6">
         <!-- COURSE INFO -->
-        <div
-          class="bg-brand-500 rounded-3xl p-6 text-white border-b-8 border-brand-700 shadow-xl"
-        >
+        <div class="bg-brand-500 rounded-3xl p-6 text-white border-b-8 border-brand-700 shadow-xl">
           <h3 class="text-lg font-black uppercase tracking-tight mb-6">
             Course Info
           </h3>
@@ -243,21 +266,15 @@
         </div>
 
         <!-- ANNOUNCEMENTS -->
-        <div
-          class="bg-white rounded-3xl p-6 border-2 border-slate-200 shadow-card"
-        >
-          <h3
-            class="text-lg font-black text-slate-800 mb-4 uppercase tracking-tight"
-          >
+        <div class="bg-white rounded-3xl p-6 border-2 border-slate-200 shadow-card">
+          <h3 class="text-lg font-black text-slate-800 mb-4 uppercase tracking-tight">
             Announcements
           </h3>
           {% if announce %}
           <div class="space-y-4">
             {% for ann in announce %}
             <div class="border-b pb-3 last:border-b-0 last:pb-0">
-              <div
-                class="bg-slate-50 border-2 border-slate-200 border-dashed rounded-xl p-4 text-slate-400 text-sm"
-              >
+              <div class="bg-slate-50 border-2 border-slate-200 border-dashed rounded-xl p-4 text-slate-400 text-sm">
                 <div class="mb-1">
                   <h3 class="font-medium text-gray-800">
                     {{ ann.title|truncatechars:20 }}
@@ -278,15 +295,10 @@
                   </span>
 
                   <!-- READ MORE -->
-                  <button
-                    type="button"
-                    class="text-xs text-brand-600 hover:underline"
-                    data-action="read-announcement"
-                    data-title="{{ ann.title|escapejs }}"
-                    data-message="{{ ann.message|escapejs }}"
+                  <button type="button" class="text-xs text-brand-600 hover:underline" data-action="read-announcement"
+                    data-title="{{ ann.title|escapejs }}" data-message="{{ ann.message|escapejs }}"
                     data-author="{{ ann.sender.get_full_name|default:ann.sender.username }}"
-                    data-date="{{ ann.created_at|date:'M d, Y' }}"
-                  >
+                    data-date="{{ ann.created_at|date:'M d, Y' }}">
                     Read more
                   </button>
                 </div>
@@ -297,8 +309,7 @@
 
           {% else %}
           <div
-            class="bg-slate-50 border-2 border-slate-200 border-dashed rounded-xl p-4 text-center text-slate-400 text-sm"
-          >
+            class="bg-slate-50 border-2 border-slate-200 border-dashed rounded-xl p-4 text-center text-slate-400 text-sm">
             No announcements yet.
           </div>
           {% endif %}

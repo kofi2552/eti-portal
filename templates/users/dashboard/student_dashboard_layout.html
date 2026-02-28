@@ -1,401 +1,331 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{% block title %}Student Dashboard{% endblock %}</title>
-    <link
-      rel="icon"
-      href="{% static 'images/favicon.ico' %}"
-      type="image/x-icon"
-    />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
-      rel="stylesheet"
-    />
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="{% static 'dist/style.css' %}" rel="stylesheet" />
-    <link rel="stylesheet" href="{% static 'css/custom.css' %}" />
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              brand: {
-                50: "#eef2ff",
-                100: "#e0e7ff",
-                500: "#6366f1",
-                600: "#4f46e5",
-                700: "#4338ca",
-              },
-              success: {
-                500: "#22c55e",
-                600: "#16a34a",
-              },
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Student Dashboard{% endblock %}</title>
+  <link rel="icon" href="{% static 'images/favicon.ico' %}" type="image/x-icon" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+    rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="{% static 'dist/style.css' %}" rel="stylesheet" />
+  <link rel="stylesheet" href="{% static 'css/custom.css' %}" />
+  <link href="{% static 'css/vanilla-sonner.css' %}" rel="stylesheet" />
+  <script src="{% static 'js/vanilla-sonner.js' %}"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: "#eef2ff",
+              100: "#e0e7ff",
+              500: "#6366f1",
+              600: "#4f46e5",
+              700: "#4338ca",
             },
-            boxShadow: {
-              card: "0 10px 30px rgba(0,0,0,0.08)",
-            },
-            fontFamily: {
-              sans: ["Inter", "ui-sans-serif", "system-ui"],
+            success: {
+              500: "#22c55e",
+              600: "#16a34a",
             },
           },
+          boxShadow: {
+            card: "0 10px 30px rgba(0,0,0,0.08)",
+          },
+          fontFamily: {
+            sans: ["Inter", "ui-sans-serif", "system-ui"],
+          },
         },
-      };
-    </script>
-    <style>
-      /* Minimal clean sidebar width classes */
-      .sidebar-expanded {
-        width: 14rem; /* 256px */
-      }
-      .sidebar-collapsed {
-        width: 4.5rem; /* 72px */
-      }
+      },
+    };
+  </script>
+  <style>
+    /* Minimal clean sidebar width classes */
+    .sidebar-expanded {
+      width: 14rem;
+      /* 256px */
+    }
 
-      main::-webkit-scrollbar {
-        width: 6px;
-      }
-      main::-webkit-scrollbar-thumb {
-        background: rgba(0, 0, 0, 0.08);
-        border-radius: 999px;
-      }
-      .border-c {
-        border: 1px solid #b9b9b9 !important;
-      }
+    .sidebar-collapsed {
+      width: 4.5rem;
+      /* 72px */
+    }
 
-      /* Hide text when collapsed */
-      .sidebar-collapsed .sidebar-label {
-        display: none;
-      }
+    main::-webkit-scrollbar {
+      width: 6px;
+    }
 
-      /* Center icons better when collapsed */
-      .sidebar-collapsed nav a,
-      .sidebar-collapsed button {
-        justify-content: center !important;
-      }
+    main::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.08);
+      border-radius: 999px;
+    }
 
-      /* remove indent on collapse */
-      .sidebar-collapsed #coursesMenu {
-        margin-left: 0 !important;
-      }
-      .shadow-card {
-        --tw-shadow: 0 4px 0 0 #e2e8f0 !important;
-        --tw-shadow-colored: 0 4px 0 0 #e2e8f0 !important;
-        box-shadow: var(#aaaaaa00, 0 0 #0000), var(#aaaaaa00, 0 0 #0000),
-          var(--tw-shadow);
-      }
+    .border-c {
+      border: 1px solid #b9b9b9 !important;
+    }
 
-      .nav-item {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        padding: 10px 0.75rem;
-        margin: 8px 0;
-        border-radius: 0.75rem;
-        font-weight: 500;
-        transition-property: color;
-        transition-duration: 150ms;
-        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-      }
+    /* Hide text when collapsed */
+    .sidebar-collapsed .sidebar-label {
+      display: none;
+    }
 
-      .nav-active {
-        background-color: #eef2ff;
-        color: #4f46e5;
-        font-weight: 500;
-      }
+    /* Center icons better when collapsed */
+    .sidebar-collapsed nav a,
+    .sidebar-collapsed button {
+      justify-content: center !important;
+    }
 
-      .nav-active i {
-        color: #4f46e5;
-      }
+    /* remove indent on collapse */
+    .sidebar-collapsed #coursesMenu {
+      margin-left: 0 !important;
+    }
 
-      .nav-inactive {
-        color: #64748b;
-      }
+    .shadow-card {
+      --tw-shadow: 0 4px 0 0 #e2e8f0 !important;
+      --tw-shadow-colored: 0 4px 0 0 #e2e8f0 !important;
+      box-shadow: var(#aaaaaa00, 0 0 #0000), var(#aaaaaa00, 0 0 #0000),
+        var(--tw-shadow);
+    }
 
-      .nav-inactive:hover {
-        background-color: #f1f5f9;
-      }
-    </style>
-  </head>
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 10px 0.75rem;
+      margin: 8px 0;
+      border-radius: 0.75rem;
+      font-weight: 500;
+      transition-property: color;
+      transition-duration: 150ms;
+      transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    }
 
-  <body class="bg-gray-50 text-gray-700">
-    <div class="flex w-screen h-screen overflow-hidden">
-      <!-- LEFT SIDEBAR -->
-      <aside
-        id="sidebar"
-        class="hidden md:flex sidebar-expanded bg-white border-r-2 border-slate-200 transition-all duration-300 flex-col"
-      >
-        <!-- BRAND HEADER -->
-        <div class="h-20 flex items-center px-6 border-b-2 border-slate-200">
-          <!-- Brand Icon (never shrinks) -->
-          <div
-            class="w-8 h-8 flex-shrink-0 bg-brand-500 rounded-lg flex items-center justify-center text-white font-extrabold text-sm border-b-4 border-brand-700 mr-3"
-          >
-            E
-          </div>
+    .nav-active {
+      background-color: #eef2ff;
+      color: #4f46e5;
+      font-weight: 500;
+    }
 
-          <!-- Brand Text -->
-          <span
-            class="sidebar-label font-extrabold text-xl text-slate-700 tracking-tight"
-          >
-            ETI Portal
+    .nav-active i {
+      color: #4f46e5;
+    }
+
+    .nav-inactive {
+      color: #64748b;
+    }
+
+    .nav-inactive:hover {
+      background-color: #f1f5f9;
+    }
+  </style>
+</head>
+
+<body class="bg-gray-50 text-gray-700">
+  <div class="flex w-screen h-screen overflow-hidden">
+    <!-- LEFT SIDEBAR -->
+    <aside id="sidebar"
+      class="hidden md:flex sidebar-expanded bg-white border-r-2 border-slate-200 transition-all duration-300 flex-col">
+      <!-- BRAND HEADER -->
+      <div class="h-20 flex items-center px-6 border-b-2 border-slate-200">
+        <!-- Brand Icon (never shrinks) -->
+        <div
+          class="w-8 h-8 flex-shrink-0 bg-brand-500 rounded-lg flex items-center justify-center text-white font-extrabold text-sm border-b-4 border-brand-700 mr-3">
+          E
+        </div>
+
+        <!-- Brand Text -->
+        <span class="sidebar-label font-extrabold text-xl text-slate-700 tracking-tight">
+          ETI Portal
+        </span>
+      </div>
+
+      <!-- NAVIGATION -->
+      <nav class="flex-1 flex-shrink-0 overflow-y-auto p-4 text-sm space-y-2">
+        <p class="px-3 text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-2 sidebar-label">
+          Main Menu
+        </p>
+
+        <!-- Overview -->
+        <a href="{% url 'student_main' %}"
+          class="nav-item {% if request.resolver_match.url_name == 'student_main' %}nav-active{% else %}nav-inactive{% endif %}">
+          <span class="w-6 h-6 flex items-center justify-center flex-shrink-0">
+            <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
           </span>
+          <span class="sidebar-label">Overview</span>
+        </a>
+
+        <!-- Courses -->
+        <div>
+          <button onclick="toggleCoursesMenu()"
+            class="w-full flex items-center justify-between p-3 rounded-xl font-medium text-slate-500 hover:bg-slate-100 transition-colors">
+            <span class="flex items-center gap-3">
+              <span class="w-6 h-6 flex items-center justify-center flex-shrink-0">
+                <i data-lucide="book-open" class="w-5 h-5"></i>
+              </span>
+              <span class="sidebar-label">My Courses</span>
+            </span>
+
+            <span id="coursesArrow" class="sidebar-label text-xs flex-shrink-0">
+              ▼
+            </span>
+          </button>
+
+          <!-- Courses submenu -->
+          <div id="coursesMenu" class="hidden ml-6 mt-2 space-y-1">
+            {% for c in student_courses %}
+            <a href="{% url 'student_course_details' c.id %}"
+              class="flex items-center gap-2 p-2 rounded-lg text-sm font-medium transition-colors {% if request.resolver_match.url_name == 'student_course_details' and c.id|stringformat:'s' == request.resolver_match.kwargs.course_id|stringformat:'s' %} bg-brand-50 text-brand-600 font-extrabold {% else %} text-slate-400 hover:text-slate-600 hover:bg-slate-50 {% endif %}">
+              <span class="w-5 h-5 flex items-center justify-center flex-shrink-0">
+                <i data-lucide="chevron-right" class="w-4 h-4"></i>
+              </span>
+              <span class="sidebar-label">{{ c.course_code }}</span>
+            </a>
+            {% empty %}
+            <span class="sidebar-label text-xs text-slate-400 px-3">
+              No courses registered
+            </span>
+            {% endfor %}
+          </div>
         </div>
 
-        <!-- NAVIGATION -->
-        <nav class="flex-1 flex-shrink-0 overflow-y-auto p-4 text-sm space-y-2">
-          <p
-            class="px-3 text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-2 sidebar-label"
-          >
-            Main Menu
-          </p>
+        <!-- Academics -->
+        <a href="{% url 'student_academics' %}"
+          class="nav-item {% if request.resolver_match.url_name == 'student_academics' %}nav-active{% else %}nav-inactive{% endif %}">
+          <span class="w-6 h-6 flex items-center justify-center flex-shrink-0">
+            <i data-lucide="graduation-cap" class="w-5 h-5"></i>
+          </span>
+          <span class="sidebar-label">Academics</span>
+        </a>
 
-          <!-- Overview -->
-          <a
-            href="{% url 'student_main' %}"
-            class="nav-item {% if request.resolver_match.url_name == 'student_main' %}nav-active{% else %}nav-inactive{% endif %}"
-          >
-            <span
-              class="w-6 h-6 flex items-center justify-center flex-shrink-0"
-            >
-              <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
-            </span>
-            <span class="sidebar-label">Overview</span>
-          </a>
+        <!-- Registration -->
+        <a href="{% url 'registration_step_1' %}"
+          class="nav-item {% if request.resolver_match.url_name|slice:':12' == 'registration' %} nav-active {% else %} nav-inactive {% endif %}">
+          <span class="w-6 h-6 flex items-center justify-center flex-shrink-0">
+            <i data-lucide="clipboard-list" class="w-5 h-5"></i>
+          </span>
+          <span class="sidebar-label">Registration</span>
+        </a>
 
-          <!-- Courses -->
-          <div>
-            <button
-              onclick="toggleCoursesMenu()"
-              class="w-full flex items-center justify-between p-3 rounded-xl font-medium text-slate-500 hover:bg-slate-100 transition-colors"
-            >
-              <span class="flex items-center gap-3">
-                <span
-                  class="w-6 h-6 flex items-center justify-center flex-shrink-0"
-                >
-                  <i data-lucide="book-open" class="w-5 h-5"></i>
-                </span>
-                <span class="sidebar-label">My Courses</span>
-              </span>
+        <!-- Transcript -->
+        <a href="{% url 'student_view_transcript' %}"
+          class="nav-item {% if request.resolver_match.url_name == 'student_view_transcript' %}nav-active{% else %}nav-inactive{% endif %}">
+          <span class="w-6 h-6 flex items-center justify-center flex-shrink-0">
+            <i data-lucide="file-text" class="w-5 h-5"></i>
+          </span>
+          <span class="sidebar-label">Transcript</span>
+        </a>
 
-              <span
-                id="coursesArrow"
-                class="sidebar-label text-xs flex-shrink-0"
-              >
-                ▼
-              </span>
-            </button>
+        <!-- Fees -->
+        <a href="{% url 'student_fee_payments' %}"
+          class="nav-item {% if request.resolver_match.url_name == 'student_fee_payments' %}nav-active{% else %}nav-inactive{% endif %}">
+          <span class="w-6 h-6 flex items-center justify-center flex-shrink-0">
+            <i data-lucide="credit-card" class="w-5 h-5"></i>
+          </span>
+          <span class="sidebar-label">Fee Payments</span>
+        </a>
+      </nav>
 
-            <!-- Courses submenu -->
-            <div id="coursesMenu" class="hidden ml-6 mt-2 space-y-1">
-              {% for c in student_courses %}
-              <a
-                href="{% url 'student_course_details' c.id %}"
-                class="flex items-center gap-2 p-2 rounded-lg text-sm font-medium transition-colors {% if request.resolver_match.url_name == 'student_course_details' and c.id|stringformat:'s' == request.resolver_match.kwargs.course_id|stringformat:'s' %} bg-brand-50 text-brand-600 font-extrabold {% else %} text-slate-400 hover:text-slate-600 hover:bg-slate-50 {% endif %}"
-              >
-                <span
-                  class="w-5 h-5 flex items-center justify-center flex-shrink-0"
-                >
-                  <i data-lucide="chevron-right" class="w-4 h-4"></i>
-                </span>
-                <span class="sidebar-label">{{ c.course_code }}</span>
-              </a>
-              {% empty %}
-              <span class="sidebar-label text-xs text-slate-400 px-3">
-                No courses registered
-              </span>
-              {% endfor %}
+      <!-- FOOTER -->
+      <div class="p-4 border-t-2 border-slate-200 bg-slate-50">
+        <a href="https://wa.me/+233594955819"
+          class="flex items-center gap-3 p-3 rounded-xl text-slate-500 hover:bg-blue-50 hover:text-blue-600 font-medium transition-colors">
+          <span class="w-6 h-6 flex text-center items-center justify-center flex-shrink-0">
+            <i data-lucide="info" class="w-5 h-5"></i>
+          </span>
+          <span class="sidebar-label">Help Center</span>
+        </a>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT WRAPPER -->
+    <div class="flex-1 flex flex-col min-h-0">
+      <!-- TOP NAVBAR -->
+      <header class="h-20 bg-white border-b-2 border-slate-200 flex items-center justify-between px-6 md:px-8">
+        <!-- LEFT -->
+        <div class="flex items-center gap-4">
+          <button onclick="toggleSidebar()" class="hidden md:flex p-2 rounded-xl text-slate-500 hover:bg-slate-100">
+            <i data-lucide="menu" class="w-6 h-6"></i>
+          </button>
+          <div class="h-20 flex items-center pr-6 border-b-2 border-slate-200 lg:hidden">
+            <!-- Brand Icon (never shrinks) -->
+            <div
+              class="w-8 h-8 flex-shrink-0 bg-brand-500 rounded-lg flex items-center justify-center text-white font-extrabold text-sm border-b-4 border-brand-700 mr-3">
+              E
             </div>
+
+            <!-- Brand Text -->
+            <span class="sidebar-label font-extrabold text-xl text-slate-700 tracking-tight">
+              ETI Portal
+            </span>
+          </div>
+          <div class="hidden md:flex items-center gap-2 text-sm font-bold text-slate-400">
+            <i data-lucide="chevron-right" class="w-4 h-4"></i>
+            <span>Student Portal</span>
+            <!-- <span class="text-slate-800">Dashboard</span> -->
+          </div>
+        </div>
+
+        <!-- RIGHT -->
+        <div class="flex items-center gap-4">
+          <!-- Search -->
+          <div class="relative hidden sm:block">
+            <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i>
+            <input type="text" placeholder="Search..."
+              class="pl-9 pr-4 py-2 bg-slate-100 rounded-xl text-sm font-bold text-slate-700 focus:bg-white focus:border-brand-300 border-2 border-transparent outline-none transition-all w-64" />
           </div>
 
-          <!-- Academics -->
-          <a
-            href="{% url 'student_academics' %}"
-            class="nav-item {% if request.resolver_match.url_name == 'student_academics' %}nav-active{% else %}nav-inactive{% endif %}"
-          >
-            <span
-              class="w-6 h-6 flex items-center justify-center flex-shrink-0"
-            >
-              <i data-lucide="graduation-cap" class="w-5 h-5"></i>
-            </span>
-            <span class="sidebar-label">Academics</span>
-          </a>
+          <!-- Notifications -->
+          <div x-data="{ open: false }" class="relative">
+            <button type="button" @click="open = !open"
+              class="relative p-2 rounded-xl text-slate-400 hover:bg-brand-50 hover:text-brand-500"
+              aria-label="Notifications">
+              <i data-lucide="bell" class="w-6 h-6"></i>
 
-          <!-- Registration -->
-          <a
-            href="{% url 'registration_step_1' %}"
-            class="nav-item {% if request.resolver_match.url_name|slice:':12' == 'registration' %} nav-active {% else %} nav-inactive {% endif %}"
-          >
-            <span
-              class="w-6 h-6 flex items-center justify-center flex-shrink-0"
-            >
-              <i data-lucide="clipboard-list" class="w-5 h-5"></i>
-            </span>
-            <span class="sidebar-label">Registration</span>
-          </a>
-
-          <!-- Transcript -->
-          <a
-            href="{% url 'student_view_transcript' %}"
-            class="nav-item {% if request.resolver_match.url_name == 'student_view_transcript' %}nav-active{% else %}nav-inactive{% endif %}"
-          >
-            <span
-              class="w-6 h-6 flex items-center justify-center flex-shrink-0"
-            >
-              <i data-lucide="file-text" class="w-5 h-5"></i>
-            </span>
-            <span class="sidebar-label">Transcript</span>
-          </a>
-
-          <!-- Fees -->
-          <a
-            href="{% url 'student_fee_payments' %}"
-            class="nav-item {% if request.resolver_match.url_name == 'student_fee_payments' %}nav-active{% else %}nav-inactive{% endif %}"
-          >
-            <span
-              class="w-6 h-6 flex items-center justify-center flex-shrink-0"
-            >
-              <i data-lucide="credit-card" class="w-5 h-5"></i>
-            </span>
-            <span class="sidebar-label">Fee Payments</span>
-          </a>
-        </nav>
-
-        <!-- FOOTER -->
-        <div class="p-4 border-t-2 border-slate-200 bg-slate-50">
-          <a
-            href="https://wa.me/+233594955819"
-            class="flex items-center gap-3 p-3 rounded-xl text-slate-500 hover:bg-blue-50 hover:text-blue-600 font-medium transition-colors"
-          >
-            <span
-              class="w-6 h-6 flex text-center items-center justify-center flex-shrink-0"
-            >
-              <i data-lucide="info" class="w-5 h-5"></i>
-            </span>
-            <span class="sidebar-label">Help Center</span>
-          </a>
-        </div>
-      </aside>
-
-      <!-- MAIN CONTENT WRAPPER -->
-      <div class="flex-1 flex flex-col min-h-0">
-        <!-- TOP NAVBAR -->
-        <header
-          class="h-20 bg-white border-b-2 border-slate-200 flex items-center justify-between px-6 md:px-8"
-        >
-          <!-- LEFT -->
-          <div class="flex items-center gap-4">
-            <button
-              onclick="toggleSidebar()"
-              class="hidden md:flex p-2 rounded-xl text-slate-500 hover:bg-slate-100"
-            >
-              <i data-lucide="menu" class="w-6 h-6"></i>
+              {% if has_active_announcements %}
+              <span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
+              {% endif %}
             </button>
-            <div
-              class="h-20 flex items-center pr-6 border-b-2 border-slate-200 lg:hidden"
-            >
-              <!-- Brand Icon (never shrinks) -->
-              <div
-                class="w-8 h-8 flex-shrink-0 bg-brand-500 rounded-lg flex items-center justify-center text-white font-extrabold text-sm border-b-4 border-brand-700 mr-3"
-              >
-                E
+
+            <!-- Dropdown -->
+            <div x-show="open" @click.away="open = false" x-transition
+              class="absolute right-0 mt-3 w-96 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden z-50">
+              <div class="px-4 py-3 border-b bg-slate-50">
+                <h3 class="text-sm font-semibold text-slate-700">
+                  Notifications
+                </h3>
               </div>
 
-              <!-- Brand Text -->
-              <span
-                class="sidebar-label font-extrabold text-xl text-slate-700 tracking-tight"
-              >
-                ETI Portal
-              </span>
-            </div>
-            <div
-              class="hidden md:flex items-center gap-2 text-sm font-bold text-slate-400"
-            >
-              <i data-lucide="chevron-right" class="w-4 h-4"></i>
-              <span>Student Portal</span>
-              <!-- <span class="text-slate-800">Dashboard</span> -->
-            </div>
-          </div>
-
-          <!-- RIGHT -->
-          <div class="flex items-center gap-4">
-            <!-- Search -->
-            <div class="relative hidden sm:block">
-              <i
-                data-lucide="search"
-                class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"
-              ></i>
-              <input
-                type="text"
-                placeholder="Search..."
-                class="pl-9 pr-4 py-2 bg-slate-100 rounded-xl text-sm font-bold text-slate-700 focus:bg-white focus:border-brand-300 border-2 border-transparent outline-none transition-all w-64"
-              />
-            </div>
-
-            <!-- Notifications -->
-            <div x-data="{ open: false }" class="relative">
-              <button
-                type="button"
-                @click="open = !open"
-                class="relative p-2 rounded-xl text-slate-400 hover:bg-brand-50 hover:text-brand-500"
-                aria-label="Notifications"
-              >
-                <i data-lucide="bell" class="w-6 h-6"></i>
-
-                {% if has_active_announcements %}
-                <span
-                  class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-white"
-                ></span>
-                {% endif %}
-              </button>
-
-              <!-- Dropdown -->
-              <div
-                x-show="open"
-                @click.away="open = false"
-                x-transition
-                class="absolute right-0 mt-3 w-96 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden z-50"
-              >
-                <div class="px-4 py-3 border-b bg-slate-50">
-                  <h3 class="text-sm font-semibold text-slate-700">
-                    Notifications
-                  </h3>
-                </div>
-
-                {% if announcements %}
-                <div class="max-h-96 overflow-y-auto py-2 divide-y">
-                  {% for ann in announcements %}
-                  <a
-                    data-action="mark-notification-read"
-                    data-announcement-id="{{ ann.id }}"
-                    href="{% url 'student_course_details' ann.course.id %}"
-                    class="block px-4 py-3 hover:bg-slate-50"
-                  >
-                    <div class="flex justify-between items-start mb-1">
-                      <p class="text-sm font-semibold text-slate-800">
-                        {{ ann.title|truncatechars:30 }}
-                      </p>
-                      <span class="text-xs text-slate-400">
-                        {{ ann.created_at|timesince }} ago
-                      </span>
-                    </div>
-
-                    <p class="text-xs text-slate-600 line-clamp-2">
-                      {{ ann.message|truncatechars:40 }}
+              {% if announcements %}
+              <div class="max-h-96 overflow-y-auto py-2 divide-y">
+                {% for ann in announcements %}
+                <a data-action="mark-notification-read" data-announcement-id="{{ ann.id }}"
+                  href="{% url 'student_course_details' ann.course.id %}" class="block px-4 py-3 hover:bg-slate-50">
+                  <div class="flex justify-between items-start mb-1">
+                    <p class="text-sm font-semibold text-slate-800">
+                      {{ ann.title|truncatechars:30 }}
                     </p>
+                    <span class="text-xs text-slate-400">
+                      {{ ann.created_at|timesince }} ago
+                    </span>
+                  </div>
 
-                    <p class="text-[11px] text-slate-400 mt-1">
-                      {{ ann.course.title }}
-                    </p>
-                  </a>
-                  {% endfor %}
-                </div>
+                  <p class="text-xs text-slate-600 line-clamp-2">
+                    {{ ann.message|truncatechars:40 }}
+                  </p>
 
-                <!-- <div class="border-t bg-slate-50">
+                  <p class="text-[11px] text-slate-400 mt-1">
+                    {{ ann.course.title }}
+                  </p>
+                </a>
+                {% endfor %}
+              </div>
+
+              <!-- <div class="border-t bg-slate-50">
                   <a
                     class="block text-center text-sm font-semibold text-brand-600 px-4 py-2 hover:bg-slate-100"
                   >
@@ -403,292 +333,259 @@
                   </a>
                 </div> -->
 
-                {% else %}
-                <div class="px-4 py-6 text-center text-sm text-slate-500">
-                  No new notifications
-                </div>
-                {% endif %}
+              {% else %}
+              <div class="px-4 py-6 text-center text-sm text-slate-500">
+                No new notifications
               </div>
-            </div>
-
-            <!-- Profile Dropdown -->
-            <div x-data="{ open: false }" class="relative">
-              <button @click="open = !open" class="flex items-center gap-2">
-                <div
-                  class="w-10 h-10 bg-brand-200 rounded-xl border-2 border-brand-300 flex items-center justify-center font-extrabold text-brand-600"
-                >
-                  {{request.user.first_name|default:request.user.username|slice:":1"}}
-                </div>
-              </button>
-
-              <div
-                x-show="open"
-                @click.away="open=false"
-                class="absolute right-0 mt-3 w-48 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden"
-                x-transition
-              >
-                <a
-                  href="{% url 'student_profile' %}"
-                  class="block px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-                >
-                  Profile
-                </a>
-                <a
-                  href="{% url 'logout' %}"
-                  class="block px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-                >
-                  Logout
-                </a>
-              </div>
+              {% endif %}
             </div>
           </div>
-        </header>
 
-        <!-- CONTENT + RIGHT SIDEBAR LAYOUT -->
-        <div class="flex flex-1 min-h-0">
-          <!-- MAIN PAGE CONTENT -->
-          <main class="p-6 flex-1 overflow-y-auto min-h-0 pb-24 md:pb-6">
-            <!-- Messages -->
-            {% if messages %}
-            <div class="mb-4 space-y-2">
+          <!-- Profile Dropdown -->
+          <div x-data="{ open: false }" class="relative">
+            <button @click="open = !open" class="flex items-center gap-2">
+              <div
+                class="w-10 h-10 bg-brand-200 rounded-xl border-2 border-brand-300 flex items-center justify-center font-extrabold text-brand-600">
+                {{request.user.first_name|default:request.user.username|slice:":1"}}
+              </div>
+            </button>
+
+            <div x-show="open" @click.away="open=false"
+              class="absolute right-0 mt-3 w-48 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden"
+              x-transition>
+              <a href="{% url 'student_profile' %}"
+                class="block px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                Profile
+              </a>
+              <a href="{% url 'logout' %}"
+                class="block px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                Logout
+              </a>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- CONTENT + RIGHT SIDEBAR LAYOUT -->
+      <div class="flex flex-1 min-h-0">
+        <!-- MAIN PAGE CONTENT -->
+        <main class="p-6 flex-1 overflow-y-auto min-h-0 pb-24 md:pb-6">
+          <!-- Messages -->
+          {% if messages %}
+          <script>
+            document.addEventListener("DOMContentLoaded", function () {
               {% for message in messages %}
-              <div
-                class="px-4 py-3 rounded border border-gray-300 bg-gray-50 text-gray-700"
-              >
-                {{ message }}
-              </div>
+              {% if message.tags == 'success' %}
+              toast.success("{{ message|escapejs }}");
+              {% elif message.tags == 'error' or message.tags == 'danger' %}
+              toast.error("{{ message|escapejs }}");
+              {% elif message.tags == 'warning' %}
+              toast.warning("{{ message|escapejs }}");
+              {% elif message.tags == 'info' %}
+              toast.info("{{ message|escapejs }}");
+              {% else %}
+              toast("{{ message|escapejs }}");
+              {% endif %}
               {% endfor %}
+            });
+          </script>
+          {% endif %}
+          <!-- .................... -->
+          {% block content %}
+          <!-- .................... -->
+          {% endblock %}
+          <!-- .................... -->
+        </main>
+
+        <!-- RIGHT SIDEBAR -->
+        <!-- RIGHT SIDEBAR (Explainers Panel) -->
+        <aside class="w-48 bg-gray-50 border-l border-gray-200 hidden lg:block p-4">
+          <h3 class="font-semibold text-sm mb-3">Platform Guide</h3>
+
+          <div class="space-y-4 text-xs text-gray-600 leading-relaxed">
+            <!-- Academics Explainer -->
+            <div class="border-b pb-3">
+              <p class="font-semibold text-gray-800 mb-1">Academics</p>
+              <p>
+                Review your academic records across semesters, including
+                scores, grades, and GPA history.
+              </p>
             </div>
-            {% endif %}
-            <!-- .................... -->
-            {% block content %}
-            <!-- .................... -->
-            {% endblock %}
-            <!-- .................... -->
-          </main>
 
-          <!-- RIGHT SIDEBAR -->
-          <!-- RIGHT SIDEBAR (Explainers Panel) -->
-          <aside
-            class="w-48 bg-gray-50 border-l border-gray-200 hidden lg:block p-4"
-          >
-            <h3 class="font-semibold text-sm mb-3">Platform Guide</h3>
-
-            <div class="space-y-4 text-xs text-gray-600 leading-relaxed">
-              <!-- Academics Explainer -->
-              <div class="border-b pb-3">
-                <p class="font-semibold text-gray-800 mb-1">Academics</p>
-                <p>
-                  Review your academic records across semesters, including
-                  scores, grades, and GPA history.
-                </p>
-              </div>
-
-              <!-- Registration Explainer -->
-              <div class="border-b pb-3">
-                <p class="font-semibold text-gray-800 mb-1">Registration</p>
-                <p>
-                  Complete your semester registration by confirming fees,
-                  selecting courses, and submitting.
-                </p>
-              </div>
-
-              <!-- Transcript Explainer -->
-              <div class="border-b pb-3">
-                <p class="font-semibold text-gray-800 mb-1">Transcript</p>
-                <p>
-                  Request and view your generated transcript once it has been
-                  approved by the academic office.
-                </p>
-              </div>
-
-              <!-- Fee Payments Explainer -->
-              <div>
-                <p class="font-semibold text-gray-800 mb-1">Fee Payments</p>
-                <p>
-                  View expected fees, payment history, and verification status
-                  for each academic semester.
-                </p>
-              </div>
+            <!-- Registration Explainer -->
+            <div class="border-b pb-3">
+              <p class="font-semibold text-gray-800 mb-1">Registration</p>
+              <p>
+                Complete your semester registration by confirming fees,
+                selecting courses, and submitting.
+              </p>
             </div>
-          </aside>
-        </div>
+
+            <!-- Transcript Explainer -->
+            <div class="border-b pb-3">
+              <p class="font-semibold text-gray-800 mb-1">Transcript</p>
+              <p>
+                Request and view your generated transcript once it has been
+                approved by the academic office.
+              </p>
+            </div>
+
+            <!-- Fee Payments Explainer -->
+            <div>
+              <p class="font-semibold text-gray-800 mb-1">Fee Payments</p>
+              <p>
+                View expected fees, payment history, and verification status
+                for each academic semester.
+              </p>
+            </div>
+          </div>
+        </aside>
       </div>
-      <!-- ================= MOBILE BOTTOM NAV ================= -->
-      <nav
-        class="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200 md:hidden"
-      >
-        <div class="grid grid-cols-5 h-16">
-          <!-- Overview -->
-          <a
-            href="{% url 'student_main' %}"
-            class="flex flex-col items-center justify-center {% if request.resolver_match.url_name == 'student_main' %} text-brand-600 font-extrabold {% else %} text-slate-500 {% endif %}"
-          >
-            <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
-            <span class="text-[10px] font-bold mt-1">Home</span>
-          </a>
-
-          <!-- Courses (drawer trigger) -->
-          <button
-            type="button"
-            onclick="toggleCourseDrawer()"
-            class="flex flex-col items-center justify-center text-slate-500"
-          >
-            <i data-lucide="book-open" class="w-5 h-5"></i>
-            <span class="text-[10px] font-bold mt-1">Courses</span>
-          </button>
-
-          <!-- Registration (center FAB-style button) -->
-          <a
-            href="{% url 'registration_step_1' %}"
-            class="flex flex-col items-center justify-center relative"
-          >
-            <div
-              class="w-12 h-12 -mt-6 bg-brand-500 rounded-full flex items-center justify-center text-white shadow-lg border-b-4 border-brand-700"
-            >
-              <i data-lucide="clipboard-list" class="w-6 h-6"></i>
-            </div>
-            <span class="text-[10px] font-extrabold mt-1 text-brand-600">
-              Register
-            </span>
-          </a>
-
-          <!-- Academics -->
-          <a
-            href="{% url 'student_academics' %}"
-            class="flex flex-col items-center justify-center {% if request.resolver_match.url_name == 'student_academics' %} text-brand-600 font-extrabold {% else %} text-slate-500 {% endif %}"
-          >
-            <i data-lucide="graduation-cap" class="w-5 h-5"></i>
-            <span class="text-[10px] font-bold mt-1">Academics</span>
-          </a>
-
-          <!-- Fees -->
-          <a
-            href="{% url 'student_fee_payments' %}"
-            class="flex flex-col items-center justify-center {% if request.resolver_match.url_name == 'student_fee_payments' %} text-brand-600 font-extrabold {% else %} text-slate-500 {% endif %}"
-          >
-            <i data-lucide="credit-card" class="w-5 h-5"></i>
-            <span class="text-[10px] font-bold mt-1">Fees</span>
-          </a>
-        </div>
-      </nav>
     </div>
-    <!-- MOBILE COURSE DRAWER OVERLAY -->
-    <div
-      id="courseDrawerOverlay"
-      class="fixed inset-0 z-50 hidden bg-black/40 backdrop-blur-sm md:hidden"
-      onclick="closeCourseDrawer()"
-    ></div>
-
-    <!-- MOBILE COURSE DRAWER -->
-    <aside
-      id="courseDrawer"
-      class="fixed inset-y-0 left-0 z-50 w-72 bg-white border-r-2 border-slate-200 transform -translate-x-full transition-transform duration-300 ease-out md:hidden flex flex-col"
-    >
-      <!-- Drawer Header -->
-      <div
-        class="h-16 flex items-center justify-between px-4 border-b-2 border-slate-200"
-      >
-        <div class="flex items-center gap-2">
-          <i data-lucide="book-open" class="w-5 h-5 text-brand-500"></i>
-          <span class="font-extrabold text-slate-700">My Courses</span>
-        </div>
-        <button
-          onclick="closeCourseDrawer()"
-          class="p-2 rounded-lg hover:bg-slate-100"
-        >
-          <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
-      </div>
-
-      <!-- Course List -->
-      <nav class="flex-1 overflow-y-auto p-3 space-y-1">
-        {% for c in student_courses %}
-        <a
-          href="{% url 'student_course_details' c.id %}"
-          onclick="closeCourseDrawer()"
-          class="flex items-center gap-3 p-3 rounded-xl font-bold text-slate-600 hover:bg-brand-50 hover:text-brand-600 transition-colors"
-        >
-          <div
-            class="w-9 h-9 rounded-xl bg-brand-100 text-brand-600 flex items-center justify-center font-extrabold"
-          >
-            {{ c.course_code|slice:":1" }}
-          </div>
-          <div class="min-w-0">
-            <div class="truncate text-sm">{{ c.course_code }}</div>
-            <div class="text-xs text-slate-400 truncate">{{ c.title }}</div>
-          </div>
+    <!-- ================= MOBILE BOTTOM NAV ================= -->
+    <nav class="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200 md:hidden">
+      <div class="grid grid-cols-5 h-16">
+        <!-- Overview -->
+        <a href="{% url 'student_main' %}"
+          class="flex flex-col items-center justify-center {% if request.resolver_match.url_name == 'student_main' %} text-brand-600 font-extrabold {% else %} text-slate-500 {% endif %}">
+          <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+          <span class="text-[10px] font-bold mt-1">Home</span>
         </a>
-        {% empty %}
-        <p class="text-sm text-slate-400 italic p-3">No courses registered</p>
-        {% endfor %}
-      </nav>
-    </aside>
 
-    <script
-      src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"
-      defer
-    ></script>
+        <!-- Courses (drawer trigger) -->
+        <button type="button" onclick="toggleCourseDrawer()"
+          class="flex flex-col items-center justify-center text-slate-500">
+          <i data-lucide="book-open" class="w-5 h-5"></i>
+          <span class="text-[10px] font-bold mt-1">Courses</span>
+        </button>
 
-    <!-- SIDEBAR TOGGLE SCRIPT -->
-    <script>
-      document.addEventListener("click", function (e) {
-        const item = e.target.closest("[data-action='mark-notification-read']");
-        if (!item) return;
+        <!-- Registration (center FAB-style button) -->
+        <a href="{% url 'registration_step_1' %}" class="flex flex-col items-center justify-center relative">
+          <div
+            class="w-12 h-12 -mt-6 bg-brand-500 rounded-full flex items-center justify-center text-white shadow-lg border-b-4 border-brand-700">
+            <i data-lucide="clipboard-list" class="w-6 h-6"></i>
+          </div>
+          <span class="text-[10px] font-extrabold mt-1 text-brand-600">
+            Register
+          </span>
+        </a>
 
-        const annId = item.dataset.announcementId;
+        <!-- Academics -->
+        <a href="{% url 'student_academics' %}"
+          class="flex flex-col items-center justify-center {% if request.resolver_match.url_name == 'student_academics' %} text-brand-600 font-extrabold {% else %} text-slate-500 {% endif %}">
+          <i data-lucide="graduation-cap" class="w-5 h-5"></i>
+          <span class="text-[10px] font-bold mt-1">Academics</span>
+        </a>
 
-        const formData = new FormData();
-        formData.append("csrfmiddlewaretoken", "{{ csrf_token }}");
-        formData.append("announcement_id", annId);
+        <!-- Fees -->
+        <a href="{% url 'student_fee_payments' %}"
+          class="flex flex-col items-center justify-center {% if request.resolver_match.url_name == 'student_fee_payments' %} text-brand-600 font-extrabold {% else %} text-slate-500 {% endif %}">
+          <i data-lucide="credit-card" class="w-5 h-5"></i>
+          <span class="text-[10px] font-bold mt-1">Fees</span>
+        </a>
+      </div>
+    </nav>
+  </div>
+  <!-- MOBILE COURSE DRAWER OVERLAY -->
+  <div id="courseDrawerOverlay" class="fixed inset-0 z-50 hidden bg-black/40 backdrop-blur-sm md:hidden"
+    onclick="closeCourseDrawer()"></div>
 
-        // Fire-and-forget (do NOT block navigation)
-        fetch("{% url 'mark_announcement_read' %}", {
-          method: "POST",
-          body: formData,
-        });
+  <!-- MOBILE COURSE DRAWER -->
+  <aside id="courseDrawer"
+    class="fixed inset-y-0 left-0 z-50 w-72 bg-white border-r-2 border-slate-200 transform -translate-x-full transition-transform duration-300 ease-out md:hidden flex flex-col">
+    <!-- Drawer Header -->
+    <div class="h-16 flex items-center justify-between px-4 border-b-2 border-slate-200">
+      <div class="flex items-center gap-2">
+        <i data-lucide="book-open" class="w-5 h-5 text-brand-500"></i>
+        <span class="font-extrabold text-slate-700">My Courses</span>
+      </div>
+      <button onclick="closeCourseDrawer()" class="p-2 rounded-lg hover:bg-slate-100">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+
+    <!-- Course List -->
+    <nav class="flex-1 overflow-y-auto p-3 space-y-1">
+      {% for c in student_courses %}
+      <a href="{% url 'student_course_details' c.id %}" onclick="closeCourseDrawer()"
+        class="flex items-center gap-3 p-3 rounded-xl font-bold text-slate-600 hover:bg-brand-50 hover:text-brand-600 transition-colors">
+        <div class="w-9 h-9 rounded-xl bg-brand-100 text-brand-600 flex items-center justify-center font-extrabold">
+          {{ c.course_code|slice:":1" }}
+        </div>
+        <div class="min-w-0">
+          <div class="truncate text-sm">{{ c.course_code }}</div>
+          <div class="text-xs text-slate-400 truncate">{{ c.title }}</div>
+        </div>
+      </a>
+      {% empty %}
+      <p class="text-sm text-slate-400 italic p-3">No courses registered</p>
+      {% endfor %}
+    </nav>
+  </aside>
+
+  <ol id="sonner-toast-container" position="bottom-right" rich-colors="true"></ol>
+  <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+
+  <!-- SIDEBAR TOGGLE SCRIPT -->
+  <script>
+    document.addEventListener("click", function (e) {
+      const item = e.target.closest("[data-action='mark-notification-read']");
+      if (!item) return;
+
+      const annId = item.dataset.announcementId;
+
+      const formData = new FormData();
+      formData.append("csrfmiddlewaretoken", "{{ csrf_token }}");
+      formData.append("announcement_id", annId);
+
+      // Fire-and-forget (do NOT block navigation)
+      fetch("{% url 'mark_announcement_read' %}", {
+        method: "POST",
+        body: formData,
       });
+    });
 
-      function openCourseDrawer() {
-        document
-          .getElementById("courseDrawer")
-          .classList.remove("-translate-x-full");
-        document
-          .getElementById("courseDrawerOverlay")
-          .classList.remove("hidden");
+    function openCourseDrawer() {
+      document
+        .getElementById("courseDrawer")
+        .classList.remove("-translate-x-full");
+      document
+        .getElementById("courseDrawerOverlay")
+        .classList.remove("hidden");
+    }
+
+    function closeCourseDrawer() {
+      document
+        .getElementById("courseDrawer")
+        .classList.add("-translate-x-full");
+      document.getElementById("courseDrawerOverlay").classList.add("hidden");
+    }
+
+    function toggleCourseDrawer() {
+      const drawer = document.getElementById("courseDrawer");
+      if (drawer.classList.contains("-translate-x-full")) {
+        openCourseDrawer();
+      } else {
+        closeCourseDrawer();
       }
+    }
 
-      function closeCourseDrawer() {
-        document
-          .getElementById("courseDrawer")
-          .classList.add("-translate-x-full");
-        document.getElementById("courseDrawerOverlay").classList.add("hidden");
-      }
+    function toggleSidebar() {
+      const sidebar = document.getElementById("sidebar");
+      sidebar.classList.toggle("sidebar-collapsed");
+      sidebar.classList.toggle("sidebar-expanded");
+    }
 
-      function toggleCourseDrawer() {
-        const drawer = document.getElementById("courseDrawer");
-        if (drawer.classList.contains("-translate-x-full")) {
-          openCourseDrawer();
-        } else {
-          closeCourseDrawer();
-        }
-      }
+    function toggleCoursesMenu() {
+      const menu = document.getElementById("coursesMenu");
+      const arrow = document.getElementById("coursesArrow");
 
-      function toggleSidebar() {
-        const sidebar = document.getElementById("sidebar");
-        sidebar.classList.toggle("sidebar-collapsed");
-        sidebar.classList.toggle("sidebar-expanded");
-      }
+      menu.classList.toggle("hidden");
+      arrow.textContent = menu.classList.contains("hidden") ? "▼" : "▲";
+    }
 
-      function toggleCoursesMenu() {
-        const menu = document.getElementById("coursesMenu");
-        const arrow = document.getElementById("coursesArrow");
+    lucide.createIcons();
+  </script>
+</body>
 
-        menu.classList.toggle("hidden");
-        arrow.textContent = menu.classList.contains("hidden") ? "▼" : "▲";
-      }
-
-      lucide.createIcons();
-    </script>
-  </body>
 </html>
