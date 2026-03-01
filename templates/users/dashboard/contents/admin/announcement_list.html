@@ -9,10 +9,7 @@
   <div class="flex justify-between items-center mb-6">
     <h1 class="text-2xl font-semibold">Announcements</h1>
 
-    <button
-      onclick="openCreateModal()"
-      class="bg-blue-600 text-white px-4 py-2 rounded"
-    >
+    <button onclick="openCreateModal()" class="bg-blue-600 text-white px-4 py-2 rounded">
       + New Announcement
     </button>
   </div>
@@ -24,37 +21,22 @@
     <div class="bg-white p-4 rounded shadow border">
       <div class="flex justify-between items-center">
         <h2 class="text-lg font-semibold">{{ a.title }}</h2>
-        <span class="text-xs text-gray-500"
-          >{{ a.created_at|date:"Y-m-d" }}</span
-        >
+        <span class="text-xs text-gray-500">{{ a.created_at|date:"Y-m-d" }}</span>
       </div>
 
       <p class="text-gray-700 mt-2">{{ a.message|linebreaks }}</p>
 
       {% if a.link %}
-      <a
-        href="{{ a.link }}"
-        target="_blank"
-        class="text-blue-600 underline text-sm"
-        >Open Link →</a
-      >
+      <a href="{{ a.link }}" target="_blank" class="text-blue-600 underline text-sm">Open Link →</a>
       {% endif %}
 
       <div class="flex gap-3 mt-4">
-        <button
-          class="px-3 py-1 bg-yellow-500 text-white rounded text-sm open-edit-btn"
-          data-id="{{ a.id }}"
-          data-title="{{ a.title|escapejs }}"
-          data-body="{{ a.message|escapejs }}"
-          data-link="{{ a.link|default:''|escapejs }}"
-        >
+        <button class="px-3 py-1 bg-yellow-500 text-white rounded text-sm open-edit-btn" data-id="{{ a.id }}"
+          data-title="{{ a.title }}" data-body="{{ a.message }}" data-link="{{ a.link|default:'' }}">
           Edit
         </button>
 
-        <button
-          class="px-3 py-1 bg-red-600 text-white rounded text-sm open-delete-btn"
-          data-id="{{ a.id }}"
-        >
+        <button class="px-3 py-1 bg-red-600 text-white rounded text-sm open-delete-btn" data-id="{{ a.id }}">
           Delete
         </button>
       </div>
@@ -71,13 +53,8 @@
 <!-- ======================= -->
 <!--   CREATE/EDIT MODAL     -->
 <!-- ======================= -->
-<div
-  id="announcementModal"
-  class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50"
->
-  <div
-    class="bg-white w-11/12 sm:w-2/3 lg:w-1/2 p-6 rounded shadow-lg relative"
-  >
+<div id="announcementModal" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+  <div class="bg-white w-11/12 sm:w-2/3 lg:w-1/2 p-6 rounded shadow-lg relative">
     <h2 id="modalTitle" class="text-xl font-semibold mb-4">New Announcement</h2>
 
     <form method="POST" id="announcementForm">
@@ -88,39 +65,21 @@
 
       <div class="mb-4">
         <label class="block font-medium mb-1">Title</label>
-        <input
-          name="title"
-          id="titleField"
-          class="w-full border px-3 py-2 rounded"
-          required
-        />
+        <input name="title" id="titleField" class="w-full border px-3 py-2 rounded" required />
       </div>
 
       <div class="mb-4">
         <label class="block font-medium mb-1">Message</label>
-        <textarea
-          name="body"
-          id="bodyField"
-          class="w-full border px-3 py-2 rounded"
-          rows="4"
-        ></textarea>
+        <textarea name="body" id="bodyField" class="w-full border px-3 py-2 rounded" rows="4"></textarea>
       </div>
 
       <div class="mb-4">
         <label class="block font-medium mb-1">Optional Link</label>
-        <input
-          name="link"
-          id="linkField"
-          class="w-full border px-3 py-2 rounded"
-        />
+        <input name="link" id="linkField" class="w-full border px-3 py-2 rounded" />
       </div>
 
       <div class="flex justify-end gap-3">
-        <button
-          type="button"
-          onclick="closeAnnouncementModal()"
-          class="px-4 py-2 border rounded"
-        >
+        <button type="button" onclick="closeAnnouncementModal()" class="px-4 py-2 border rounded">
           Cancel
         </button>
         <button class="px-4 py-2 bg-blue-600 text-white rounded">Save</button>
@@ -132,10 +91,7 @@
 <!-- ======================= -->
 <!--     DELETE MODAL        -->
 <!-- ======================= -->
-<div
-  id="deleteModal"
-  class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50"
->
+<div id="deleteModal" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50">
   <div class="bg-white p-6 rounded shadow-lg w-96">
     <h2 class="text-lg font-semibold mb-4">Delete Announcement?</h2>
     <p class="mb-4 text-gray-600">This action cannot be undone.</p>
@@ -146,11 +102,7 @@
       <input type="hidden" name="announcement_id" id="deleteAnnouncementId" />
 
       <div class="flex justify-end gap-3">
-        <button
-          type="button"
-          onclick="closeDeleteModal()"
-          class="px-4 py-2 border rounded"
-        >
+        <button type="button" onclick="closeDeleteModal()" class="px-4 py-2 border rounded">
           Cancel
         </button>
         <button class="px-4 py-2 bg-red-600 text-white rounded">Delete</button>

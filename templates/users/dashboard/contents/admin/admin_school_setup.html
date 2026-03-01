@@ -13,11 +13,7 @@
     Update your institution's identity and contact details.
   </p>
 
-  <form
-    method="POST"
-    enctype="multipart/form-data"
-    class="space-y-6 bg-white p-6 rounded-xl border border-gray-200"
-  >
+  <form method="POST" enctype="multipart/form-data" class="space-y-6 bg-white p-6 rounded-xl border border-gray-200">
     {% csrf_token %}
     <input type="hidden" name="update_school" value="1" />
     <!-- SCHOOL LOGO -->
@@ -25,21 +21,13 @@
     <div class="flex items-center gap-4">
       <div>
         {% if school.logo %}
-        <img
-          src="{{ school.logo.url }}"
-          alt="School Logo"
-          class="contain mb-3 rounded border-c"
-          style="height: 50px; width: auto"
-        />
+        <img src="{{ school.logo.url }}" alt="School Logo" class="contain mb-3 rounded border-c"
+          style="height: 50px; width: auto" />
         {% endif %}
       </div>
 
       <div>
-        <input
-          type="file"
-          name="logo"
-          class="block border border-gray-300 rounded px-3 py-2 w-full"
-        />
+        <input type="file" name="logo" class="block border border-gray-300 rounded px-3 py-2 w-full" />
         <p class="text-xs text-gray-500 mt-1">Recommended size: 300x300px</p>
       </div>
     </div>
@@ -47,109 +35,67 @@
     <!-- NAME -->
     <div>
       <label class="block text-gray-600 font-semibold mb-1">School Name</label>
-      <input
-        type="text"
-        name="name"
-        value="{{ school.name }}"
-        class="border border-gray-300 rounded px-3 py-2 w-full"
-        required
-      />
+      <input type="text" name="name" value="{{ school.name }}" class="border border-gray-300 rounded px-3 py-2 w-full"
+        required />
     </div>
 
     <!-- MOTTO -->
     <div>
       <label class="block text-gray-600 font-semibold mb-1">Motto</label>
-      <input
-        type="text"
-        name="motto"
-        value="{{ school.motto }}"
-        placeholder="school motto"
-        class="border border-gray-300 rounded px-3 py-2 w-full"
-      />
+      <input type="text" name="motto" value="{{ school.motto }}" placeholder="school motto"
+        class="border border-gray-300 rounded px-3 py-2 w-full" />
     </div>
 
     <!-- ADDRESS -->
     <div>
       <label class="block text-gray-600 font-semibold mb-1">Address</label>
-      <textarea
-        name="address"
-        class="border border-gray-300 rounded px-3 py-2 w-full"
-        rows="3"
-      >
+      <textarea name="address" class="border border-gray-300 rounded px-3 py-2 w-full" rows="3">
  {{ school.address }}
-</textarea
-      >
+</textarea>
     </div>
 
     <!-- CONTACT DETAILS -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div>
         <label class="block text-gray-600 font-semibold mb-1">Email</label>
-        <input
-          type="email"
-          name="email"
-          value="{{ school.email }}"
-          class="border border-gray-300 rounded px-3 py-2 w-full"
-        />
+        <input type="email" name="email" value="{{ school.email }}"
+          class="border border-gray-300 rounded px-3 py-2 w-full" />
       </div>
 
       <div>
         <label class="block text-gray-600 font-semibold mb-1">Phone</label>
-        <input
-          type="text"
-          name="phone"
-          value="{{ school.phone }}"
-          class="border border-gray-300 rounded px-3 py-2 w-full"
-        />
+        <input type="text" name="phone" value="{{ school.phone }}"
+          class="border border-gray-300 rounded px-3 py-2 w-full" />
       </div>
     </div>
 
     <!-- WEBSITE -->
     <div>
       <label class="block text-gray-600 font-semibold mb-1">Website</label>
-      <input
-        type="url"
-        name="website"
-        value="{{ school.website }}"
-        class="border border-gray-300 rounded px-3 py-2 w-full"
-      />
+      <input type="url" name="website" value="{{ school.website }}"
+        class="border border-gray-300 rounded px-3 py-2 w-full" />
     </div>
     <label class="block text-gray-600 font-semibold mb-1">Signature</label>
     <div class="flex items-center gap-4 w-full">
       <div class="flex items-center gap-4">
         {% if school.signature %}
 
-        <img
-          src="{{ school.signature.url }}"
-          alt="School Logo"
-          class="contain rounded border-c"
-          style="height: 50px; width: auto"
-        />
+        <img src="{{ school.signature.url }}" alt="School Logo" class="contain rounded border-c"
+          style="height: 50px; width: auto" />
 
         {% endif %}
 
-        <input
-          type="file"
-          name="signature"
-          class="block border border-gray-300 rounded px-3 py-2 w-full"
-        />
+        <input type="file" name="signature" class="block border border-gray-300 rounded px-3 py-2 w-full" />
       </div>
 
       <div>
-        <input
-          type="text"
-          name="signee_name"
-          value="{{ school.signee_name }}"
-          placeholder="Signee fullname"
-          class="border border-gray-300 rounded px-3 py-2 w-full"
-        />
+        <input type="text" name="signee_name" value="{{ school.signee_name }}" placeholder="Signee fullname"
+          class="border border-gray-300 rounded px-3 py-2 w-full" />
       </div>
     </div>
 
     <div class="flex justify-end pt-4">
-      <button
-        class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
-      >
+      <button class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
         Save Changes
       </button>
     </div>
@@ -162,10 +108,8 @@
     <div class="flex items-center justify-between mb-4">
       <h2 class="text-xl font-semibold">Grade Settings</h2>
 
-      <button
-        onclick="openCreateGrade()"
-        class="border-c text-gray-600 text-sm px-4 py-2 rounded-md hover:bg-gray-100 cursor-pointer"
-      >
+      <button onclick="openCreateGrade()"
+        class="border-c text-gray-600 text-sm px-4 py-2 rounded-md hover:bg-gray-100 cursor-pointer">
         Add Grade
       </button>
     </div>
@@ -190,18 +134,13 @@
 
             <td class="px-4 py-2 space-x-3">
               <!-- EDIT -->
-              <button
-                onclick="openEditGrade('{{ g.id }}','{{ g.letter }}','{{ g.min_score }}','{{ g.max_score }}')"
-                class="text-blue-600 hover:underline"
-              >
+              <button onclick="openEditGrade('{{ g.id }}','{{ g.letter }}','{{ g.min_score }}','{{ g.max_score }}')"
+                class="text-blue-600 hover:underline">
                 Edit
               </button>
 
               <!-- DELETE -->
-              <button
-                onclick="openDeleteGrade('{{ g.id }}')"
-                class="text-red-600 hover:underline"
-              >
+              <button onclick="openDeleteGrade('{{ g.id }}')" class="text-red-600 hover:underline">
                 Delete
               </button>
             </td>
@@ -225,10 +164,8 @@
     <div class="flex items-center justify-between mb-4">
       <h2 class="text-xl font-semibold">Assessment Types</h2>
 
-      <button
-        onclick="openCreateAssessmentType()"
-        class="border-c text-gray-600 text-sm px-4 py-2 rounded-md hover:bg-gray-100"
-      >
+      <button onclick="openCreateAssessmentType()"
+        class="border-c text-gray-600 text-sm px-4 py-2 rounded-md hover:bg-gray-100">
         Add Assessment Type
       </button>
     </div>
@@ -252,19 +189,12 @@
             </td>
 
             <td class="px-4 py-2 space-x-3">
-              <button
-                class="text-blue-600 hover:underline open-edit-assessment-type"
-                data-id="{{ t.id }}"
-                data-name="{{ t.name|escapejs }}"
-                data-description="{{ t.description|escapejs }}"
-              >
+              <button class="text-blue-600 hover:underline open-edit-assessment-type" data-id="{{ t.id }}"
+                data-name="{{ t.name }}" data-description="{{ t.description|default:'' }}">
                 Edit
               </button>
 
-              <button
-                class="text-red-600 hover:underline open-delete-assessment-type"
-                data-id="{{ t.id }}"
-              >
+              <button class="text-red-600 hover:underline open-delete-assessment-type" data-id="{{ t.id }}">
                 Delete
               </button>
             </td>
@@ -283,11 +213,8 @@
 
   <!-- // ========================== // GRADE SECTION // ========================== -->
 
-  <div
-    id="createGradeModal"
-    class="hidden fixed inset-0 top-0 bg-black bg-opacity-40 flex items-center justify-center"
-    style="backdrop-filter: blur(6px); background: rgba(255, 255, 255, 0.3)"
-  >
+  <div id="createGradeModal" class="hidden fixed inset-0 top-0 bg-black bg-opacity-40 flex items-center justify-center"
+    style="backdrop-filter: blur(6px); background: rgba(255, 255, 255, 0.3)">
     <div class="bg-white w-96 p-6 rounded shadow">
       <h3 class="text-lg font-semibold mb-4">Add Grade</h3>
 
@@ -299,27 +226,13 @@
         <input name="letter" class="w-full border rounded px-3 py-2 mb-3" />
 
         <label class="block mb-1">Min Score</label>
-        <input
-          name="min_score"
-          type="number"
-          step="0.01"
-          class="w-full border rounded px-3 py-2 mb-3"
-        />
+        <input name="min_score" type="number" step="0.01" class="w-full border rounded px-3 py-2 mb-3" />
 
         <label class="block mb-1">Max Score</label>
-        <input
-          name="max_score"
-          type="number"
-          step="0.01"
-          class="w-full border rounded px-3 py-2 mb-3"
-        />
+        <input name="max_score" type="number" step="0.01" class="w-full border rounded px-3 py-2 mb-3" />
 
         <div class="flex justify-end space-x-2">
-          <button
-            type="button"
-            onclick="closeCreateGrade()"
-            class="px-4 py-2 border rounded"
-          >
+          <button type="button" onclick="closeCreateGrade()" class="px-4 py-2 border rounded">
             Cancel
           </button>
           <button class="px-4 py-2 bg-blue-600 text-white rounded">Save</button>
@@ -328,11 +241,8 @@
     </div>
   </div>
 
-  <div
-    id="editGradeModal"
-    class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center"
-    style="backdrop-filter: blur(6px); background: rgba(255, 255, 255, 0.3)"
-  >
+  <div id="editGradeModal" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center"
+    style="backdrop-filter: blur(6px); background: rgba(255, 255, 255, 0.3)">
     <div class="bg-white w-96 p-6 rounded shadow">
       <h3 class="text-lg font-semibold mb-4">Edit Grade</h3>
 
@@ -342,36 +252,18 @@
         <input type="hidden" name="grade_id" id="editGradeId" />
 
         <label class="block mb-1">Letter</label>
-        <input
-          name="letter"
-          id="editGradeLetter"
-          class="w-full border rounded px-3 py-2 mb-3"
-        />
+        <input name="letter" id="editGradeLetter" class="w-full border rounded px-3 py-2 mb-3" />
 
         <label class="block mb-1">Min Score</label>
-        <input
-          name="min_score"
-          id="editGradeMin"
-          type="number"
-          step="0.01"
-          class="w-full border rounded px-3 py-2 mb-3"
-        />
+        <input name="min_score" id="editGradeMin" type="number" step="0.01"
+          class="w-full border rounded px-3 py-2 mb-3" />
 
         <label class="block mb-1">Max Score</label>
-        <input
-          name="max_score"
-          id="editGradeMax"
-          type="number"
-          step="0.01"
-          class="w-full border rounded px-3 py-2 mb-3"
-        />
+        <input name="max_score" id="editGradeMax" type="number" step="0.01"
+          class="w-full border rounded px-3 py-2 mb-3" />
 
         <div class="flex justify-end space-x-2">
-          <button
-            type="button"
-            onclick="closeEditGrade()"
-            class="px-4 py-2 border rounded"
-          >
+          <button type="button" onclick="closeEditGrade()" class="px-4 py-2 border rounded">
             Cancel
           </button>
           <button class="px-4 py-2 bg-blue-600 text-white rounded">
@@ -382,11 +274,8 @@
     </div>
   </div>
 
-  <div
-    id="deleteGradeModal"
-    class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center"
-    style="backdrop-filter: blur(6px); background: rgba(255, 255, 255, 0.3)"
-  >
+  <div id="deleteGradeModal" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center"
+    style="backdrop-filter: blur(6px); background: rgba(255, 255, 255, 0.3)">
     <div class="bg-white w-80 p-6 rounded shadow">
       <h3 class="text-lg font-semibold mb-4 text-red-600">Delete Grade</h3>
 
@@ -398,11 +287,7 @@
         <input type="hidden" name="grade_id" id="deleteGradeId" />
 
         <div class="flex justify-end space-x-2">
-          <button
-            type="button"
-            onclick="closeDeleteGrade()"
-            class="px-4 py-2 border rounded"
-          >
+          <button type="button" onclick="closeDeleteGrade()" class="px-4 py-2 border rounded">
             Cancel
           </button>
           <button class="px-4 py-2 bg-red-600 text-white rounded">
@@ -414,11 +299,9 @@
   </div>
 
   <!-- // ========================== // ASSESSMENT TYPE SECTION // ========================== -->
-  <div
-    id="createAssessmentTypeModal"
+  <div id="createAssessmentTypeModal"
     class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center"
-    style="backdrop-filter: blur(6px); background: rgba(255, 255, 255, 0.3)"
-  >
+    style="backdrop-filter: blur(6px); background: rgba(255, 255, 255, 0.3)">
     <div class="bg-white w-96 p-6 rounded shadow">
       <h3 class="text-lg font-semibold mb-4">Add Assessment Type</h3>
 
@@ -427,24 +310,13 @@
         <input type="hidden" name="create_assessment_type" value="1" />
 
         <label class="block mb-1">Name</label>
-        <input
-          name="name"
-          class="w-full border rounded px-3 py-2 mb-3"
-          required
-        />
+        <input name="name" class="w-full border rounded px-3 py-2 mb-3" required />
 
         <label class="block mb-1">Description</label>
-        <textarea
-          name="description"
-          class="w-full border rounded px-3 py-2 mb-3"
-        ></textarea>
+        <textarea name="description" class="w-full border rounded px-3 py-2 mb-3"></textarea>
 
         <div class="flex justify-end space-x-2">
-          <button
-            type="button"
-            onclick="closeCreateAssessmentType()"
-            class="px-4 py-2 border rounded"
-          >
+          <button type="button" onclick="closeCreateAssessmentType()" class="px-4 py-2 border rounded">
             Cancel
           </button>
           <button class="px-4 py-2 bg-blue-600 text-white rounded">Save</button>
@@ -453,43 +325,25 @@
     </div>
   </div>
 
-  <div
-    id="editAssessmentTypeModal"
-    class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center"
-    style="backdrop-filter: blur(6px); background: rgba(255, 255, 255, 0.3)"
-  >
+  <div id="editAssessmentTypeModal" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center"
+    style="backdrop-filter: blur(6px); background: rgba(255, 255, 255, 0.3)">
     <div class="bg-white w-96 p-6 rounded shadow">
       <h3 class="text-lg font-semibold mb-4">Edit Assessment Type</h3>
 
       <form method="POST">
         {% csrf_token %}
         <input type="hidden" name="update_assessment_type" value="1" />
-        <input
-          type="hidden"
-          name="assessment_type_id"
-          id="editAssessmentTypeId"
-        />
+        <input type="hidden" name="assessment_type_id" id="editAssessmentTypeId" />
 
         <label class="block mb-1">Name</label>
-        <input
-          name="name"
-          id="editAssessmentTypeName"
-          class="w-full border rounded px-3 py-2 mb-3"
-        />
+        <input name="name" id="editAssessmentTypeName" class="w-full border rounded px-3 py-2 mb-3" />
 
         <label class="block mb-1">Description</label>
-        <textarea
-          name="description"
-          id="editAssessmentTypeDesc"
-          class="w-full border rounded px-3 py-2 mb-3"
-        ></textarea>
+        <textarea name="description" id="editAssessmentTypeDesc"
+          class="w-full border rounded px-3 py-2 mb-3"></textarea>
 
         <div class="flex justify-end space-x-2">
-          <button
-            type="button"
-            onclick="closeEditAssessmentType()"
-            class="px-4 py-2 border rounded"
-          >
+          <button type="button" onclick="closeEditAssessmentType()" class="px-4 py-2 border rounded">
             Cancel
           </button>
           <button class="px-4 py-2 bg-blue-600 text-white rounded">
@@ -500,11 +354,9 @@
     </div>
   </div>
 
-  <div
-    id="deleteAssessmentTypeModal"
+  <div id="deleteAssessmentTypeModal"
     class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center"
-    style="backdrop-filter: blur(6px); background: rgba(255, 255, 255, 0.3)"
-  >
+    style="backdrop-filter: blur(6px); background: rgba(255, 255, 255, 0.3)">
     <div class="bg-white w-80 p-6 rounded shadow">
       <h3 class="text-lg font-semibold mb-4 text-red-600">
         Delete Assessment Type
@@ -515,18 +367,10 @@
       <form method="POST">
         {% csrf_token %}
         <input type="hidden" name="delete_assessment_type" value="1" />
-        <input
-          type="hidden"
-          name="assessment_type_id"
-          id="deleteAssessmentTypeId"
-        />
+        <input type="hidden" name="assessment_type_id" id="deleteAssessmentTypeId" />
 
         <div class="flex justify-end space-x-2">
-          <button
-            type="button"
-            onclick="closeDeleteAssessmentType()"
-            class="px-4 py-2 border rounded"
-          >
+          <button type="button" onclick="closeDeleteAssessmentType()" class="px-4 py-2 border rounded">
             Cancel
           </button>
           <button class="px-4 py-2 bg-red-600 text-white rounded">

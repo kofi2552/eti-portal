@@ -13,9 +13,7 @@
 
   <!-- Add Department -->
   <div class="bg-white border border-gray-200 rounded-lg mb-10">
-    <div
-      class="border-b border-gray-300 px-4 py-3 bg-gray-100 font-medium text-gray-700"
-    >
+    <div class="border-b border-gray-300 px-4 py-3 bg-gray-100 font-medium text-gray-700">
       Add New Department
     </div>
     <form method="POST" class="space-y-4 p-6">
@@ -24,20 +22,13 @@
 
       <div>
         <label class="block text-gray-600 mb-1">Department Name</label>
-        <input
-          type="text"
-          name="dept_name"
+        <input type="text" name="dept_name"
           class="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500"
-          placeholder="Enter department name"
-          required
-        />
+          placeholder="Enter department name" required />
       </div>
       <div>
         <label class="block text-gray-600 mb-1">Assign Dean (optional)</label>
-        <select
-          name="dean_id"
-          class="w-full border border-gray-300 rounded-md px-3 py-2"
-        >
+        <select name="dean_id" class="w-full border border-gray-300 rounded-md px-3 py-2">
           <option value="">-- Select Dean --</option>
           {% for dean in deans %}
           <option value="{{ dean.id }}">
@@ -47,10 +38,7 @@
         </select>
       </div>
       <div class="flex">
-        <button
-          type="submit"
-          class="ml-auto text-sm bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-        >
+        <button type="submit" class="ml-auto text-sm bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
           Save Department
         </button>
       </div>
@@ -59,9 +47,7 @@
 
   <!-- Existing Departments -->
   <div class="bg-white border border-gray-200 rounded-lg mb-16">
-    <div
-      class="border-b border-gray-300 px-4 py-3 bg-gray-100 font-medium text-gray-700"
-    >
+    <div class="border-b border-gray-300 px-4 py-3 bg-gray-100 font-medium text-gray-700">
       Existing Departments
     </div>
     <div class="p-6">
@@ -88,15 +74,12 @@
             <td class="px-4 py-2 space-x-3">
               <button
                 onclick="openDeptEdit('{{ dept.id|escapejs }}', '{{ dept.name|escapejs }}', '{{ dept.dean.id|escapejs }}')"
-                class="text-blue-600 hover:underline cursor-pointer"
-              >
+                class="text-blue-600 hover:underline cursor-pointer">
                 Edit
               </button>
 
-              <button
-                onclick="openDeleteDeptModal('{{ dept.id }}')"
-                class="text-red-600 hover:underline cursor-pointer"
-              >
+              <button onclick="openDeleteDeptModal('{{ dept.id }}')"
+                class="text-red-600 hover:underline cursor-pointer">
                 Delete
               </button>
             </td>
@@ -118,9 +101,7 @@
 
   <!-- Add Program -->
   <div class="bg-white border border-gray-200 rounded-lg">
-    <div
-      class="border-b border-gray-300 px-4 py-3 bg-gray-100 font-medium text-gray-700"
-    >
+    <div class="border-b border-gray-300 px-4 py-3 bg-gray-100 font-medium text-gray-700">
       Add New Program
     </div>
 
@@ -130,30 +111,17 @@
 
       <div>
         <label class="block text-gray-600 mb-1">Program Name</label>
-        <input
-          type="text"
-          name="name"
-          class="w-full border border-gray-300 rounded-md px-3 py-2"
-          required
-        />
+        <input type="text" name="name" class="w-full border border-gray-300 rounded-md px-3 py-2" required />
       </div>
 
       <div>
         <label class="block text-gray-600 mb-1">Description</label>
-        <textarea
-          name="description"
-          class="w-full border border-gray-300 rounded-md px-3 py-2"
-          rows="3"
-        ></textarea>
+        <textarea name="description" class="w-full border border-gray-300 rounded-md px-3 py-2" rows="3"></textarea>
       </div>
 
       <div>
         <label class="block text-gray-600 mb-1">Select Department</label>
-        <select
-          name="department_id"
-          class="w-full border border-gray-300 rounded-md px-3 py-2"
-          required
-        >
+        <select name="department_id" class="w-full border border-gray-300 rounded-md px-3 py-2" required>
           <option value="">-- Select Department --</option>
           {% for dept in departments %}
           <option value="{{ dept.id }}">{{ dept.name }}</option>
@@ -163,11 +131,7 @@
 
       <div>
         <label class="block text-gray-600 mb-1">Award Type</label>
-        <select
-          name="award_type"
-          class="w-full border border-gray-300 rounded-md px-3 py-2"
-          required
-        >
+        <select name="award_type" class="w-full border border-gray-300 rounded-md px-3 py-2" required>
           <option value="">-- Select Award --</option>
           <option value="certificate">Certificate</option>
           <option value="diploma">Diploma</option>
@@ -180,35 +144,18 @@
 
       <div>
         <label class="block text-gray-600 mb-1">Program Duration (Years)</label>
-        <input
-          type="number"
-          name="duration_years"
-          min="1"
-          max="8"
-          value="4"
-          class="w-full border border-gray-300 rounded-md px-3 py-2"
-          required
-        />
+        <input type="number" name="duration_years" min="1" max="8" value="4"
+          class="w-full border border-gray-300 rounded-md px-3 py-2" required />
       </div>
 
       <div>
         <label class="block text-gray-600 mb-1">Semester Per Level</label>
-        <input
-          type="number"
-          name="sems_per_level"
-          min="1"
-          max="8"
-          value="2"
-          class="w-full border border-gray-300 rounded-md px-3 py-2"
-          required
-        />
+        <input type="number" name="sems_per_level" min="1" max="8" value="2"
+          class="w-full border border-gray-300 rounded-md px-3 py-2" required />
       </div>
 
       <div class="flex">
-        <button
-          type="submit"
-          class="ml-auto bg-blue-600 text-sm text-white px-4 py-2 rounded hover:bg-blue-700"
-        >
+        <button type="submit" class="ml-auto bg-blue-600 text-sm text-white px-4 py-2 rounded hover:bg-blue-700">
           Save Program
         </button>
       </div>
@@ -217,9 +164,7 @@
 
   <!-- Existing Programs -->
   <div class="bg-white border border-gray-200 rounded-lg mt-10">
-    <div
-      class="border-b border-gray-300 px-4 py-3 bg-gray-100 font-medium text-gray-700"
-    >
+    <div class="border-b border-gray-300 px-4 py-3 bg-gray-100 font-medium text-gray-700">
       Existing Programs
     </div>
 
@@ -250,16 +195,13 @@
             <td class="px-4 py-2">{{ p.duration_years }} years</td>
             <td class="px-4 py-2">
               <button
-                onclick="openProgEdit('{{ p.id }}', '{{ p.name }}', '{{ p.description }}')"
-                class="text-blue-600 hover:underline mr-2 cursor-pointer"
-              >
+                onclick="openProgEdit('{{ p.id }}', '{{ p.name|escapejs }}', '{{ p.description|default:''|escapejs }}')"
+                class="text-blue-600 hover:underline mr-2 cursor-pointer">
                 Edit
               </button>
 
-              <button
-                onclick="openDeleteProgramModal('{{ p.id }}')"
-                class="text-red-600 hover:underline cursor-pointer"
-              >
+              <button onclick="openDeleteProgramModal('{{ p.id }}')"
+                class="text-red-600 hover:underline cursor-pointer">
                 Delete
               </button>
             </td>
@@ -279,11 +221,8 @@
 <!-- =============================== -->
 
 <!-- Edit Program Modal -->
-<div
-  id="editModal"
-  class="hidden fixed border-c inset-0 flex items-center justify-center"
-  style="backdrop-filter: blur(6px); background-color: #ffffff4d"
->
+<div id="editModal" class="hidden fixed border-c inset-0 flex items-center justify-center"
+  style="backdrop-filter: blur(6px); background-color: #ffffff4d">
   <div class="bg-white rounded-lg p-6 w-96 shadow-black/50 shadow-2xl">
     <h3 class="text-lg font-medium text-gray-700 mb-4">Edit Program</h3>
 
@@ -294,28 +233,15 @@
 
       <div>
         <label class="block text-gray-600 mb-1">Program Name</label>
-        <input
-          class="w-full border border-gray-300 rounded-md px-3 py-2"
-          name="name"
-          id="editProgramName"
-          required
-        />
+        <input class="w-full border border-gray-300 rounded-md px-3 py-2" name="name" id="editProgramName" required />
       </div>
       <div>
         <label class="block text-gray-600 mb-1">Description</label>
-        <textarea
-          class="w-full border-c border-gray-300 rounded-md px-3 py-2"
-          name="description"
-          id="editProgramDescription"
-          rows="3"
-        ></textarea>
+        <textarea class="w-full border-c border-gray-300 rounded-md px-3 py-2" name="description"
+          id="editProgramDescription" rows="3"></textarea>
       </div>
       <div class="flex justify-end space-x-2">
-        <button
-          type="button"
-          onclick="closeEditModal()"
-          class="border px-4 py-2 rounded"
-        >
+        <button type="button" onclick="closeEditModal()" class="border px-4 py-2 rounded">
           Cancel
         </button>
         <button class="bg-blue-600 text-white px-4 py-2 rounded">Update</button>
@@ -325,11 +251,8 @@
 </div>
 
 <!-- Program Delete Modal -->
-<div
-  id="deleteProgramModal"
-  class="hidden fixed inset-0 flex items-center justify-center"
-  style="backdrop-filter: blur(6px); background-color: rgba(255, 255, 255, 0.3)"
->
+<div id="deleteProgramModal" class="hidden fixed inset-0 flex items-center justify-center"
+  style="backdrop-filter: blur(6px); background-color: rgba(255, 255, 255, 0.3)">
   <div class="bg-white rounded-lg p-6 w-96 shadow-black/50 shadow-2xl">
     <h3 class="text-lg font-medium text-gray-700 mb-4">Delete Program</h3>
     <p class="mb-4">Are you sure you want to delete this program?</p>
@@ -340,11 +263,7 @@
       <input type="hidden" name="program_id" id="deleteProgramId" />
 
       <div class="flex justify-end space-x-2">
-        <button
-          type="button"
-          onclick="closeDeleteProgramModal()"
-          class="border px-4 py-2 rounded"
-        >
+        <button type="button" onclick="closeDeleteProgramModal()" class="border px-4 py-2 rounded">
           Cancel
         </button>
         <button class="bg-red-600 text-white px-4 py-2 rounded">Delete</button>
@@ -354,11 +273,8 @@
 </div>
 
 <!-- Department Modal -->
-<div
-  id="editDeptModal"
-  class="hidden fixed inset-0 flex items-center justify-center"
-  style="backdrop-filter: blur(6px); background-color: rgba(255, 255, 255, 0.3)"
->
+<div id="editDeptModal" class="hidden fixed inset-0 flex items-center justify-center"
+  style="backdrop-filter: blur(6px); background-color: rgba(255, 255, 255, 0.3)">
   <div class="bg-white rounded-lg p-6 w-96 shadow-black/50 shadow-2xl">
     <h3 class="text-lg font-medium text-gray-700 mb-4">Edit Department</h3>
 
@@ -369,21 +285,12 @@
 
       <div>
         <label class="block text-gray-600 mb-1">Department Name</label>
-        <input
-          class="w-full border border-gray-300 rounded-md px-3 py-2"
-          name="dept_name"
-          id="editDeptName"
-          required
-        />
+        <input class="w-full border border-gray-300 rounded-md px-3 py-2" name="dept_name" id="editDeptName" required />
       </div>
 
       <div>
         <label class="block text-gray-600 mb-1">Assign Dean (optional)</label>
-        <select
-          name="dean_id"
-          id="editDeptDean"
-          class="w-full border border-gray-300 rounded-md px-3 py-2"
-        >
+        <select name="dean_id" id="editDeptDean" class="w-full border border-gray-300 rounded-md px-3 py-2">
           <option value="">-- Select Dean --</option>
           {% for dean in deans %}
           <option value="{{ dean.id }}">
@@ -394,11 +301,7 @@
       </div>
 
       <div class="flex justify-end space-x-2">
-        <button
-          type="button"
-          onclick="closeDeptModal()"
-          class="border px-4 py-2 rounded"
-        >
+        <button type="button" onclick="closeDeptModal()" class="border px-4 py-2 rounded">
           Cancel
         </button>
         <button class="bg-blue-600 text-white px-4 py-2 rounded">Update</button>
@@ -408,11 +311,8 @@
 </div>
 
 <!-- Department Delete Modal -->
-<div
-  id="deleteDeptModal"
-  class="hidden fixed inset-0 flex items-center justify-center"
-  style="backdrop-filter: blur(6px); background-color: rgba(255, 255, 255, 0.3)"
->
+<div id="deleteDeptModal" class="hidden fixed inset-0 flex items-center justify-center"
+  style="backdrop-filter: blur(6px); background-color: rgba(255, 255, 255, 0.3)">
   <div class="bg-white rounded-lg p-6 w-96 shadow-2xl shadow-black/50">
     <h3 class="text-lg font-medium text-gray-700 mb-4">Delete Department</h3>
     <p class="mb-4">Are you sure you want to delete this department?</p>
@@ -423,11 +323,7 @@
       <input type="hidden" name="dept_id" id="deleteDeptId" />
 
       <div class="flex justify-end space-x-2">
-        <button
-          type="button"
-          onclick="closeDeleteDeptModal()"
-          class="border px-4 py-2 rounded"
-        >
+        <button type="button" onclick="closeDeleteDeptModal()" class="border px-4 py-2 rounded">
           Cancel
         </button>
         <button class="bg-red-600 text-white px-4 py-2 rounded">Delete</button>

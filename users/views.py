@@ -1717,6 +1717,7 @@ def ajax_update_program_course(request):
 
     pc_id = request.POST.get("pc_id")
     pc_title = request.POST.get("pc_title").strip()
+    pc_code = request.POST.get("pc_code", "").strip()
     pc_credit = request.POST.get("pc_credit").strip()
     pc_active = request.POST.get("is_active") == "true"
     lecturer_ids = request.POST.getlist("lecturers")  # multiple select
@@ -1724,11 +1725,20 @@ def ajax_update_program_course(request):
     if not pc_id:
         return JsonResponse({"error": "ProgramCourse ID missing"}, status=400)
 
+    try:
+        # Prevent unique constraint crashes if changing to an already existing code
+        if pc_code and ProgramCourse.objects.filter(course_code=pc_code).exclude(id=pc_id).exists():
+            return JsonResponse({"error": f"Course code {pc_code} is already in use by another course."}, status=400)
+    except Exception as e:
+        pass
+
     pc = get_object_or_404(ProgramCourse, id=pc_id)
 
     # Update lecturers
     try:
         pc.title = pc_title
+        if pc_code:
+            pc.course_code = pc_code
         pc.is_active = pc_active
         pc.credit_hours = int(pc_credit)
         pc.assigned_lecturers.set(lecturer_ids)
@@ -1999,7 +2009,7 @@ def admin_school_setup(request):
                 description=request.POST.get("description", "")
             )
             messages.success(request, "Assessment type created.")
-            return redirect("admin_grade_settings")
+            return redirect("admin_school_setup")
 
         # UPDATE
         if request.POST.get("update_assessment_type"):
@@ -2012,7 +2022,7 @@ def admin_school_setup(request):
             at.save()
 
             messages.success(request, "Assessment type updated.")
-            return redirect("admin_grade_settings")
+            return redirect("admin_school_setup")
 
         # DELETE
         if request.POST.get("delete_assessment_type"):
@@ -2023,7 +2033,7 @@ def admin_school_setup(request):
             at.delete()
 
             messages.success(request, "Assessment type deleted.")
-            return redirect("admin_grade_settings")
+            return redirect("admin_school_setup")
 
     return render(
         request,
@@ -2385,6 +2395,12 @@ def registration_step_1(request):
             "users/dashboard/contents/student/step1_no_payment.html"
         )
 
+    # ----------------------------------------------------
+    # Force Check if administration closed Semester registration
+    # ----------------------------------------------------
+    if payment.semester and not payment.semester.sem_reg_is_active:
+        return registration_error(request, f"Registration for {payment.semester.name} is currently closed. Please contact administration.")
+
     # CASE B — Verified payment exists → student must confirm
     if request.method == "POST" and request.POST.get("confirm_fees"):
 
@@ -2416,6 +2432,10 @@ def registration_step_2(request):
     if not progress or not progress.step1_completed:
         messages.warning(request, "Complete Step 1 first.")
         return redirect("registration_step_1")
+
+    # Force Check if administration closed Semester registration
+    if progress.semester and not progress.semester.sem_reg_is_active:
+        return registration_error(request, f"Registration for {progress.semester.name} is currently closed. Please contact administration.")
 
     # --- If returning to Step 2 after completing it earlier ---
     # SAFETY: Only reset when explicitly requested
@@ -2497,9 +2517,9 @@ def registration_step_3(request):
     semester = enrollment.semester
     active_semester = enrollment.semester
 
-    # print("program: ", program)
-    # print("sems: ", semester)
-  
+    if not active_semester.sem_reg_is_active:
+        return registration_error(request, f"Registration for {active_semester.name} is currently closed. Please contact administration.")
+
     # KEEP REGISTRATION SEMESTER IN SYNC
     if progress.semester != active_semester:
         progress.semester = active_semester
@@ -2574,6 +2594,9 @@ def registration_step_4(request):
     active_semester = enrollment.semester
     program = user.program
     level = user.level
+
+    if not active_semester.sem_reg_is_active:
+        return registration_error(request, f"Registration for {active_semester.name} is currently closed. Please contact administration.")
 
     # KEEP REGISTRATION SEMESTER UPDATED
     if progress.semester != active_semester:

@@ -274,13 +274,28 @@ def semester_fee_list(request):
             program_fee.total_amount = total_amount
             program_fee.save()
 
-            # program_fee.program_fee_components.all().delete()
+            # Identify current components
+            existing_components = program_fee.program_fee_components.all()
+            existing_ids = set(existing_components.values_list("component_id", flat=True))
 
-            for cid, amt in components_data:
+            # Identify submitted components
+            submitted_ids = set(cid for cid, _ in components_data)
+
+            # 1. Delete removed components
+            components_to_delete = existing_ids - submitted_ids
+            if components_to_delete:
                 ProgramFeeComponent.objects.filter(
                     program_fee=program_fee,
-                    component_id=cid
-                ).update(total_fee=amt)
+                    component_id__in=components_to_delete
+                ).delete()
+
+            # 2. Update existing & create new components
+            for cid, amt in components_data:
+                ProgramFeeComponent.objects.update_or_create(
+                    program_fee=program_fee,
+                    component_id=cid,
+                    defaults={"total_fee": amt}
+                )
 
         log_event(
             request.user,

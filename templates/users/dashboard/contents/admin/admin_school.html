@@ -8,10 +8,8 @@ Academic Years & Semesters {% endblock %} {% block content %}
   <div class="pb-4">
     <div class="flex items-center justify-between mb-4">
       <h2 class="text-2xl font-semibold text-gray-800">Academic Years</h2>
-      <button
-        onclick="openYearCreate()"
-        class="border-c text-gray-600 text-sm px-4 py-2 rounded-md hover:bg-gray-100 cursor-pointer"
-      >
+      <button onclick="openYearCreate()"
+        class="border-c text-gray-600 text-sm px-4 py-2 rounded-md hover:bg-gray-100 cursor-pointer">
         Add Academic Year
       </button>
     </div>
@@ -52,22 +50,13 @@ Academic Years & Semesters {% endblock %} {% block content %}
             </td>
 
             <td class="px-4 py-2 space-x-3">
-              <button
-                class="text-blue-600 hover:underline cursor-pointer year-edit-btn cursor-pointer"
-                data-id="{{ y.id }}"
-                data-name="{{ y.name|escapejs }}"
-                data-start="{{ y.start_date|date:'Y-m-d' }}"
-                data-end="{{ y.end_date|date:'Y-m-d' }}"
-                data-active="{{ y.is_active }}"
-                data-ready="{{ y.is_ready }}"
-              >
+              <button class="text-blue-600 hover:underline cursor-pointer year-edit-btn cursor-pointer"
+                data-id="{{ y.id }}" data-name="{{ y.name }}" data-start="{{ y.start_date|date:'Y-m-d' }}"
+                data-end="{{ y.end_date|date:'Y-m-d' }}" data-active="{{ y.is_active }}" data-ready="{{ y.is_ready }}">
                 Edit
               </button>
 
-              <button
-                onclick="openYearDelete('{{ y.id }}')"
-                class="text-red-600 hover:underline cursor-pointer"
-              >
+              <button onclick="openYearDelete('{{ y.id }}')" class="text-red-600 hover:underline cursor-pointer">
                 Delete
               </button>
             </td>
@@ -88,138 +77,131 @@ Academic Years & Semesters {% endblock %} {% block content %}
   <!-- ===================== -->
   <!--      SEMESTERS        -->
   <!-- ===================== -->
-  
-<div class="w-full mx-auto py-6 space-y-10">
-<h2 class="text-2xl font-semibold mb-6">Manage Semesters</h2>
 
-<!-- PROGRAM SELECT -->
-  <form method="get" class="flex gap-4 mb-6">
-  <select name="program" class="border-c px-3 py-2 rounded">
-    <option value="">-- Select Program --</option>
-    {% for p in programs %}
-      <option value="{{ p.id }}" {% if selected_program and selected_program.id == p.id %}selected{% endif %}>
-        {{ p.name }}
-      </option>
-    {% endfor %}
-  </select>
+  <div class="w-full mx-auto py-6 space-y-10">
+    <h2 class="text-2xl font-semibold mb-6">Manage Semesters</h2>
 
-  {% if selected_program %}
-    <select name="level" class="border-c px-3 py-2 rounded">
-      <option value="">-- Select Level --</option>
-      {% for lvl in levels %}
-        <option value="{{ lvl.id }}" {% if selected_level and selected_level.id == lvl.id %}selected{% endif %}>
+    <!-- PROGRAM SELECT -->
+    <form method="get" class="flex gap-4 mb-6">
+      <select name="program" class="border-c px-3 py-2 rounded">
+        <option value="">-- Select Program --</option>
+        {% for p in programs %}
+        <option value="{{ p.id }}" {% if selected_program and selected_program.id==p.id %}selected{% endif %}>
+          {{ p.name }}
+        </option>
+        {% endfor %}
+      </select>
+
+      {% if selected_program %}
+      <select name="level" class="border-c px-3 py-2 rounded">
+        <option value="">-- Select Level --</option>
+        {% for lvl in levels %}
+        <option value="{{ lvl.id }}" {% if selected_level and selected_level.id==lvl.id %}selected{% endif %}>
           {{ lvl.level_name }}
         </option>
-      {% endfor %}
-    </select>
-  {% endif %}
+        {% endfor %}
+      </select>
+      {% endif %}
 
-  <button class="bg-blue-600 text-white px-4 py-2 rounded cursor-pointer">Load</button>
-</form>
-
-
-{% if selected_level %}
-  <!-- CREATE SEMESTER -->
-  <div class="bg-white border-c border-gray-200 rounded-lg p-6 mb-10">
-    <h3 class="text-lg font-semibold mb-4">Add New Semester</h3>
-
-    <form method="POST">
-      {% csrf_token %}
-      <input type="hidden" name="create_semester" value="1">
-      <input type="hidden" name="level_id" value="{{ selected_level.id }}">
-
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div >
-          <label class="block text-gray-600 mb-1">Semester Name</label>
-          <input name="name" class="border-c px-3 py-2 rounded w-full" placeholder="e.g. Semester 1" required>
-        </div>
-
-        <div >
-          <label class="block text-gray-600 mb-1">Academic Year</label>
-          <select name="academic_year_id" class="border-c px-3 py-2 rounded w-full" required>
-            {% for y in years %}
-            <option value="{{ y.id }}">{{ y.name }}</option>
-            {% endfor %}
-          </select>
-        </div>
-
-        <div >
-          <label class="block text-gray-600 mb-1">Start Date</label>
-          <input type="date" name="start_date" class="border-c px-3 py-2 rounded w-full" required>
-        </div>
-
-        <div >
-          <label class="block text-gray-600 mb-1">End Date</label>
-          <input type="date" name="end_date" class="border-c px-3 py-2 rounded w-full" required>
-        </div>
-      </div>
-
-      <div class="flex justify-end mt-4">
-        <button class="bg-blue-600 text-white px-4 py-2 rounded cursor-pointer">Create Semester</button>
-      </div>
+      <button class="bg-blue-600 text-white px-4 py-2 rounded cursor-pointer">Load</button>
     </form>
+
+
+    {% if selected_level %}
+    <!-- CREATE SEMESTER -->
+    <div class="bg-white border-c border-gray-200 rounded-lg p-6 mb-10">
+      <h3 class="text-lg font-semibold mb-4">Add New Semester</h3>
+
+      <form method="POST">
+        {% csrf_token %}
+        <input type="hidden" name="create_semester" value="1">
+        <input type="hidden" name="level_id" value="{{ selected_level.id }}">
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div>
+            <label class="block text-gray-600 mb-1">Semester Name</label>
+            <input name="name" class="border-c px-3 py-2 rounded w-full" placeholder="e.g. Semester 1" required>
+          </div>
+
+          <div>
+            <label class="block text-gray-600 mb-1">Academic Year</label>
+            <select name="academic_year_id" class="border-c px-3 py-2 rounded w-full" required>
+              {% for y in years %}
+              <option value="{{ y.id }}">{{ y.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-gray-600 mb-1">Start Date</label>
+            <input type="date" name="start_date" class="border-c px-3 py-2 rounded w-full" required>
+          </div>
+
+          <div>
+            <label class="block text-gray-600 mb-1">End Date</label>
+            <input type="date" name="end_date" class="border-c px-3 py-2 rounded w-full" required>
+          </div>
+        </div>
+
+        <div class="flex justify-end mt-4">
+          <button class="bg-blue-600 text-white px-4 py-2 rounded cursor-pointer">Create Semester</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- EXISTING SEMESTERS TABLE -->
+    <div class="bg-white border-c border-gray-200 rounded-lg p-6">
+      <h3 class="text-lg font-semibold mb-4">Existing Semesters</h3>
+
+      {% if semesters %}
+      <table class="min-w-full text-sm">
+        <thead class="bg-gray-100">
+          <tr>
+            <th class="px-3 py-2 text-left">Semester</th>
+            <th class="px-3 py-2 text-left">Year</th>
+            <th class="px-3 py-2 text-left">Active</th>
+            <th class="px-3 py-2 text-left">Reg Active</th>
+            <th class="px-3 py-2 text-left">Start</th>
+            <th class="px-3 py-2 text-left">End</th>
+            <th class="px-3 py-2 text-left">Actions</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for s in semesters %}
+          <tr class="border-t border-gray-200">
+            <td class="px-3 py-2">{{ s.name }}</td>
+            <td class="px-3 py-2">{{ s.academic_year.name }}</td>
+            <td class="px-3 py-2">{{ s.is_active|yesno:"Yes,No" }}</td>
+            <td class="px-3 py-2">{{ s.sem_reg_is_active|yesno:"Yes,No" }}</td>
+            <td class="px-3 py-2">{{ s.start_date }}</td>
+            <td class="px-3 py-2">{{ s.end_date }}</td>
+            <td class="px-3 py-2 space-x-3">
+              <button class="text-blue-600 hover:underline cursor-pointer" onclick="openEdit(this)" data-id="{{ s.id }}"
+                data-name="{{ s.name }}" data-year="{{ s.academic_year.id }}"
+                data-start="{{ s.start_date|date:'Y-m-d' }}" data-end="{{ s.end_date|date:'Y-m-d' }}"
+                data-active="{{ s.is_active }}" data-regactive="{{ s.sem_reg_is_active }}">
+                Edit
+              </button>
+
+              <form method="POST" style="display:inline;">
+                {% csrf_token %}
+                <input type="hidden" name="delete_semester" value="1">
+                <input type="hidden" name="semester_id" value="{{ s.id }}">
+                <button class="text-red-600 hover:underline cursor-pointer">Delete</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p class="text-gray-500">No semesters found.</p>
+      {% endif %}
+    </div>
+
+    {% endif %}
   </div>
-
-<!-- EXISTING SEMESTERS TABLE -->
-<div class="bg-white border-c border-gray-200 rounded-lg p-6">
-  <h3 class="text-lg font-semibold mb-4">Existing Semesters</h3>
-
-  {% if semesters %}
-  <table class="min-w-full text-sm">
-    <thead class="bg-gray-100">
-      <tr>
-        <th class="px-3 py-2 text-left">Semester</th>
-        <th class="px-3 py-2 text-left">Year</th>
-        <th class="px-3 py-2 text-left">Active</th>
-        <th class="px-3 py-2 text-left">Reg Active</th>
-        <th class="px-3 py-2 text-left">Start</th>
-        <th class="px-3 py-2 text-left">End</th>
-        <th class="px-3 py-2 text-left">Actions</th>
-      </tr>
-    </thead>
-
-    <tbody>
-      {% for s in semesters %}
-      <tr class="border-t border-gray-200">
-        <td class="px-3 py-2">{{ s.name }}</td>
-        <td class="px-3 py-2">{{ s.academic_year.name }}</td>
-        <td class="px-3 py-2">{{ s.is_active|yesno:"Yes,No" }}</td>
-        <td class="px-3 py-2">{{ s.sem_reg_is_active|yesno:"Yes,No" }}</td>
-        <td class="px-3 py-2">{{ s.start_date }}</td>
-        <td class="px-3 py-2">{{ s.end_date }}</td>
-        <td class="px-3 py-2 space-x-3">
-        <button
-            class="text-blue-600 hover:underline cursor-pointer"
-            onclick="openEdit(this)"
-            data-id="{{ s.id }}"
-            data-name="{{ s.name|escapejs }}"
-            data-year="{{ s.academic_year.id }}"
-            data-start="{{ s.start_date|date:'Y-m-d' }}"
-            data-end="{{ s.end_date|date:'Y-m-d' }}"
-            data-active="{{ s.is_active }}"
-            data-regactive="{{ s.sem_reg_is_active }}"
-        >
-            Edit
-        </button>
-
-          <form method="POST" style="display:inline;">
-            {% csrf_token %}
-            <input type="hidden" name="delete_semester" value="1">
-            <input type="hidden" name="semester_id" value="{{ s.id }}">
-            <button class="text-red-600 hover:underline cursor-pointer">Delete</button>
-          </form>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-  {% else %}
-  <p class="text-gray-500">No semesters found.</p>
-  {% endif %}
-</div>
-
-{% endif %}
-</div>
 
 
 </div>
@@ -230,11 +212,8 @@ Academic Years & Semesters {% endblock %} {% block content %}
 
 
 <!-- YEAR CREATE -->
-<div
-  id="yearCreateModal"
-  class="hidden fixed inset-0 flex items-center justify-center"
-  style="backdrop-filter: blur(6px); background: rgba(255, 255, 255, 0.3)"
->
+<div id="yearCreateModal" class="hidden fixed inset-0 flex items-center justify-center"
+  style="backdrop-filter: blur(6px); background: rgba(255, 255, 255, 0.3)">
   <div class="bg-white border rounded-lg p-6 w-96">
     <h3 class="text-lg font-medium mb-4">Create Academic Year</h3>
 
@@ -243,38 +222,22 @@ Academic Years & Semesters {% endblock %} {% block content %}
       <input type="hidden" name="create_academic_year" value="1" />
 
       <label class="block mb-1 text-gray-700">Name</label>
-      <input
-        name="name"
-        required
-        class="w-full border rounded-md px-3 py-2 mb-3"
-      />
+      <input name="name" required class="w-full border rounded-md px-3 py-2 mb-3" />
 
       <label class="block mb-1 text-gray-700">Start Date</label>
-      <input
-        type="date"
-        name="start_date"
-        class="w-full border rounded-md px-3 py-2 mb-3"
-      />
+      <input type="date" name="start_date" class="w-full border rounded-md px-3 py-2 mb-3" />
 
       <label class="block mb-1 text-gray-700">End Date</label>
-      <input
-        type="date"
-        name="end_date"
-        class="w-full border rounded-md px-3 py-2 mb-3"
-      />
+      <input type="date" name="end_date" class="w-full border rounded-md px-3 py-2 mb-3" />
 
-        <label class="flex items-center space-x-2 mb-4">
-          <input type="checkbox" name="is_active" />
-          <span>Active</span>
-        </label>
-  
-      
+      <label class="flex items-center space-x-2 mb-4">
+        <input type="checkbox" name="is_active" />
+        <span>Active</span>
+      </label>
+
+
       <div class="flex justify-end space-x-2">
-        <button
-          type="button"
-          onclick="closeYearCreate()"
-          class="px-4 py-2 border rounded-md"
-        >
+        <button type="button" onclick="closeYearCreate()" class="px-4 py-2 border rounded-md">
           Cancel
         </button>
         <button class="bg-blue-600 text-white px-4 py-2 rounded-md">
@@ -286,11 +249,8 @@ Academic Years & Semesters {% endblock %} {% block content %}
 </div>
 
 <!-- YEAR EDIT -->
-<div
-  id="yearEditModal"
-  class="hidden fixed inset-0 flex items-center justify-center"
-  style="backdrop-filter: blur(6px); background: rgba(255, 255, 255, 0.3)"
->
+<div id="yearEditModal" class="hidden fixed inset-0 flex items-center justify-center"
+  style="backdrop-filter: blur(6px); background: rgba(255, 255, 255, 0.3)">
   <div class="bg-white border rounded-lg p-6 w-96">
     <h3 class="text-lg font-medium mb-4">Edit Academic Year</h3>
 
@@ -300,49 +260,31 @@ Academic Years & Semesters {% endblock %} {% block content %}
       <input type="hidden" name="academic_year_id" id="yearEditId" />
 
       <label>Name</label>
-      <input
-        name="name"
-        id="yearEditName"
-        class="w-full border rounded-md px-3 py-2 mb-3"
-      />
+      <input name="name" id="yearEditName" class="w-full border rounded-md px-3 py-2 mb-3" />
 
       <label>Start Date</label>
-      <input
-        type="date"
-        name="start_date"
-        id="yearEditStart"
-        class="w-full border rounded-md px-3 py-2 mb-3"
-      />
+      <input type="date" name="start_date" id="yearEditStart" class="w-full border rounded-md px-3 py-2 mb-3" />
 
       <label>End Date</label>
-      <input
-        type="date"
-        name="end_date"
-        id="yearEditEnd"
-        class="w-full border rounded-md px-3 py-2 mb-3"
-      />
+      <input type="date" name="end_date" id="yearEditEnd" class="w-full border rounded-md px-3 py-2 mb-3" />
 
-      
+
       <div class="flex items-center gap-4">
 
         <label class="flex items-center space-x-2 mb-4">
           <input type="checkbox" name="is_active" id="yearEditActive" />
           <span>Active</span>
         </label>
-  
+
         <label class="flex items-center space-x-2 mb-4">
-            <input type="checkbox" name="is_ready" id="yearEditReady" />
+          <input type="checkbox" name="is_ready" id="yearEditReady" />
           <span>Set Ready</span>
         </label>
       </div>
 
 
       <div class="flex justify-end space-x-2">
-        <button
-          type="button"
-          onclick="closeYearEdit()"
-          class="px-4 py-2 border rounded-md"
-        >
+        <button type="button" onclick="closeYearEdit()" class="px-4 py-2 border rounded-md">
           Cancel
         </button>
         <button class="bg-blue-600 text-white px-4 py-2 rounded-md">
@@ -354,11 +296,8 @@ Academic Years & Semesters {% endblock %} {% block content %}
 </div>
 
 <!-- YEAR DELETE -->
-<div
-  id="yearDeleteModal"
-  class="hidden fixed inset-0 flex items-center justify-center"
-  style="backdrop-filter: blur(6px); background: rgba(255, 255, 255, 0.3)"
->
+<div id="yearDeleteModal" class="hidden fixed inset-0 flex items-center justify-center"
+  style="backdrop-filter: blur(6px); background: rgba(255, 255, 255, 0.3)">
   <div class="bg-white border rounded-lg p-6 w-96">
     <h3 class="text-lg font-medium mb-4 text-red-600">Delete Academic Year</h3>
     <p>Are you sure?</p>
@@ -369,11 +308,7 @@ Academic Years & Semesters {% endblock %} {% block content %}
       <input type="hidden" name="academic_year_id" id="yearDeleteId" />
 
       <div class="flex justify-end space-x-2">
-        <button
-          type="button"
-          onclick="closeYearDelete()"
-          class="px-4 py-2 border rounded-md"
-        >
+        <button type="button" onclick="closeYearDelete()" class="px-4 py-2 border rounded-md">
           Cancel
         </button>
         <button class="bg-red-600 text-white px-4 py-2 rounded-md">
@@ -385,11 +320,8 @@ Academic Years & Semesters {% endblock %} {% block content %}
 </div>
 
 <!-- SEM CREATE -->
-<div
-  id="semCreateModal"
-  class="hidden fixed inset-0 flex items-center justify-center"
-  style="backdrop-filter: blur(6px); background: rgba(255, 255, 255, 0.3)"
->
+<div id="semCreateModal" class="hidden fixed inset-0 flex items-center justify-center"
+  style="backdrop-filter: blur(6px); background: rgba(255, 255, 255, 0.3)">
   <div class="bg-white border rounded-lg p-6 w-96">
     <h3 class="text-lg font-medium mb-4">Create Semester</h3>
 
@@ -398,18 +330,10 @@ Academic Years & Semesters {% endblock %} {% block content %}
       <input type="hidden" name="create_semester" value="1" />
 
       <label>Name</label>
-      <input
-        name="name"
-        required
-        class="w-full border rounded-md px-3 py-2 mb-3"
-      />
+      <input name="name" required class="w-full border rounded-md px-3 py-2 mb-3" />
 
       <label>Academic Year</label>
-      <select
-        name="academic_year_id"
-        required
-        class="w-full border rounded-md px-3 py-2 mb-3"
-      >
+      <select name="academic_year_id" required class="w-full border rounded-md px-3 py-2 mb-3">
         <option value="">-- Select --</option>
         {% for y in academic_years %}
         <option value="{{ y.id }}">{{ y.name }}</option>
@@ -417,18 +341,10 @@ Academic Years & Semesters {% endblock %} {% block content %}
       </select>
 
       <label>Start Date</label>
-      <input
-        type="date"
-        name="start_date"
-        class="w-full border rounded-md px-3 py-2 mb-3"
-      />
+      <input type="date" name="start_date" class="w-full border rounded-md px-3 py-2 mb-3" />
 
       <label>End Date</label>
-      <input
-        type="date"
-        name="end_date"
-        class="w-full border rounded-md px-3 py-2 mb-3"
-      />
+      <input type="date" name="end_date" class="w-full border rounded-md px-3 py-2 mb-3" />
 
       <label class="flex items-center space-x-2 mb-4">
         <input type="checkbox" name="is_active" />
@@ -436,11 +352,7 @@ Academic Years & Semesters {% endblock %} {% block content %}
       </label>
 
       <div class="flex justify-end space-x-2">
-        <button
-          type="button"
-          onclick="closeSemCreate()"
-          class="px-4 py-2 border rounded-md"
-        >
+        <button type="button" onclick="closeSemCreate()" class="px-4 py-2 border rounded-md">
           Cancel
         </button>
         <button class="bg-blue-600 text-white px-4 py-2 rounded-md">
@@ -454,11 +366,8 @@ Academic Years & Semesters {% endblock %} {% block content %}
 
 
 <!-- SEM EDIT -->
-<div
-  id="semEditModal"
-  class="hidden fixed inset-0 flex items-center justify-center"
-  style="backdrop-filter: blur(6px); background: rgba(255, 255, 255, 0.3)"
->
+<div id="semEditModal" class="hidden fixed inset-0 flex items-center justify-center"
+  style="backdrop-filter: blur(6px); background: rgba(255, 255, 255, 0.3)">
   <div class="bg-white border rounded-lg p-6 w-96">
     <h3 class="text-lg font-medium mb-4">Edit Semester</h3>
 
@@ -468,38 +377,20 @@ Academic Years & Semesters {% endblock %} {% block content %}
       <input type="hidden" name="semester_id" id="semEditId" />
 
       <label>Name</label>
-      <input
-        name="name"
-        id="semEditName"
-        class="w-full border rounded-md px-3 py-2 mb-3"
-      />
+      <input name="name" id="semEditName" class="w-full border rounded-md px-3 py-2 mb-3" />
 
       <label>Academic Year</label>
-      <select
-        name="academic_year_id"
-        id="semEditYear"
-        class="w-full border rounded-md px-3 py-2 mb-3"
-      >
+      <select name="academic_year_id" id="semEditYear" class="w-full border rounded-md px-3 py-2 mb-3">
         {% for y in academic_years %}
         <option value="{{ y.id }}">{{ y.name }}</option>
         {% endfor %}
       </select>
 
       <label>Start Date</label>
-      <input
-        type="date"
-        name="start_date"
-      id="semEditStart"
-        class="w-full border rounded-md px-3 py-2 mb-3"
-      />
+      <input type="date" name="start_date" id="semEditStart" class="w-full border rounded-md px-3 py-2 mb-3" />
 
       <label>End Date</label>
-      <input
-        type="date"
-        name="end_date"
-       id="semEditEnd"
-        class="w-full border rounded-md px-3 py-2 mb-3"
-      />
+      <input type="date" name="end_date" id="semEditEnd" class="w-full border rounded-md px-3 py-2 mb-3" />
 
       <label class="flex items-center space-x-2 mb-4">
         <input type="checkbox" name="is_active" id="semEditActive" />
@@ -512,11 +403,7 @@ Academic Years & Semesters {% endblock %} {% block content %}
       </label>
 
       <div class="flex justify-end space-x-2">
-        <button
-          type="button"
-          onclick="closeSemEdit()"
-          class="px-4 py-2 border rounded-md cursor-pointer"
-        >
+        <button type="button" onclick="closeSemEdit()" class="px-4 py-2 border rounded-md cursor-pointer">
           Cancel
         </button>
         <button class="bg-blue-600 text-white px-4 py-2 rounded-md cursor-pointer">
@@ -528,11 +415,8 @@ Academic Years & Semesters {% endblock %} {% block content %}
 </div>
 
 <!-- SEM DELETE -->
-<div
-  id="semDeleteModal"
-  class="hidden fixed inset-0 flex items-center justify-center"
-  style="backdrop-filter: blur(6px); background: rgba(255, 255, 255, 0.3)"
->
+<div id="semDeleteModal" class="hidden fixed inset-0 flex items-center justify-center"
+  style="backdrop-filter: blur(6px); background: rgba(255, 255, 255, 0.3)">
   <div class="bg-white border rounded-lg p-6 w-96">
     <h3 class="text-lg font-medium text-red-600 mb-4">Delete Semester</h3>
     <p>Are you sure?</p>
@@ -543,11 +427,7 @@ Academic Years & Semesters {% endblock %} {% block content %}
       <input type="hidden" name="semester_id" id="semDeleteId" />
 
       <div class="flex justify-end space-x-2">
-        <button
-          type="button"
-          onclick="closeSemDelete()"
-          class="px-4 py-2 border rounded-md"
-        >
+        <button type="button" onclick="closeSemDelete()" class="px-4 py-2 border rounded-md">
           Cancel
         </button>
         <button class="bg-red-600 text-white px-4 py-2 rounded-md">
@@ -609,7 +489,7 @@ Academic Years & Semesters {% endblock %} {% block content %}
   // SEMESTER CREATE
   // ==========================
 
-function openEdit(btn) {
+  function openEdit(btn) {
     document.getElementById("semEditId").value = btn.dataset.id;
     document.getElementById("semEditName").value = btn.dataset.name;
 
@@ -620,11 +500,11 @@ function openEdit(btn) {
     document.getElementById("editRegActive").checked = (btn.dataset.regactive === "True");
 
     document.getElementById("semEditModal").classList.remove("hidden");
-}
+  }
 
-function closeSemEdit() {
+  function closeSemEdit() {
     document.getElementById("semEditModal").classList.add("hidden");
-}
+  }
 </script>
 
 {% endblock %}

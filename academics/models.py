@@ -147,8 +147,8 @@ class Assessment(models.Model):
 
     # Letter grade (e.g. A, B+, C)
     grade = models.CharField(
-        max_length=2,
-        help_text="Final grade obtained for the course (e.g., A, B+, C)"
+        max_length=5,
+        help_text="Final grade obtained for the course (e.g., A, B+, C, N/A)"
     )
 
     date_recorded = models.DateTimeField(auto_now_add=True)
