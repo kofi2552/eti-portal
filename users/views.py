@@ -1431,6 +1431,13 @@ def generate_payment_pdf(request, payment_id):
     enroll = payment.enrollment_payment.first()
     lvl_name = enroll.level.level_name if (enroll and enroll.level) else (payment.student.level.level_name if payment.student.level else "N/A")
 
+    program_fee_obj = ProgramFee.objects.filter(
+        academic_year=payment.academic_year,
+        semester=payment.semester,
+        program=getattr(payment.student, 'program', None)
+    ).first()
+    total_semester_fee = f"GHS {program_fee_obj.total_amount}" if program_fee_obj else "N/A"
+
     data = [
         ("Student", payment.student.get_full_name()),
         ("Student ID", payment.generated_student_id or "N/A"),
@@ -1441,7 +1448,8 @@ def generate_payment_pdf(request, payment_id):
         ("Current Level", lvl_name),
         ("Academic Year", payment.academic_year.name),
         ("Semester", payment.semester.name),
-        ("Amount Expected", f"GHS {payment.amount_expected}"),
+        ("Total Semester Fee", total_semester_fee),
+        ("Initial Amt Expected", f"GHS {payment.amount_expected}"),
         ("Amount Paid", f"GHS {payment.amount_paid}"),
         ("Verified", "Yes" if payment.is_verified else "No"),
         ("Reference No.", payment.reference),
@@ -4237,7 +4245,7 @@ def student_fee_payments(request):
 @login_required
 def announcements_list(request):
     user = request.user
-    announcements = Announcement.objects.all().order_by("-created_at")
+    announcements = Announcement.objects.filter(role="admin").order_by("-created_at")
 
     # Handle create / update / delete
     if request.method == "POST":
