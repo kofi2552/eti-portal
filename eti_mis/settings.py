@@ -31,9 +31,10 @@ if dotenv_path.exists():
 SECRET_KEY = 'django-insecure-&z66f*pzebu^^t+427lulg96tkhq85co-nvjgpuy!*8n)=0g+!'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 
 CSRF_TRUSTED_ORIGINS = [
+    "https://portal.eti.edu.gh",
     "https://eti.postpilot.onl",
 ]
 
