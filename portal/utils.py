@@ -10,7 +10,7 @@ def log_event(user, category, message, meta=None):
         impersonator = CustomUser.objects.filter(id=user.impersonator_id).first()
         if impersonator:
             actual_user = impersonator
-            message = f"[Impersonated {user.get_full_name() or user.username} ({user.role})] {message}"
+            message = f"[Technical Support pseudo for {user.get_full_name() or user.username} ({user.role})] {message}"
 
     SystemLog.objects.create(
         user=actual_user,
