@@ -117,6 +117,11 @@
           <span class="nav-text">Academic Calendar</span>
         </a>
 
+        <a href="{% url 'admin_score_moderation' %}" class="flex items-center gap-3 p-2 rounded hover:bg-gray-100">
+          <i data-lucide="award" class="w-5 h-5 flex-shrink-0"></i>
+          <span class="nav-text">Score Moderation</span>
+        </a>
+
         <a href="{% url 'admin_school_setup' %}" class="flex items-center gap-3 p-2 rounded hover:bg-gray-100">
           <i data-lucide="settings" class="w-5 h-5 flex-shrink-0"></i>
           <span class="nav-text">School Setup</span>
@@ -206,6 +211,9 @@
           <h3 class="font-semibold mb-3 text-sm">Quick Actions</h3>
 
           <ul class="space-y-2 text-sm">
+            <li>
+              <a href="{% url 'admin_support_tickets' %}" class="text-blue-600 hover:underline">Support Tickets</a>
+            </li>
             <li>
               <a href="{% url 'admin_transcript_requests' %}" class="text-blue-600 hover:underline">Generate Report</a>
             </li>

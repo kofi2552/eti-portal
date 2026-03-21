@@ -122,3 +122,48 @@ class ErrorLog(models.Model):
 
     def __str__(self):
         return f"{self.path} - {self.error_message[:50]}"
+
+
+class SupportTicket(models.Model):
+    PRIORITY_CHOICES = [
+        ('low', 'Low'),
+        ('medium', 'Medium'),
+        ('high', 'High'),
+        ('urgent', 'Urgent')
+    ]
+
+    CATEGORY_CHOICES = [
+        ('bug', 'Bug Report'),
+        ('academic', 'Academic Query'),
+        ('finance', 'Financial Query'),
+        ('other', 'Other')
+    ]
+
+    STATUS_CHOICES = [
+        ('open', 'Open'),
+        ('in_progress', 'In Progress'),
+        ('fixed', 'Fixed'),
+        ('closed', 'Closed')
+    ]
+
+    student = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        limit_choices_to={'role': 'student'},
+        related_name='support_tickets'
+    )
+    subject = models.CharField(max_length=255)
+    message = models.TextField()
+    
+    priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES, default='medium')
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='bug')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='open')
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.subject} - {self.student.get_full_name()}"

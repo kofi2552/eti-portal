@@ -1,0 +1,59 @@
+{% extends 'users/dashboard/admin_dashboard_layout.html' %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 py-8">
+  <div class="mb-6 flex items-center justify-between border-b pb-4">
+    <div>
+      <h1 class="text-3xl font-bold text-gray-800">Approve Moderated Scores</h1>
+      <p class="text-gray-600 mt-1">Review the proposed updates below before pushing them permanently to the Transcripts.</p>
+    </div>
+    <form method="POST" action="{% url 'admin_score_approve' %}" class="inline">
+      {% csrf_token %}
+      <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg transition-colors shadow-sm flex items-center gap-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+        Approve All Changes
+      </button>
+    </form>
+  </div>
+
+  <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+    <table class="min-w-full divide-y divide-gray-200 text-sm">
+      <thead class="bg-gray-50 text-gray-700 uppercase font-semibold">
+        <tr>
+          <th class="px-6 py-3 text-left">Student</th>
+          <th class="px-6 py-3 text-left">Course</th>
+          <th class="px-6 py-3 text-center">Score Change</th>
+          <th class="px-6 py-3 text-center">Grade Change</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-200 bg-white">
+        {% for item in preview_data %}
+        <tr class="hover:bg-gray-50">
+          <td class="px-6 py-4 flex flex-col">
+            <span class="font-medium text-gray-900">{{ item.student_name }}</span>
+            <span class="text-xs text-gray-500">ID: {{ item.id }}</span>
+          </td>
+          <td class="px-6 py-4 font-medium text-gray-700">
+            {{ item.course_code }}
+          </td>
+          <td class="px-6 py-4 text-center whitespace-nowrap">
+            <span class="text-gray-500 line-through">{{ item.old_score }}</span>
+            <span class="mx-2 text-gray-400">→</span>
+            <span class="font-bold text-green-600">{{ item.new_score }}</span>
+          </td>
+          <td class="px-6 py-4 text-center whitespace-nowrap">
+            <span class="text-gray-500 line-through">{{ item.old_grade|default:"-" }}</span>
+            <span class="mx-2 text-gray-400">→</span>
+            <span class="font-bold text-green-600">{{ item.new_grade }}</span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  
+  <div class="mt-6 flex justify-end">
+    <a href="{% url 'admin_score_moderation' %}" class="text-gray-500 hover:text-gray-700 font-medium">Cancel and Discard</a>
+  </div>
+</div>
+{% endblock %}

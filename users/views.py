@@ -40,6 +40,9 @@ from academics.services.assessment_aggregation import recalculate_student_assess
 from decimal import ROUND_HALF_UP
 from finance.models import ProgramFee
 from academics.models import CourseAnnouncement
+from portal.models import SupportTicket
+from django.db import models
+
 
 
 # Example assumes your User model has a 'role' field with values:
@@ -2169,7 +2172,7 @@ def admin_school(request):
         #     messages.error(request, "Academic year name must be in the format YYYY/YYYY (e.g., 2024/2025).")
         #     return redirect("admin_school")
 
-        # try:
+        try:
             AcademicYear.objects.create(
                 name=name,
                 start_date=start_date,
@@ -2178,10 +2181,10 @@ def admin_school(request):
                 is_ready= False,
             )
             messages.success(request, "Academic year created successfully.")
-        # except IntegrityError:
-            # messages.error(request, f"The academic year '{name}' already exists. Please use a unique name.")
+        except IntegrityError:
+            messages.error(request, f"The academic year '{name}' already exists. Please use a unique name.")
             
-        # return redirect("admin_school")
+        return redirect("admin_school")
 
     if request.method == "POST" and request.POST.get("update_academic_year"):
         year_id = request.POST.get("academic_year_id")
@@ -4312,4 +4315,210 @@ def mark_announcement_read(request):
     announcement.is_active = False
     announcement.save(update_fields=["is_active"])
 
-    return JsonResponse({"success": True})
+    return JsonResponse({"success": True})
+
+import csv
+from django.http import HttpResponse
+
+@login_required
+def admin_score_moderation(request):
+    # Only admin/superadmin can access
+    if request.user.role != 'admin' and not request.user.is_superuser:
+        messages.error(request, "Access denied.")
+        return redirect("dashboard")
+
+    from academics.models import Program, Semester, Assessment
+    programs = Program.objects.all().filter(is_active=True)
+    semesters = Semester.objects.all().order_by('-start_date')
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+
+        if action == "download":
+            program_id = request.POST.get("program")
+            semester_id = request.POST.get("semester")
+            
+            assessments = Assessment.objects.filter(
+                program_id=program_id, 
+                semester_id=semester_id
+            ).select_related('student', 'course')
+            
+            response = HttpResponse(content_type='text/csv')
+            response['Content-Disposition'] = f'attachment; filename="scores_moderation_prog{program_id}_sem{semester_id}.csv"'
+            
+            writer = csv.writer(response)
+            writer.writerow(['Assessment ID', 'Student ID', 'Student Name', 'Course Code', 'Score', 'Grade'])
+            
+            for a in assessments:
+                writer.writerow([
+                    a.id,
+                    a.student.student_id,
+                    a.student.get_full_name(),
+                    a.course.course_code,
+                    a.score if a.score is not None else '',
+                    a.grade if a.grade else ''
+                ])
+            return response
+
+        elif action == "upload":
+            if 'csv_file' not in request.FILES:
+                messages.error(request, "Please upload a valid CSV file.")
+                return redirect('admin_score_moderation')
+
+            csv_file = request.FILES['csv_file']
+            
+            if not csv_file.name.endswith('.csv'):
+                messages.error(request, "File is not a CSV. Please make sure you upload the correct format.")
+                return redirect('admin_score_moderation')
+
+            decoded_file = csv_file.read().decode('utf-8').splitlines()
+            reader = csv.DictReader(decoded_file)
+            
+            preview_data = []
+            updates = {}
+            for row in reader:
+                a_id = row.get('Assessment ID')
+                new_score = row.get('Score')
+                new_grade = row.get('Grade')
+                
+                if a_id and new_score:
+                    updates[str(a_id)] = {
+                        'score': new_score,
+                        'grade': new_grade
+                    }
+
+            if updates:
+                db_assessments = Assessment.objects.filter(id__in=updates.keys()).select_related('student', 'course')
+                for a in db_assessments:
+                    proposed = updates[str(a.id)]
+                    preview_data.append({
+                        'id': a.id,
+                        'student_name': a.student.get_full_name(),
+                        'course_code': a.course.course_code,
+                        'old_score': str(a.score),
+                        'old_grade': a.grade,
+                        'new_score': proposed['score'],
+                        'new_grade': proposed['grade'],
+                    })
+
+                request.session['moderation_payload'] = updates
+                return render(request, "users/dashboard/contents/admin/admin_score_preview.html", {"preview_data": preview_data})
+            else:
+                messages.error(request, "No valid data found in CSV.")
+                return redirect('admin_score_moderation')
+
+    context = {
+        "programs": programs,
+        "semesters": semesters
+    }
+    return render(request, "users/dashboard/contents/admin/admin_score_moderation.html", context)
+
+@login_required
+def admin_score_approve(request):
+    if request.method == "POST":
+        updates = request.session.get('moderation_payload', {})
+        if not updates:
+            messages.error(request, "Session expired or no updates found.")
+            return redirect('admin_score_moderation')
+
+        from academics.models import Assessment
+        
+        updated_count = 0
+        for str_id, data in updates.items():
+            try:
+                a = Assessment.objects.get(id=int(str_id))
+                a.score = data['score']
+                a.grade = data['grade']
+                a.is_approved = True
+                a.approved_by = request.user
+                a.approved_at = timezone.now()
+                a.save()
+                updated_count += 1
+            except Assessment.DoesNotExist:
+                continue
+
+        del request.session['moderation_payload']
+        messages.success(request, f"Successfully approved {updated_count} record(s)! They are now permanently locked in the Transcripts.")
+        return redirect('admin_score_moderation')
+    
+    return redirect('admin_score_moderation')
+
+@login_required
+def admin_support_tickets(request):
+    if request.user.role not in ['admin', 'superadmin']:
+        messages.error(request, "Access denied.")
+        return redirect("dashboard")
+
+    from portal.models import SupportTicket
+    
+    # Exclude technical bugs, sort by unhandled first then newest
+    tickets = SupportTicket.objects.exclude(category='bug').order_by(
+        models.Case(
+            models.When(status='open', then=0),
+            models.When(status='in_progress', then=1),
+            models.When(status='fixed', then=2),
+            models.When(status='closed', then=3),
+            default=4
+        ),
+        '-created_at'
+    )
+    
+    context = {"tickets": tickets}
+    return render(request, "users/dashboard/contents/admin/admin_support_tickets.html", context)
+
+@login_required
+def admin_resolve_ticket(request, ticket_id, action):
+    if request.user.role not in ['admin', 'superadmin']:
+        return redirect("dashboard")
+
+    from portal.models import SupportTicket
+    
+    ticket = get_object_or_404(SupportTicket, id=ticket_id)
+    
+    if action == "mark_fixed":
+        ticket.status = "fixed"
+        messages.success(request, f"Ticket #{ticket.id} marked as Fixed.")
+    elif action == "mark_progress":
+        ticket.status = "in_progress"
+        messages.success(request, f"Ticket #{ticket.id} marked as In Progress.")
+    elif action == "mark_closed":
+        ticket.status = "closed"
+        messages.success(request, f"Ticket #{ticket.id} Closed.")
+    
+    ticket.save()
+    return redirect("admin_support_tickets")
+
+@login_required
+def student_help_center(request):
+    if request.user.role != 'student':
+        messages.error(request, "Access denied.")
+        return redirect("dashboard")
+
+    from portal.models import SupportTicket
+
+    if request.method == "POST":
+        subject = request.POST.get("subject")
+        message = request.POST.get("message")
+        priority = request.POST.get("priority", "medium")
+        category = request.POST.get("category", "bug")
+
+        if subject and message:
+            SupportTicket.objects.create(
+                student=request.user,
+                subject=subject,
+                message=message,
+                priority=priority,
+                category=category,
+                status="open"
+            )
+            messages.success(request, "Your support ticket has been sent! We will review it shortly.")
+            return redirect('student_help_center')
+        else:
+            messages.error(request, "Please provide both a subject and a valid message.")
+
+    tickets = SupportTicket.objects.filter(student=request.user).order_by('-created_at')
+    
+    context = {
+        'tickets': tickets
+    }
+    return render(request, "users/dashboard/contents/student/student_help_center.html", context)

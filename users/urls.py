@@ -22,6 +22,7 @@ urlpatterns = [
     path("student/profile/", views.student_profile, name="student_profile"),
     path("student/transcript/view", views.student_view_transcript, name="student_view_transcript"),
     path("student/fee-payments/", views.student_fee_payments, name="student_fee_payments"),
+    path("student/help-center/", views.student_help_center, name="student_help_center"),
     path("notifications/mark-read/", views.mark_announcement_read, name="mark_announcement_read"),
 
 
@@ -87,6 +88,10 @@ urlpatterns = [
     path("school/setup/", views.admin_school_setup, name="admin_school_setup"),
     path("admin/ajax/program-levels/<int:program_id>/", views.ajax_get_program_levels, name="ajax_program_levels"),
     path("admin/announcements/", views.announcements_list, name="announcements_list"),
+    path("admin/score-moderation/", views.admin_score_moderation, name="admin_score_moderation"),
+    path("admin/score-approve/", views.admin_score_approve, name="admin_score_approve"),
+    path("admin/support-tickets/", views.admin_support_tickets, name="admin_support_tickets"),
+    path("admin/support-tickets/<int:ticket_id>/<str:action>/", views.admin_resolve_ticket, name="admin_resolve_ticket"),
 
     path("logout/", views.logout_view, name="logout"),
 ]

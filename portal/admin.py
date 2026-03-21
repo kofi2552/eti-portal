@@ -35,3 +35,21 @@ class SystemLogAdmin(admin.ModelAdmin):
 
     def has_change_permission(self, request, obj=None):
         return False
+
+
+from .models import SupportTicket
+
+@admin.register(SupportTicket)
+class SupportTicketAdmin(admin.ModelAdmin):
+    list_display = ('subject', 'student', 'category', 'priority', 'status', 'created_at')
+    list_editable = ('status',)
+    list_filter = ('status', 'priority', 'category', 'created_at')
+    search_fields = ('subject', 'message', 'student__username', 'student__email', 'student__first_name', 'student__last_name')
+    readonly_fields = ('student', 'subject', 'message', 'category', 'priority', 'created_at', 'updated_at')
+    
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.filter(category='bug')
+
+    def has_delete_permission(self, request, obj=None):
+        return False

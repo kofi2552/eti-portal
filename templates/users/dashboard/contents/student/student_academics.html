@@ -10,16 +10,12 @@
     <div>
       <h1 class="text-3xl font-extrabold text-slate-800">Academic Results</h1>
       <p class="text-slate-500 text-sm font-medium">
-        Detailed assessment and GPA breakdown
+        Detailed GPA breakdown. Note that these are provisional results.
       </p>
     </div>
 
     <form method="GET">
-      <select
-        name="year"
-        id="yearSelect"
-        class="border-2 border-slate-200 rounded-xl px-3 py-2 font-bold"
-      >
+      <select name="year" id="yearSelect" class="border-2 border-slate-200 rounded-xl px-3 py-2 font-bold">
         {% for y in all_years %}
         <option value="{{ y.id }}" {% if selected_year_id == y.id|stringformat:"s" %}selected{% endif %}>
           {{ y.name }}
@@ -30,9 +26,9 @@
   </div>
 
   {% if not semesters %}
-    <div class="bg-white border-2 border-slate-200 rounded-3xl p-8 text-center">
-      No academic records found for this academic year.
-    </div>
+  <div class="bg-white border-2 border-slate-200 rounded-3xl p-8 text-center">
+    No academic records found for this academic year.
+  </div>
   {% endif %}
 
   {% for sem_id, sem_data in semesters.items %}
@@ -41,10 +37,8 @@
   <article class="bg-white border-2 border-slate-200 rounded-3xl overflow-hidden">
 
     <!-- SEMESTER HEADER (ACCORDION TOGGLE) -->
-    <header
-      class="px-6 py-5 flex justify-between bg-slate-50 border-b-2 cursor-pointer semester-toggle"
-      data-target="sem-{{ sem.id }}"
-    >
+    <header class="px-6 py-5 flex justify-between bg-slate-50 border-b-2 cursor-pointer semester-toggle"
+      data-target="sem-{{ sem.id }}">
       <div>
         <h2 class="text-lg font-extrabold">{{ sem.name }}</h2>
         <p class="text-sm text-slate-400">{{ sem.academic_year.name }}</p>
@@ -61,9 +55,9 @@
     <div id="sem-{{ sem.id }}" class="hidden px-6 py-6 space-y-8">
 
       {% if not sem_data.courses %}
-        <div class="text-center text-slate-400 text-sm py-6">
-          No assessment records available for this semester.
-        </div>
+      <div class="text-center text-slate-400 text-sm py-6">
+        No assessment records available for this semester.
+      </div>
       {% endif %}
 
       {% for course_id, cdata in sem_data.courses.items %}
@@ -172,18 +166,18 @@
 
 <!-- JS -->
 <script>
-document.getElementById("yearSelect")?.addEventListener("change", function () {
-  this.form.submit();
-});
-
-document.querySelectorAll(".semester-toggle").forEach(el => {
-  el.addEventListener("click", () => {
-    const target = document.getElementById(el.dataset.target);
-    if (target) {
-      target.classList.toggle("hidden");
-    }
+  document.getElementById("yearSelect")?.addEventListener("change", function () {
+    this.form.submit();
   });
-});
+
+  document.querySelectorAll(".semester-toggle").forEach(el => {
+    el.addEventListener("click", () => {
+      const target = document.getElementById(el.dataset.target);
+      if (target) {
+        target.classList.toggle("hidden");
+      }
+    });
+  });
 </script>
 
 {% endblock %}

@@ -111,12 +111,18 @@
                   <h3 class="text-lg font-black text-slate-800">
                     {{ record.task.title }}
                   </h3>
-                  <div class="flex items-center gap-3 text-slate-400 font-bold text-xs mt-1 uppercase tracking-wide">
+                  <div class="flex flex-wrap items-center gap-2 sm:gap-3 text-slate-400 font-bold text-[10px] sm:text-xs mt-1 uppercase tracking-wide">
                     <span class="text-purple-600 bg-purple-50 px-2 py-0.5 rounded-md">
                       {{ record.task.assessment_type.name }}
                     </span>
                     <span class="w-1 h-1 bg-slate-200 rounded-full"></span>
                     <span>Max: {{ record.task.total_marks|floatformat:0 }}</span>
+                    <span class="w-1 h-1 bg-slate-200 rounded-full hidden sm:inline-block"></span>
+                    <span class="hidden sm:inline-block">{{ record.task.created_at|date:"d M, Y - h:i A" }}</span>
+                  </div>
+                  <!-- Mobile date fallback -->
+                  <div class="sm:hidden text-slate-400 font-bold text-[10px] mt-1.5 uppercase tracking-wide">
+                    {{ record.task.created_at|date:"d M, Y - h:i A" }}
                   </div>
                 </div>
               </div>

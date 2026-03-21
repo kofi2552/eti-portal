@@ -162,7 +162,18 @@ class Assessment(models.Model):
         related_name='assessments_recorded'
     )
 
-    is_allowed = models.BooleanField(default=False)
+    is_approved = models.BooleanField(
+        default=False,
+        help_text="Checked globally by Admins after moderation"
+    )
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="approved_assessments"
+    )
+    approved_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.student} - {self.course.code} ({self.grade})"

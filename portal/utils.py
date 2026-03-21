@@ -55,7 +55,8 @@ def generate_transcript_json(student):
             Assessment.objects.filter(
                 student=student,
                 semester=reg.semester,
-                course__in=reg.courses.all()
+                course__in=reg.courses.all(),
+                is_approved=True
             ).select_related("course")
         )
 

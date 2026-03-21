@@ -1,0 +1,147 @@
+{% extends "users/dashboard/student_dashboard_layout.html" %}
+
+{% block title %}Help Center - Support Tickets{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto py-6">
+  
+  <div class="mb-8">
+    <h1 class="text-3xl font-extrabold text-slate-800 tracking-tight">Help Center & Support</h1>
+    <p class="text-slate-500 mt-2 font-medium">Submit a new ticket or check the status of your previous issues securely through the portal.</p>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    
+    <!-- LEFT PANEL: NEW TICKET FORM -->
+    <div class="lg:col-span-1 border-2 border-slate-200 bg-white rounded-3xl p-6 shadow-card h-fit">
+      <h2 class="text-xl font-bold text-slate-800 border-b pb-4 mb-4 flex items-center gap-2">
+        <i data-lucide="plus-circle" class="w-5 h-5 text-brand-500"></i>
+        Open New Ticket
+      </h2>
+      
+      <form method="POST" action="{% url 'student_help_center' %}">
+        {% csrf_token %}
+        <div class="space-y-4">
+          
+          <div>
+            <label class="block text-sm font-bold text-slate-700 mb-1">Category</label>
+            <select name="category" required class="w-full border-2 border-slate-200 rounded-xl px-4 py-2 font-medium text-slate-600 focus:outline-none focus:border-brand-500 transition-colors">
+              <option value="bug">Platform Bug Report</option>
+              <option value="academic">Academic Query (Grades, Courses)</option>
+              <option value="finance">Financial Query (Payments)</option>
+              <option value="other">Other Inquiry</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-sm font-bold text-slate-700 mb-1">Priority</label>
+            <select name="priority" required class="w-full border-2 border-slate-200 rounded-xl px-4 py-2 font-medium text-slate-600 focus:outline-none focus:border-brand-500 transition-colors">
+              <option value="low">Low (Standard Question)</option>
+              <option value="medium" selected>Medium (Action required)</option>
+              <option value="high">High (Urgent Issue)</option>
+              <option value="urgent">Urgent (System Access Blocked)</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-sm font-bold text-slate-700 mb-1">Brief Subject</label>
+            <input type="text" name="subject" required placeholder="E.g. Cannot view my semester 2 results" class="w-full border-2 border-slate-200 rounded-xl px-4 py-2 font-medium text-slate-600 focus:outline-none focus:border-brand-500 transition-colors" />
+          </div>
+
+          <div>
+            <label class="block text-sm font-bold text-slate-700 mb-1">Detailed Message</label>
+            <textarea name="message" required rows="5" placeholder="Explain the issue thoroughly so our support team can assist you efficiently..." class="w-full border-2 border-slate-200 rounded-xl px-4 py-3 font-medium text-slate-600 focus:outline-none focus:border-brand-500 transition-colors"></textarea>
+          </div>
+          
+          <button type="submit" class="w-full mt-4 bg-brand-600 hover:bg-brand-700 text-white font-extrabold py-3 px-4 rounded-xl flex justify-center items-center gap-2 transition-colors border-b-4 border-brand-800 active:border-b-0 active:translate-y-1">
+            <i data-lucide="send" class="w-5 h-5"></i>
+            Submit Ticket
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- RIGHT PANEL: PREVIOUS TICKETS -->
+    <div class="lg:col-span-2 space-y-4">
+      <div class="flex items-center justify-between pb-2">
+        <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+          <i data-lucide="history" class="w-5 h-5 text-brand-500"></i>
+          Your Ticket History
+        </h2>
+        <span class="text-sm font-extrabold text-slate-400 bg-slate-100 py-1 px-3 rounded-full">{{ tickets|length }} opened</span>
+      </div>
+
+      {% if tickets %}
+        <div class="space-y-4">
+          {% for t in tickets %}
+            <div x-data="{ open: false }" class="bg-white border-2 border-slate-200 rounded-3xl overflow-hidden hover:border-brand-300 transition-colors shadow-sm">
+              <button @click="open = !open" class="w-full text-left p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 group">
+                
+                <div class="flex-1">
+                  <div class="flex flex-wrap items-center gap-3 mb-2">
+                    <!-- Status Badge -->
+                    {% if t.status == 'open' %}
+                      <span class="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-lg text-[10px] font-black uppercase tracking-widest border border-yellow-200">Open</span>
+                    {% elif t.status == 'in_progress' %}
+                      <span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-[10px] font-black uppercase tracking-widest border border-blue-200">In Progress</span>
+                    {% elif t.status == 'fixed' %}
+                      <span class="px-3 py-1 bg-green-100 text-green-700 rounded-lg text-[10px] font-black uppercase tracking-widest border border-green-200">Fixed</span>
+                    {% else %}
+                      <span class="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-[10px] font-black uppercase tracking-widest border border-gray-200">Closed</span>
+                    {% endif %}
+
+                    <!-- Priority Badge -->
+                    <span class="text-xs font-bold text-slate-400 capitalize flex items-center gap-1">
+                      <span class="w-2 h-2 rounded-full inline-block
+                        {% if t.priority == 'urgent' %}bg-red-500
+                        {% elif t.priority == 'high' %}bg-orange-500
+                        {% elif t.priority == 'low' %}bg-blue-300
+                        {% else %}bg-slate-400{% endif %}">
+                      </span>
+                      {{ t.priority }} Priority
+                    </span>
+                    
+                    <span class="text-slate-300">•</span>
+                    <span class="text-xs font-bold text-slate-400 capitalize">{{ t.category }}</span>
+                  </div>
+                  
+                  <h3 class="text-lg font-black text-slate-800 group-hover:text-brand-600 transition-colors">{{ t.subject }}</h3>
+                </div>
+
+                <div class="flex items-center gap-3 text-slate-500 shrink-0">
+                  <div class="text-xs font-bold text-right hidden sm:block">
+                    <div class="text-slate-700">{{ t.created_at|date:"M d, Y" }}</div>
+                    <div class="text-slate-400">{{ t.created_at|time:"h:i A" }}</div>
+                  </div>
+                  <i data-lucide="chevron-down" class="w-5 h-5 ml-2 transition-transform duration-300" :class="{'rotate-180': open}"></i>
+                </div>
+              </button>
+
+              <div x-show="open" x-collapse>
+                <div class="p-6 pt-0 border-t border-slate-100 bg-slate-50">
+                  <h4 class="text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-2 mt-4">Message Log:</h4>
+                  <div class="text-sm font-medium text-slate-700 bg-white border border-slate-200 p-4 rounded-xl leading-relaxed whitespace-pre-wrap">{{ t.message }}</div>
+                  
+                  <div class="mt-4 flex justify-between text-[11px] font-bold text-slate-400 bg-white/50 py-2 px-3 rounded-lg border border-slate-100">
+                    <span>Ticket #{{ t.id|stringformat:"05d" }}</span>
+                    <span>Last updated: {{ t.updated_at|timesince }} ago</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="bg-white border-2 border-slate-200 border-dashed rounded-3xl p-12 text-center flex flex-col items-center justify-center">
+          <div class="w-16 h-16 bg-brand-50 text-brand-500 rounded-full flex items-center justify-center mb-4">
+            <i data-lucide="check-circle-2" class="w-8 h-8"></i>
+          </div>
+          <h3 class="text-lg font-black text-slate-700 mb-2">You don't have any support tickets!</h3>
+          <p class="text-slate-500 text-sm max-w-sm mx-auto">If you experience bugs, missing grades, or system errors, you can securely open a ticket here and an admin will review it.</p>
+        </div>
+      {% endif %}
+
+    </div>
+  </div>
+</div>
+{% endblock %}

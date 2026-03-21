@@ -57,7 +57,9 @@ class CustomUserAdmin(UserAdmin):
                 return redirect('lecturer_main')
             elif role == 'dean':
                 return redirect('dean_main')
-            elif role in ['admin', 'superadmin', 'finance']:
+            elif role in ['finance']:
+                return redirect('finance_main')
+            elif role in ['admin']:
                 return redirect('admin_main')
                 
         return redirect('admin:users_customuser_changelist')
