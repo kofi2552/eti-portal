@@ -2169,15 +2169,19 @@ def admin_school(request):
         #     messages.error(request, "Academic year name must be in the format YYYY/YYYY (e.g., 2024/2025).")
         #     return redirect("admin_school")
 
-        AcademicYear.objects.create(
-            name=name,
-            start_date=start_date,
-            end_date=end_date,
-            is_active=is_active,
-            is_ready= False,
-        )
-        messages.success(request, "Academic year created successfully.")
-        return redirect("admin_school")
+        # try:
+            AcademicYear.objects.create(
+                name=name,
+                start_date=start_date,
+                end_date=end_date,
+                is_active=is_active,
+                is_ready= False,
+            )
+            messages.success(request, "Academic year created successfully.")
+        # except IntegrityError:
+            # messages.error(request, f"The academic year '{name}' already exists. Please use a unique name.")
+            
+        # return redirect("admin_school")
 
     if request.method == "POST" and request.POST.get("update_academic_year"):
         year_id = request.POST.get("academic_year_id")
@@ -2230,9 +2234,12 @@ def admin_school(request):
         year.end_date = request.POST.get("end_date")
         year.is_active = new_is_active
         year.is_ready = new_is_ready
-        year.save()
-
-        messages.success(request, "Academic year updated successfully.")
+        try:
+            year.save()
+            messages.success(request, "Academic year updated successfully.")
+        except IntegrityError:
+            messages.error(request, "An academic year with this name already exists. Please use a unique name.")
+            
         return redirect("admin_school")
 
 
@@ -4305,4 +4312,4 @@ def mark_announcement_read(request):
     announcement.is_active = False
     announcement.save(update_fields=["is_active"])
 
-    return JsonResponse({"success": True})
+    return JsonResponse({"success": True})

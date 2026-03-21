@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Server Error (500)</title>
+    <!-- Use Tailwind CSS as it matches the project's styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .light-bg {
+            background: radial-gradient(circle at center, #f8fafc 0%, #e2e8f0 100%);
+        }
+    </style>
+</head>
+
+<body class="light-bg min-h-screen flex items-center justify-center p-6 text-gray-800 font-sans">
+    <div class="max-w-xl w-full text-center space-y-8 bg-white p-10 rounded-2xl">
+
+        <!-- Error Icon / Graphic -->
+        <div
+            class="relative mx-auto w-24 h-24 flex items-center justify-center bg-red-50 rounded-full border border-red-100">
+            <svg class="w-12 h-12 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
+                </path>
+            </svg>
+        </div>
+
+        <!-- Text Content -->
+        <div class="space-y-3">
+            <p class="text-3xl font-extrabold tracking-tight text-gray-900">
+                Snapp!
+            </p>
+            <p class="text-md text-gray-600">
+                Oops! Something went wrong on our end. Our technical team has been notified and we are working to
+                resolve the issue as quickly as possible.
+            </p>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="pt-6 flex flex-col sm:flex-row items-center justify-center gap-4">
+            <button onclick="window.history.back()"
+                class="w-full sm:w-auto px-6 py-3 bg-white hover:bg-gray-50 text-gray-700 font-medium rounded-lg transition-colors flex items-center justify-center gap-2 border border-gray-300 shadow-sm">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                </svg>
+                Go Back
+            </button>
+            <button onclick="window.location.reload()"
+                class="w-full sm:w-auto px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2 shadow-sm">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                </svg>
+                Refresh
+            </button>
+        </div>
+
+        <!-- <div class="pt-8 border-t border-gray-100">
+            <p class="text-xs text-gray-400 uppercase tracking-widest font-semibold">
+                ETI Platform Technical Support
+            </p>
+        </div> -->
+    </div>
+</body>
+
+</html>

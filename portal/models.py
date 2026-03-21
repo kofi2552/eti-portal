@@ -105,3 +105,20 @@ class Announcement(models.Model):
         return f"{self.title} ({self.role})"
 
 
+class ErrorLog(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True
+    )
+    path = models.CharField(max_length=500, help_text="Browser URL")
+    method = models.CharField(max_length=10, help_text="GET/POST")
+    error_message = models.TextField()
+    stack_trace = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-timestamp"]
+
+    def __str__(self):
+        return f"{self.path} - {self.error_message[:50]}"

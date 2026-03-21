@@ -1,12 +1,19 @@
 from .models import SystemLog
-from users.models import StudentRegistration
+from users.models import StudentRegistration, CustomUser
 from academics.models import Assessment
 from django.db.models import Prefetch
 from decimal import Decimal
 
 def log_event(user, category, message, meta=None):
+    actual_user = user
+    if user and hasattr(user, 'impersonator_id') and user.impersonator_id:
+        impersonator = CustomUser.objects.filter(id=user.impersonator_id).first()
+        if impersonator:
+            actual_user = impersonator
+            message = f"[Impersonated {user.get_full_name() or user.username} ({user.role})] {message}"
+
     SystemLog.objects.create(
-        user=user,
+        user=actual_user,
         category=category,
         message=message,
         meta=meta

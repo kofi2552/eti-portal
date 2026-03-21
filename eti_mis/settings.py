@@ -74,6 +74,8 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
+    'portal.middleware.ExceptionLoggingMiddleware',
+    'users.middleware.ImpersonationMiddleware',
 ]
 
 ROOT_URLCONF = 'eti_mis.urls'
@@ -107,7 +109,7 @@ WSGI_APPLICATION = 'eti_mis.wsgi.application'
 # DATABASES = {
 #     'default': {
 #         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': 'eti_mis',
+#         'NAME': 'eti_mis_db',
 #         'USER': 'postgres',
 #         'PASSWORD': 'root',
 #         'HOST': 'localhost',
@@ -190,7 +192,4 @@ STATICFILES_DIRS = [
 
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
-# python manage.py makemigrations
-# python manage.py migrate
-# python manage.py runserver
-# venv\Scripts\activate
+

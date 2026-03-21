@@ -86,7 +86,7 @@ Academic Years & Semesters {% endblock %} {% block content %}
       <select name="program" class="border-c px-3 py-2 rounded">
         <option value="">-- Select Program --</option>
         {% for p in programs %}
-        <option value="{{ p.id }}" {% if selected_program and selected_program.id==p.id %}selected{% endif %}>
+        <option value="{{ p.id }}" {% if selected_program and selected_program.id == p.id %}selected{% endif %}>
           {{ p.name }}
         </option>
         {% endfor %}
@@ -96,7 +96,7 @@ Academic Years & Semesters {% endblock %} {% block content %}
       <select name="level" class="border-c px-3 py-2 rounded">
         <option value="">-- Select Level --</option>
         {% for lvl in levels %}
-        <option value="{{ lvl.id }}" {% if selected_level and selected_level.id==lvl.id %}selected{% endif %}>
+        <option value="{{ lvl.id }}" {% if selected_level and selected_level.id == lvl.id %}selected{% endif %}>
           {{ lvl.level_name }}
         </option>
         {% endfor %}
