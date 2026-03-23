@@ -1976,6 +1976,10 @@ def admin_school_setup(request):
             messages.error(request, "All grade fields are required.")
             return redirect("admin_school_setup")
 
+        if len(letter) > 3:
+            messages.error(request, f"Grade letter '{letter}' is too long. Please use a short letter code of up to 3 characters (e.g. A, B+, C-).")
+            return redirect("admin_school_setup")
+
         Grade.objects.create(
             letter=letter,
             min_score=min_score,
@@ -1992,6 +1996,11 @@ def admin_school_setup(request):
         grade.letter = request.POST.get("letter").upper().strip()
         grade.min_score = request.POST.get("min_score")
         grade.max_score = request.POST.get("max_score")
+
+        if len(grade.letter) > 3:
+            messages.error(request, f"Grade letter '{grade.letter}' is too long. Please use a short letter code of up to 3 characters (e.g. A, B+, C-).")
+            return redirect("admin_school_setup")
+
         grade.save()
 
         messages.success(request, "Grade updated successfully.")
