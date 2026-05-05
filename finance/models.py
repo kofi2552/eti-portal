@@ -150,3 +150,25 @@ class PaymentBreakdown(models.Model):
 
     def __str__(self):
         return f"{self.component.component.name} - {self.amount_paid}/{self.amount_expected}"
+
+
+class BankTransaction(models.Model):
+    bank_reference_id = models.CharField(max_length=100, unique=True)
+    student = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="bank_transactions"
+    )
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    raw_payload = models.JSONField()
+    status = models.CharField(max_length=20, default="pending", choices=[
+        ("pending", "Pending"),
+        ("success", "Success"),
+        ("failed", "Failed")
+    ])
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.bank_reference_id} - {self.status}"

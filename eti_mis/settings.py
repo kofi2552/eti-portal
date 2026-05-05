@@ -134,7 +134,7 @@ DATABASES = {
     'default': dj_database_url.config(
         default=os.environ.get("DATABASE_URL"),
         conn_max_age=600,
-        # ssl_require=True
+        # ssl_require=False
     )
 }
 
@@ -192,4 +192,5 @@ STATICFILES_DIRS = [
 
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
-
+# Bank Integration API Key
+BANK_API_KEY = os.environ.get("BANK_API_KEY", "sk_test_bank_key")

@@ -10,23 +10,23 @@
 <div class="max-w-6xl mx-auto px-6 py-6 space-y-6">
 
     <!-- PAGE HEADER -->
-    <div class="flex items-center justify-between mb-6">
-        <h2 class="text-2xl font-semibold text-gray-800">System Logs</h2>
+    <div class="flex items-center justify-between mb-8">
+        <h2 class="text-2xl font-bold text-slate-800">System Logs</h2>
     </div>
 
     <!-- FILTER / SEARCH -->
-    <form method="GET" class="bg-white border-c rounded-lg p-4 flex flex-wrap items-end gap-4">
+    <form method="GET" class="bg-white border border-slate-100 rounded-2xl p-6 flex flex-wrap items-end gap-6 shadow-sm">
 
-        <div>
-            <label class="text-sm text-gray-600">Search</label>
+        <div class="space-y-1.5">
+            <label class="text-xs font-black uppercase tracking-widest text-slate-400 px-1">Search</label>
             <input type="text" name="search" value="{{ request.GET.search }}"
                    placeholder="Search logs..."
-                   class="border-c rounded px-3 py-2 w-52 bg-white">
+                   class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm bg-white outline-none focus:ring-1 focus:ring-blue-500 transition-all">
         </div>
 
-        <div>
-            <label class="text-sm text-gray-600">Category</label>
-            <select name="category" class="border-c rounded px-3 py-2 bg-white">
+        <div class="space-y-1.5">
+            <label class="text-xs font-black uppercase tracking-widest text-slate-400 px-1">Category</label>
+            <select name="category" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm bg-white outline-none focus:ring-1 focus:ring-blue-500 transition-all">
                 <option value="">All Categories</option>
                 {% for c in categories %}
                     <option value="{{ c }}" {% if request.GET.category == c %}selected{% endif %}>
@@ -36,9 +36,9 @@
             </select>
         </div>
 
-        <div>
-            <label class="text-sm text-gray-600">User</label>
-            <select name="user" class="border-c rounded px-3 py-2 bg-white w-40">
+        <div class="space-y-1.5">
+            <label class="text-xs font-black uppercase tracking-widest text-slate-400 px-1">User</label>
+            <select name="user" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm bg-white outline-none focus:ring-1 focus:ring-blue-500 transition-all">
                 <option value="">All Users</option>
                 {% for u in users %}
                     <option value="{{ u.id }}" {% if request.GET.user == u.id|stringformat:"s" %}selected{% endif %}>
@@ -48,20 +48,20 @@
             </select>
         </div>
 
-        <button class="bg-blue-600 text-sm text-white px-5 py-2 rounded-md hover:bg-blue-700 cursor-pointer">
+        <button class="bg-slate-900 text-sm text-white font-bold px-8 py-2.5 rounded-xl hover:bg-slate-800 transition-all cursor-pointer">
             Apply Filters
         </button>
     </form>
 
     <!-- LOG LIST -->
-    <div class="bg-white rounded-lg border-c overflow-hidden">
-        <table class="min-w-full text-sm divide-y divide-gray-200">
-            <thead class="bg-gray-100 text-left">
-                <tr>
-                    <th class="px-4 py-3 text-gray-600">Timestamp</th>
-                    <th class="px-4 py-3 text-gray-600">User</th>
-                    <th class="px-4 py-3 text-gray-600">Category</th>
-                    <th class="px-4 py-3 text-gray-600">Details</th>
+    <div class="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
+        <table class="min-w-full text-sm">
+            <thead class="bg-slate-50/50 border-b border-slate-100">
+                <tr class="text-xs font-black uppercase tracking-widest text-slate-400">
+                    <th class="px-6 py-4 text-left">Timestamp</th>
+                    <th class="px-6 py-4 text-left">User</th>
+                    <th class="px-6 py-4 text-left">Category</th>
+                    <th class="px-6 py-4 text-left">Details</th>
                 </tr>
             </thead>
 
@@ -69,35 +69,35 @@
 
             {% for log in page_obj %}
                 <tr class="hover:bg-gray-50">
-                    <td class="px-4 py-3 text-gray-700">
+                    <td class="px-6 py-4 text-slate-500 font-mono text-xs">
                         {{ log.timestamp|date:"Y-m-d H:i" }}
                     </td>
 
-                    <td class="px-4 py-3 text-gray-700">
+                    <td class="px-6 py-4">
                         {% if log.user %}
-                            {{ log.user.get_full_name }}
-                            <div class="text-xs text-gray-500">{{ log.user.role }}</div>
+                            <div class="font-bold text-slate-800">{{ log.user.get_full_name }}</div>
+                            <div class="text-xs text-slate-400 capitalize">{{ log.user.role }}</div>
                         {% else %}
-                            <span class="text-gray-500 italic">System</span>
+                            <span class="text-slate-400 italic">System</span>
                         {% endif %}
                     </td>
 
-                    <td class="px-4 py-3">
-                        <span class="px-2 py-1 rounded text-xs font-medium
-                            {% if log.category == 'registration' %} bg-blue-100 text-blue-700
-                            {% elif log.category == 'assessment' %} bg-green-100 text-green-700
-                            {% elif log.category == 'auth' %} bg-purple-100 text-purple-700
-                            {% elif log.category == 'system' %} bg-gray-200 text-gray-700
-                            {% else %} bg-gray-100 text-gray-600 {% endif %}
+                    <td class="px-6 py-4 text-left">
+                        <span class="inline-flex items-center px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-wider
+                            {% if log.category == 'registration' %} bg-blue-50 text-blue-700
+                            {% elif log.category == 'assessment' %} bg-emerald-50 text-emerald-700
+                            {% elif log.category == 'auth' %} bg-purple-50 text-purple-700
+                            {% elif log.category == 'system' %} bg-slate-100 text-slate-600
+                            {% else %} bg-slate-50 text-slate-500 {% endif %}
                         ">
                             {{ log.category|capfirst }}
                         </span>
                     </td>
 
-                    <td class="px-4 py-3 text-gray-700">
-                        {{ log.message }}
+                    <td class="px-6 py-4 text-slate-700">
+                        <div class="text-sm font-medium">{{ log.message }}</div>
                         {% if log.meta %}
-                            <div class="text-xs text-gray-500 mt-1">
+                            <div class="text-[11px] text-slate-400 mt-1 font-mono">
                                 {{ log.meta }}
                             </div>
                         {% endif %}
@@ -118,20 +118,19 @@
 
     <!-- PAGINATION -->
     {% if page_obj.has_other_pages %}
-        <div class="flex justify-center mt-6 space-x-2">
-
+        <div class="flex justify-center mt-8 gap-2">
             {% if page_obj.has_previous %}
             <a href="?page={{ page_obj.previous_page_number }}&search={{ request.GET.search }}&category={{ request.GET.category }}&user={{ request.GET.user }}"
-               class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300">Prev</a>
+               class="px-4 py-2 bg-white border border-slate-100 text-slate-600 rounded-xl hover:bg-slate-50 font-bold text-xs transition-colors">Prev</a>
             {% endif %}
 
-            <span class="px-4 py-1 bg-blue-600 text-white rounded">
+            <span class="px-6 py-2 bg-slate-900 text-white rounded-xl font-bold text-xs">
                 Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
             </span>
 
             {% if page_obj.has_next %}
             <a href="?page={{ page_obj.next_page_number }}&search={{ request.GET.search }}&category={{ request.GET.category }}&user={{ request.GET.user }}"
-               class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300">Next</a>
+               class="px-4 py-2 bg-white border border-slate-100 text-slate-600 rounded-xl hover:bg-slate-50 font-bold text-xs transition-colors">Next</a>
             {% endif %}
         </div>
     {% endif %}

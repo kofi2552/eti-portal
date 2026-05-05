@@ -1,5 +1,5 @@
 from django.urls import path
-from finance import views
+from finance import views, api_views
 
 urlpatterns = [
     path("login/", views.finance_login, name="finance_login"),
@@ -11,5 +11,9 @@ urlpatterns = [
     path("payments/export/csv/", views.finance_export_summary_payments_csv, name="finance_export_summary_payments_csv"),
     path("full-payments/export/csv/", views.finance_export_payments_csv, name="finance_export_payments_csv"),
     path("ajax/program-fee/<int:fee_id>/detail/",views.finance_program_fee_detail,name="finance_program_fee_detail"),
-    path("students/<int:student_id>/finance/",views.finance_payment_detail,name="finance_payment_detail",)
+    path("students/<int:student_id>/finance/",views.finance_payment_detail,name="finance_payment_detail",),
+    
+    # Bank Integration API Endpoints
+    path("api/bank/students/validate/", api_views.bank_validate_student, name="bank_validate_student"),
+    path("api/bank/payments/notify/", api_views.bank_notify_payment, name="bank_notify_payment"),
 ]

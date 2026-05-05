@@ -9,48 +9,51 @@ Academic Years & Semesters {% endblock %} {% block content %}
     <div class="flex items-center justify-between mb-4">
       <h2 class="text-2xl font-semibold text-gray-800">Academic Years</h2>
       <button onclick="openYearCreate()"
-        class="border-c text-gray-600 text-sm px-4 py-2 rounded-md hover:bg-gray-100 cursor-pointer">
+        class="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-100 text-slate-800 font-bold text-sm rounded-xl hover:bg-slate-200 transition-all cursor-pointer">
+        <i data-lucide="plus" class="w-4 h-4"></i>
         Add Academic Year
       </button>
     </div>
 
-    <div class="bg-white border border-gray-200 rounded-lg">
-      <table class="min-w-full text-sm divide-y divide-gray-200">
-        <thead class="bg-gray-50">
-          <tr>
-            <th class="px-4 py-2 text-left text-gray-600">Name</th>
-            <th class="px-4 py-2 text-left text-gray-600">Start</th>
-            <th class="px-4 py-2 text-left text-gray-600">End</th>
-            <th class="px-4 py-2 text-left text-gray-600">Active</th>
-            <th class="px-4 py-2 text-left text-gray-600">Ready?</th>
-            <th class="px-4 py-2 text-left text-gray-600">Actions</th>
+    <div class="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
+      <table class="min-w-full text-sm">
+        <thead class="bg-slate-50/50 border-b border-slate-100">
+          <tr class="text-xs font-black uppercase tracking-widest text-slate-400">
+            <th class="px-6 py-4 text-left">Name</th>
+            <th class="px-6 py-4 text-left">Start</th>
+            <th class="px-6 py-4 text-left">End</th>
+            <th class="px-6 py-4 text-left">Active</th>
+            <th class="px-6 py-4 text-left">Ready?</th>
+            <th class="px-6 py-4 text-left">Actions</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-100">
           {% for y in academic_years %}
           <tr>
-            <td class="px-4 py-2">{{ y.name }}</td>
-            <td class="px-4 py-2">
+            <td class="px-6 py-4 text-slate-800 font-medium">{{ y.name }}</td>
+            <td class="px-6 py-4 text-slate-500 font-mono text-xs">
               {{ y.start_date|date:"Y-m-d"|default:"-" }}
             </td>
-            <td class="px-4 py-2">{{ y.end_date|date:"Y-m-d"|default:"-" }}</td>
-            <td class="px-4 py-2">
+            <td class="px-6 py-4 text-slate-500 font-mono text-xs">{{ y.end_date|date:"Y-m-d"|default:"-" }}</td>
+            <td class="px-6 py-4">
               {% if y.is_active %}
-              <span class="text-green-600 font-medium">Active</span>
+              <span
+                class="inline-flex items-center px-2 py-1 rounded-md bg-green-50 text-green-700 text-xs font-bold uppercase tracking-wider">Active</span>
               {% else %}
-              <span class="text-gray-500">Inactive</span>
+              <span
+                class="inline-flex items-center px-2 py-1 rounded-md bg-slate-50 text-slate-500 text-xs font-bold uppercase tracking-wider">Inactive</span>
               {% endif %}
             </td>
-            <td class="px-4 py-2">
+            <td class="px-6 py-4">
               {% if y.is_ready %}
-              <span class="text-green-600 font-medium">Yes</span>
+              <span class="text-green-600 font-bold">Yes</span>
               {% else %}
-              <span class="text-gray-500">No</span>
+              <span class="text-slate-400">No</span>
               {% endif %}
             </td>
 
-            <td class="px-4 py-2 space-x-3">
-              <button class="text-blue-600 hover:underline cursor-pointer year-edit-btn cursor-pointer"
+            <td class="px-6 py-4 space-x-3">
+              <button class="text-blue-600 hover:text-blue-800 font-bold cursor-pointer year-edit-btn"
                 data-id="{{ y.id }}" data-name="{{ y.name }}" data-start="{{ y.start_date|date:'Y-m-d' }}"
                 data-end="{{ y.end_date|date:'Y-m-d' }}" data-active="{{ y.is_active }}" data-ready="{{ y.is_ready }}">
                 Edit
@@ -82,88 +85,105 @@ Academic Years & Semesters {% endblock %} {% block content %}
     <h2 class="text-2xl font-semibold mb-6">Manage Semesters</h2>
 
     <!-- PROGRAM SELECT -->
-    <form method="get" class="flex gap-4 mb-6">
-      <select name="program" class="border-c px-3 py-2 rounded">
-        <option value="">-- Select Program --</option>
-        {% for p in programs %}
-        <option value="{{ p.id }}" {% if selected_program and selected_program.id == p.id %}selected{% endif %}>
-          {{ p.name }}
-        </option>
-        {% endfor %}
-      </select>
+    <form method="get" class="flex flex-wrap items-end gap-6 mb-8">
+      <div class="space-y-1.5">
+        <label class="text-xs font-black uppercase tracking-widest text-slate-400 px-1">Program</label>
+        <select name="program"
+          class="w-full border border-slate-200 px-4 py-2.5 rounded-xl bg-white text-sm outline-none focus:ring-1 focus:ring-blue-500 transition-all">
+          <option value="">-- Select Program --</option>
+          {% for p in programs %}
+          <option value="{{ p.id }}" {% if selected_program and selected_program.id==p.id %}selected{% endif %}>
+            {{ p.name }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
 
       {% if selected_program %}
-      <select name="level" class="border-c px-3 py-2 rounded">
-        <option value="">-- Select Level --</option>
-        {% for lvl in levels %}
-        <option value="{{ lvl.id }}" {% if selected_level and selected_level.id == lvl.id %}selected{% endif %}>
-          {{ lvl.level_name }}
-        </option>
-        {% endfor %}
-      </select>
+      <div class="space-y-1.5">
+        <label class="text-xs font-black uppercase tracking-widest text-slate-400 px-1">Level</label>
+        <select name="level"
+          class="w-full border border-slate-200 px-4 py-2.5 rounded-xl bg-white text-sm outline-none focus:ring-1 focus:ring-blue-500 transition-all">
+          <option value="">-- Select Level --</option>
+          {% for lvl in levels %}
+          <option value="{{ lvl.id }}" {% if selected_level and selected_level.id==lvl.id %}selected{% endif %}>
+            {{ lvl.level_name }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
       {% endif %}
 
-      <button class="bg-blue-600 text-white px-4 py-2 rounded cursor-pointer">Load</button>
+      <button
+        class="px-8 py-2.5 bg-slate-900 text-white font-bold text-sm rounded-xl hover:bg-slate-800 transition-all cursor-pointer">Load</button>
     </form>
 
 
     {% if selected_level %}
     <!-- CREATE SEMESTER -->
-    <div class="bg-white border-c border-gray-200 rounded-lg p-6 mb-10">
-      <h3 class="text-lg font-semibold mb-4">Add New Semester</h3>
+    <div class="bg-white border border-slate-100 rounded-2xl p-8 mb-10 shadow-sm">
+      <h3 class="text-xs font-black uppercase tracking-widest text-slate-400 mb-6">Add New Semester</h3>
 
       <form method="POST">
         {% csrf_token %}
         <input type="hidden" name="create_semester" value="1">
         <input type="hidden" name="level_id" value="{{ selected_level.id }}">
 
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div>
-            <label class="block text-gray-600 mb-1">Semester Name</label>
-            <input name="name" class="border-c px-3 py-2 rounded w-full" placeholder="e.g. Semester 1" required>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div class="space-y-1.5">
+            <label class="text-xs font-bold text-slate-500 px-1">Semester Name</label>
+            <input name="name"
+              class="w-full border border-slate-200 px-4 py-2.5 rounded-xl outline-none focus:ring-1 focus:ring-blue-500 transition-all text-sm"
+              placeholder="e.g. Semester 1" required>
           </div>
 
-          <div>
-            <label class="block text-gray-600 mb-1">Academic Year</label>
-            <select name="academic_year_id" class="border-c px-3 py-2 rounded w-full" required>
+          <div class="space-y-1.5">
+            <label class="text-xs font-bold text-slate-500 px-1">Academic Year</label>
+            <select name="academic_year_id"
+              class="w-full border border-slate-200 px-4 py-2.5 rounded-xl bg-white outline-none focus:ring-1 focus:ring-blue-500 transition-all text-sm"
+              required>
               {% for y in years %}
               <option value="{{ y.id }}">{{ y.name }}</option>
               {% endfor %}
             </select>
           </div>
 
-          <div>
-            <label class="block text-gray-600 mb-1">Start Date</label>
-            <input type="date" name="start_date" class="border-c px-3 py-2 rounded w-full" required>
+          <div class="space-y-1.5">
+            <label class="text-xs font-bold text-slate-500 px-1">Start Date</label>
+            <input type="date" name="start_date"
+              class="w-full border border-slate-200 px-4 py-2.5 rounded-xl outline-none focus:ring-1 focus:ring-blue-500 transition-all text-sm"
+              required>
           </div>
 
-          <div>
-            <label class="block text-gray-600 mb-1">End Date</label>
-            <input type="date" name="end_date" class="border-c px-3 py-2 rounded w-full" required>
+          <div class="space-y-1.5">
+            <label class="text-xs font-bold text-slate-500 px-1">End Date</label>
+            <input type="date" name="end_date"
+              class="w-full border border-slate-200 px-4 py-2.5 rounded-xl outline-none focus:ring-1 focus:ring-blue-500 transition-all text-sm"
+              required>
           </div>
         </div>
 
-        <div class="flex justify-end mt-4">
-          <button class="bg-blue-600 text-white px-4 py-2 rounded cursor-pointer">Create Semester</button>
+        <div class="flex justify-end mt-8">
+          <button
+            class="px-8 py-3 bg-slate-900 text-white font-bold text-sm rounded-xl hover:bg-slate-800 transition-all cursor-pointer">Create
+            Semester</button>
         </div>
       </form>
     </div>
 
     <!-- EXISTING SEMESTERS TABLE -->
-    <div class="bg-white border-c border-gray-200 rounded-lg p-6">
-      <h3 class="text-lg font-semibold mb-4">Existing Semesters</h3>
-
-      {% if semesters %}
+    {% if semesters %}
+    <div class="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
       <table class="min-w-full text-sm">
-        <thead class="bg-gray-100">
-          <tr>
-            <th class="px-3 py-2 text-left">Semester</th>
-            <th class="px-3 py-2 text-left">Year</th>
-            <th class="px-3 py-2 text-left">Active</th>
-            <th class="px-3 py-2 text-left">Reg Active</th>
-            <th class="px-3 py-2 text-left">Start</th>
-            <th class="px-3 py-2 text-left">End</th>
-            <th class="px-3 py-2 text-left">Actions</th>
+        <thead class="bg-slate-50/50 border-b border-slate-100">
+          <tr class="text-xs font-black uppercase tracking-widest text-slate-400">
+            <th class="px-6 py-4 text-left">Semester</th>
+            <th class="px-6 py-4 text-left">Year</th>
+            <th class="px-6 py-4 text-left">Active</th>
+            <th class="px-6 py-4 text-left">Reg Active</th>
+            <th class="px-6 py-4 text-left">Start</th>
+            <th class="px-6 py-4 text-left">End</th>
+            <th class="px-6 py-4 text-left">Actions</th>
           </tr>
         </thead>
 
@@ -195,10 +215,12 @@ Academic Years & Semesters {% endblock %} {% block content %}
           {% endfor %}
         </tbody>
       </table>
-      {% else %}
-      <p class="text-gray-500">No semesters found.</p>
-      {% endif %}
     </div>
+    {% else %}
+    <p
+      class="text-slate-400 font-medium text-sm px-6 py-10 text-center bg-white border border-slate-100 rounded-2xl shadow-sm italic">
+      No semesters added for this level yet.</p>
+    {% endif %}
 
     {% endif %}
   </div>
@@ -212,23 +234,35 @@ Academic Years & Semesters {% endblock %} {% block content %}
 
 
 <!-- YEAR CREATE -->
-<div id="yearCreateModal" class="hidden fixed inset-0 flex items-center justify-center"
-  style="backdrop-filter: blur(6px); background: rgba(255, 255, 255, 0.3)">
-  <div class="bg-white border rounded-lg p-6 w-96">
+<div id="yearCreateModal" class="hidden fixed inset-0 flex items-center justify-center p-4"
+  style="backdrop-filter: blur(8px); background: #ffffff1a">
+  <div class="bg-white border border-slate-100 rounded-2xl p-8 w-full max-w-md shadow-sm">
     <h3 class="text-lg font-medium mb-4">Create Academic Year</h3>
 
     <form method="POST">
       {% csrf_token %}
       <input type="hidden" name="create_academic_year" value="1" />
 
-      <label class="block mb-1 text-gray-700">Name</label>
-      <input name="name" required class="w-full border rounded-md px-3 py-2 mb-3" />
+      <div class="space-y-4 mb-8">
+        <div>
+          <label class="block text-xs font-black uppercase tracking-widest text-slate-400 mb-1.5 px-1">Name</label>
+          <input name="name" required
+            class="w-full border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-1 focus:ring-blue-500 transition-all text-sm" />
+        </div>
 
-      <label class="block mb-1 text-gray-700">Start Date</label>
-      <input type="date" name="start_date" class="w-full border rounded-md px-3 py-2 mb-3" />
+        <div>
+          <label class="block text-xs font-black uppercase tracking-widest text-slate-400 mb-1.5 px-1">Start
+            Date</label>
+          <input type="date" name="start_date"
+            class="w-full border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-1 focus:ring-blue-500 transition-all text-sm" />
+        </div>
 
-      <label class="block mb-1 text-gray-700">End Date</label>
-      <input type="date" name="end_date" class="w-full border rounded-md px-3 py-2 mb-3" />
+        <div>
+          <label class="block text-xs font-black uppercase tracking-widest text-slate-400 mb-1.5 px-1">End Date</label>
+          <input type="date" name="end_date"
+            class="w-full border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-1 focus:ring-blue-500 transition-all text-sm" />
+        </div>
+      </div>
 
       <label class="flex items-center space-x-2 mb-4">
         <input type="checkbox" name="is_active" />
@@ -260,7 +294,8 @@ Academic Years & Semesters {% endblock %} {% block content %}
       <input type="hidden" name="academic_year_id" id="yearEditId" />
 
       <label>Name</label>
-      <input name="name" id="yearEditName" class="w-full border rounded-md px-3 py-2 mb-3" />
+      <input name="name" pattern="^\d{4}/\d{4}$" placeholder="YYYY/YYYY" id="yearEditName"
+        class="w-full border rounded-md px-3 py-2 mb-3" />
 
       <label>Start Date</label>
       <input type="date" name="start_date" id="yearEditStart" class="w-full border rounded-md px-3 py-2 mb-3" />

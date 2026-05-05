@@ -183,7 +183,7 @@ def admin_login(request):
 def admin_logs(request):
     if request.user.role != "admin":
         messages.error(request, "Access denied.")
-        return redirect("home")
+        return redirect("portal:home")
 
     logs = SystemLog.objects.select_related("user").order_by("-timestamp")
 
@@ -254,7 +254,7 @@ def student_profile(request):
 
     if user.role != "student":
         messages.error(request, "Access denied.")
-        return redirect("home")
+        return redirect("portal:home")
 
     active_year = AcademicYear.objects.filter(is_active=True).first()
     active_semester = Semester.objects.filter(is_active=True, level=user.level).first()
@@ -272,7 +272,7 @@ def student_main(request):
 
     if user.role != "student":
         messages.error(request, "Access denied.")
-        return redirect("home")
+        return redirect("portal:home")
 
     # ---------------------------
     # Active academic year
@@ -449,7 +449,7 @@ def student_course_details(request, course_id):
 
     if user.role != "student":
         messages.error(request, "Access denied.")
-        return redirect("home")
+        return redirect("portal:home")
 
     # validate course is in student's registration
     registration = (
@@ -840,7 +840,7 @@ def admin_manage_programs(request):
     # Only admin
     if getattr(request.user, "role", None) != "admin":
         messages.error(request, "Access denied.")
-        return redirect("home")
+        return redirect("portal:home")
 
     departments = Department.objects.order_by('name')
     deans = User.objects.filter(role='dean').order_by('username')  # list of possible deans
@@ -996,7 +996,7 @@ def student_enrollment(request):
     if getattr(request.user, "role", None) != "admin":
         log_event(request.user, "auth", "Unauthorized attempt to access student enrollment page")
         messages.error(request, "Access denied.")
-        return redirect("home")
+        return redirect("portal:home")
 
      # ======================================
     # SEARCH
@@ -1562,7 +1562,7 @@ def generate_course_code(title, department):
 def manage_courses(request):
     if getattr(request.user, "role", None) not in ["dean", "admin"]:
         messages.error(request, "Access denied.")
-        return redirect("home")
+        return redirect("portal:home")
 
     user = request.user
 
@@ -1764,7 +1764,7 @@ def ajax_update_program_course(request):
 def dean_program_courses_list(request):
     if request.user.role not in ["dean", "admin"]:
         messages.error(request, "Access denied.")
-        return redirect("home")
+        return redirect("portal:home")
 
     q = request.GET.get("q", "").strip()
     program_id = request.GET.get("program_id")
@@ -2070,7 +2070,7 @@ def admin_school_setup(request):
 def admin_manage_semesters(request):
     if request.user.role != "admin":
         messages.error(request, "Access denied.")
-        return redirect("home")
+        return redirect("portal:home")
 
     programs = Program.objects.all().order_by("name")
     years = AcademicYear.objects.all().order_by("-start_date")
@@ -2390,7 +2390,7 @@ def registration_step_1(request):
     # Only students can access
     if user.role != "student":
         messages.error(request, "Access denied.")
-        return redirect("home")
+        return redirect("portal:home")
 
     # Get or create progress record
     progress, _ = RegistrationProgress.objects.get_or_create(student=user)
@@ -2451,7 +2451,7 @@ def registration_step_2(request):
 
     if user.role != "student":
         messages.error(request, "Access denied.")
-        return redirect("home")
+        return redirect("portal:home")
 
     progress = RegistrationProgress.objects.filter(student=user).first()
 
@@ -2845,7 +2845,7 @@ def student_academics(request):
 
     if user.role != "student":
         messages.error(request, "Access denied.")
-        return redirect("home")
+        return redirect("portal:home")
 
     # -----------------------------------------
     # Academic year selection
@@ -3061,7 +3061,7 @@ def lecturer_courses(request):
 
     if getattr(request.user, "role", None) not in ["lecturer", "admin"]:
         messages.error(request, "Access denied.")
-        return redirect("home")
+        return redirect("portal:home")
 
     user = request.user
 
@@ -3090,7 +3090,7 @@ def lecturer_courses(request):
 #     if getattr(request.user, "role", None) != "lecturer":
 #         log_event(request.user, "auth", "Unauthorized access attempt to lecturer assessments page")
 #         messages.error(request, "Access denied.")
-#         return redirect("home")
+#         return redirect("portal:home")
 
 #     user = request.user
 #     log_event(user, "assessment", "Opened lecturer assessments page")
@@ -3213,7 +3213,7 @@ def lecturer_assessments(request):
     
     if getattr(user, "role", None) != "lecturer":
         messages.error(request, "Access denied.")
-        return redirect("home")
+        return redirect("portal:home")
 
     # -----------------------------
     # LOAD SEMESTERS
@@ -3385,7 +3385,7 @@ def lecturer_assessment_detail(request, task_id):
     # ---------------------------------
     if getattr(user, "role", None) != "lecturer":
         messages.error(request, "Access denied.")
-        return redirect("home")
+        return redirect("portal:home")
 
     task = get_object_or_404(
         AssessmentTask.objects.select_related(
@@ -3600,7 +3600,7 @@ def student_manage_courses(request):
     if user.role != "student":
         log_event(user, "auth", "Unauthorized attempt to access manage courses")
         messages.error(request, "Access denied.")
-        return redirect("home")
+        return redirect("portal:home")
 
     # ------------------------------------------------------------------
     # LOAD ACTIVE REGISTRATION
@@ -3869,7 +3869,7 @@ def student_request_transcript(request):
 
     if user.role != "student":
         messages.error(request, "Access denied.")
-        return redirect("home")
+        return redirect("portal:home")
 
     settings_obj = TranscriptSettings.objects.first()
     if not settings_obj or not settings_obj.allow_requests:
@@ -3985,7 +3985,7 @@ def student_view_transcript(request):
 def admin_transcript_requests(request):
     if request.user.role != "admin":
         messages.error(request, "Access denied.")
-        return redirect("home")
+        return redirect("portal:home")
 
     settings_obj = TranscriptSettings.objects.first()
 
@@ -4020,7 +4020,7 @@ def admin_transcript_requests(request):
 def admin_approve_transcript(request, req_id):
     if request.user.role != "admin":
         messages.error(request, "Access denied.")
-        return redirect("home")
+        return redirect("portal:home")
 
     req = get_object_or_404(TranscriptRequest, id=req_id)
 
@@ -4048,7 +4048,7 @@ def admin_approve_transcript(request, req_id):
 def admin_revoke_transcript(request, req_id):
     if request.user.role != "admin":
         messages.error(request, "Access denied.")
-        return redirect("home")
+        return redirect("portal:home")
 
     req = get_object_or_404(TranscriptRequest, id=req_id)
 
@@ -4065,7 +4065,7 @@ def admin_revoke_transcript(request, req_id):
 def admin_reject_transcript(request, req_id):
     if request.user.role != "admin":
         messages.error(request, "Access denied.")
-        return redirect("home")
+        return redirect("portal:home")
 
     req = get_object_or_404(TranscriptRequest, id=req_id)
     req.status = "rejected"
@@ -4085,7 +4085,7 @@ def admin_reject_transcript(request, req_id):
 def admin_generate_transcript(request, req_id):
     if request.user.role != "admin":
         messages.error(request, "Access denied.")
-        return redirect("home")
+        return redirect("portal:home")
 
     req = get_object_or_404(TranscriptRequest, id=req_id)
 
@@ -4108,7 +4108,7 @@ def admin_generate_transcript(request, req_id):
 def admin_toggle_transcript_lock(request):
     if request.user.role != "admin":
         messages.error(request, "Access denied.")
-        return redirect("home")
+        return redirect("portal:home")
 
     settings_obj, _ = TranscriptSettings.objects.get_or_create(id=1)
 
@@ -4124,7 +4124,7 @@ def admin_toggle_transcript_lock(request):
 def admin_generate_transcript_for_student(request):
     if request.user.role != "admin":
         messages.error(request, "Access denied.")
-        return redirect("home")
+        return redirect("portal:home")
 
     if request.method == "POST":
         student_id = request.POST.get("student_id")
@@ -4168,7 +4168,7 @@ def admin_generate_transcript_for_student(request):
 def admin_delete_transcript_request(request, req_id):
     if request.user.role != "admin":
         messages.error(request, "Access denied.")
-        return redirect("home")
+        return redirect("portal:home")
 
     req = TranscriptRequest.objects.filter(id=req_id).first()
     if not req:
@@ -4183,7 +4183,7 @@ def admin_delete_transcript_request(request, req_id):
 def admin_clear_all_transcript_requests(request):
     if request.user.role != "admin":
         messages.error(request, "Access denied.")
-        return redirect("home")
+        return redirect("portal:home")
 
     # Delete ALL transcript requests
     TranscriptRequest.objects.all().delete()
@@ -4198,7 +4198,7 @@ def student_fee_payments(request):
 
     if user.role != "student":
         messages.error(request, "Access denied.")
-        return redirect("home")
+        return redirect("portal:home")
 
     payments = (
         Payment.objects

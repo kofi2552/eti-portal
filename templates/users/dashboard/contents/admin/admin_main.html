@@ -5,48 +5,53 @@
 {% block content %}
 <!-- ----------- -->
 
-<div class="max-w-6xl mx-auto px-4">
-  <div class="container mx-auto">
-    <div class="w-full flex items-center justify-between">
-      <h1 class="text-3xl font-bold mb-6">Admin Dashboard</h1>
+<div class="max-w-7xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+  <div>
+    <h1 class="text-3xl font-extrabold text-slate-800 tracking-tight">Admin Dashboard</h1>
+    <p class="text-slate-500 font-medium text-sm mt-1">Institutional overview and quick management tools.</p>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <!-- USERS CARD -->
+    <div class="bg-white p-8 rounded-2xl border border-slate-200 hover:border-slate-300 transition-all flex flex-col justify-between group">
+      <div>
+        <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-6 group-hover:bg-blue-600 group-hover:text-white transition-all">
+          <i data-lucide="users" class="w-6 h-6"></i>
+        </div>
+        <h2 class="text-xl font-extrabold text-slate-800 mb-2">Users</h2>
+        <p class="text-slate-500 text-sm font-medium leading-relaxed">Maintain student, lecturer, and administrative staff profiles.</p>
+      </div>
+      <a href="{% url 'admin_manage_users' %}" class="mt-6 inline-flex items-center gap-2 text-blue-600 font-bold text-sm tracking-tight hover:gap-3 transition-all">
+        Manage Users <i data-lucide="arrow-right" class="w-4 h-4"></i>
+      </a>
     </div>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div class="bg-white p-6 rounded-lg shadow hover:shadow-lg transition">
-        <h2 class="text-xl font-semibold mb-2">Manage Users</h2>
-        <p>View, add, edit, or remove students, lecturers, and other admins.</p>
-        <a
-          href="{% url 'admin_manage_users' %}"
-          class="mt-2 inline-block text-blue-600 hover:underline"
-          ><i
-            data-lucide="move-right"
-            style="stroke-width: 1; color: #40495d"
-          ></i>
-        </a>
+
+    <!-- PROGRAMS CARD -->
+    <div class="bg-white p-8 rounded-2xl border border-slate-200 hover:border-slate-300 transition-all flex flex-col justify-between group">
+      <div>
+        <div class="w-12 h-12 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center mb-6 group-hover:bg-purple-600 group-hover:text-white transition-all">
+          <i data-lucide="book-open" class="w-6 h-6"></i>
+        </div>
+        <h2 class="text-xl font-extrabold text-slate-800 mb-2">Curriculum</h2>
+        <p class="text-slate-500 text-sm font-medium leading-relaxed">Oversee academic programs, base courses, and department logic.</p>
       </div>
-      <div class="bg-white p-6 rounded-lg shadow hover:shadow-lg transition">
-        <h2 class="text-xl font-semibold mb-2">Programs & Courses</h2>
-        <p>Create or manage academic programs and courses offered.</p>
-        <a
-          href="{% url 'admin_manage_programs' %}"
-          class="mt-2 inline-block text-blue-600 hover:underline"
-          ><i
-            data-lucide="move-right"
-            style="stroke-width: 1; color: #40495d"
-          ></i
-        ></a>
+      <a href="{% url 'admin_manage_programs' %}" class="mt-6 inline-flex items-center gap-2 text-blue-600 font-bold text-sm tracking-tight hover:gap-3 transition-all">
+        Manage Programs <i data-lucide="arrow-right" class="w-4 h-4"></i>
+      </a>
+    </div>
+
+    <!-- CALENDAR CARD -->
+    <div class="bg-white p-8 rounded-2xl border border-slate-200 hover:border-slate-300 transition-all flex flex-col justify-between group">
+      <div>
+        <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center mb-6 group-hover:bg-emerald-600 group-hover:text-white transition-all">
+          <i data-lucide="calendar" class="w-6 h-6"></i>
+        </div>
+        <h2 class="text-xl font-extrabold text-slate-800 mb-2">School</h2>
+        <p class="text-slate-500 text-sm font-medium leading-relaxed">Configure academic semesters, school terms, and global settings.</p>
       </div>
-      <div class="bg-white p-6 rounded-lg shadow hover:shadow-lg transition">
-        <h2 class="text-xl font-semibold mb-2">Calendar</h2>
-        <p>Setup the academic years and semesters</p>
-        <a
-          href="{% url 'admin_school' %}"
-          class="mt-2 inline-block text-blue-600 hover:underline"
-          ><i
-            data-lucide="move-right"
-            style="stroke-width: 1; color: #40495d"
-          ></i
-        ></a>
-      </div>
+      <a href="{% url 'admin_school' %}" class="mt-6 inline-flex items-center gap-2 text-blue-600 font-bold text-sm tracking-tight hover:gap-3 transition-all">
+        Configure School <i data-lucide="arrow-right" class="w-4 h-4"></i>
+      </a>
     </div>
   </div>
 </div>

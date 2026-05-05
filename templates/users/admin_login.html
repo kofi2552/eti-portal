@@ -1,18 +1,12 @@
-{% extends "base.html" %} {% block content %}
+{% extends "base.html" %} {% load static %} {% block content %}
 
-<div
-  class="flex-grow flex items-center justify-center p-4 bg-slate-50 min-h-[100vh]"
->
+<div class="flex-grow flex items-center justify-center p-4 bg-slate-50 min-h-[100vh]">
   <div class="w-full max-w-md">
-    <div
-      class="bg-white rounded-3xl border-2 border-slate-200 shadow-xl overflow-hidden"
-    >
+    <div class="bg-white rounded-3xl border-2 border-slate-200 overflow-hidden">
       <!-- HEADER -->
-      <div class="pt-8 pb-6 px-8 text-center border-b-2 border-slate-100">
-        <div
-          class="w-20 h-20 mx-auto bg-slate-600 rounded-2xl flex items-center justify-center text-white border-b-4 border-slate-800 mb-4"
-        >
-          <i data-lucide="settings" class="w-10 h-10 stroke-[2.5]"></i>
+      <div class="pt-10 pb-6 px-8 text-center border-b-2 border-slate-100">
+        <div class="w-16 h-16 mx-auto mb-4 p-2 bg-white rounded-2xl flex items-center justify-center">
+          <img src="{% static 'images/eti_favicon.png' %}" class="h-full w-full object-contain" />
         </div>
         <h2 class="text-2xl font-extrabold text-slate-600 mb-1">
           System Admin
@@ -25,58 +19,33 @@
         {% csrf_token %}
 
         <div class="space-y-2">
-          <label
-            class="text-xs font-extrabold uppercase text-slate-500 tracking-wider ml-1"
-          >
+          <label class="text-xs font-extrabold uppercase text-slate-500 tracking-wider ml-1">
             Email
           </label>
           <div class="relative">
-            <div
-              class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"
-            >
-              <i
-                data-lucide="user"
-                class="h-5 w-5 text-slate-300 stroke-[3]"
-              ></i>
+            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <i data-lucide="user" class="h-5 w-5 text-slate-300 stroke-[3]"></i>
             </div>
-            <input
-              type="email"
-              name="email"
-              required
-              placeholder=""
-              class="block w-full pl-12 pr-4 py-3.5 bg-slate-50 border-2 border-slate-200 rounded-xl font-bold focus:border-slate-500 focus:bg-white outline-none"
-            />
+            <input type="email" name="email" required placeholder=""
+              class="block w-full pl-12 pr-4 py-3.5 bg-slate-50 border-2 border-slate-200 rounded-xl font-bold focus:border-slate-500 focus:bg-white outline-none" />
           </div>
         </div>
 
         <div class="space-y-2">
-          <label
-            class="text-xs font-extrabold uppercase text-slate-500 tracking-wider ml-1"
-          >
+          <label class="text-xs font-extrabold uppercase text-slate-500 tracking-wider ml-1">
             Password
           </label>
           <div class="relative">
-            <div
-              class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"
-            >
-              <i
-                data-lucide="lock"
-                class="h-5 w-5 text-slate-300 stroke-[3]"
-              ></i>
+            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <i data-lucide="lock" class="h-5 w-5 text-slate-300 stroke-[3]"></i>
             </div>
-            <input
-              type="password"
-              name="password"
-              required
-              class="block w-full pl-12 pr-4 py-3.5 bg-slate-50 border-2 border-slate-200 rounded-xl font-bold focus:border-emerald-500 focus:bg-white outline-none"
-            />
+            <input type="password" name="password" required
+              class="block w-full pl-12 pr-4 py-3.5 bg-slate-50 border-2 border-slate-200 rounded-xl font-bold focus:border-emerald-500 focus:bg-white outline-none" />
           </div>
         </div>
 
-        <button
-          type="submit"
-          class="w-full bg-slate-600 border-slate-600 border-b-4 border-slate-800 text-white font-extrabold text-lg uppercase py-4 rounded-xl active:border-b-0 active:translate-y-1 transition-all flex items-center justify-center"
-        >
+        <button type="submit"
+          class="w-full bg-slate-600 border-slate-600 border-b-4 border-slate-800 text-white font-extrabold text-lg uppercase py-4 rounded-xl active:border-b-0 active:translate-y-1 transition-all flex items-center justify-center">
           Log In
           <i data-lucide="arrow-right" class="ml-2 w-6 h-6 stroke-[3]"></i>
         </button>

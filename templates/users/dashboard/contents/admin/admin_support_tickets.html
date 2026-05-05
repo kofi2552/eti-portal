@@ -7,12 +7,12 @@
 
   <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
     <div>
-      <h1 class="text-3xl font-extrabold text-slate-800 tracking-tight">Support Tickets</h1>
+      <h1 class="text-3xl font-extrabold text-slate-800 tracking-tight">Help Desk</h1>
       <p class="text-slate-500 font-medium text-sm mt-1">Manage Academic, Finance, and General inquiries from users.</p>
     </div>
   </div>
 
-  <div class="bg-white rounded-3xl border-2 border-slate-200 shadow-card overflow-hidden">
+  <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
     <div class="overflow-x-auto">
       <table class="w-full text-left border-collapse">
         <thead>
@@ -71,38 +71,38 @@
             <td class="py-4">
               {% if t.status == 'open' %}
               <span
-                class="px-1 py-1 bg-yellow-100 text-yellow-700 rounded-lg text-[10px] font-black uppercase tracking-widest border border-yellow-200">Open</span>
+                class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded-xl text-[10px] font-black uppercase tracking-widest border border-yellow-200">Open</span>
               {% elif t.status == 'in_progress' %}
               <span
-                class="px-1 py-1 bg-blue-100 text-blue-700 rounded-lg text-[10px] font-black uppercase tracking-widest border border-blue-200">In
+                class="px-2 py-1 bg-blue-100 text-blue-700 rounded-xl text-[10px] font-black uppercase tracking-widest border border-blue-200">In
                 Progress</span>
               {% elif t.status == 'fixed' %}
               <span
-                class="px-1 py-1 bg-green-100 text-green-700 rounded-lg text-[10px] font-black uppercase tracking-widest border border-green-200">Fixed</span>
+                class="px-2 py-1 bg-green-100 text-green-700 rounded-xl text-[10px] font-black uppercase tracking-widest border border-green-200">Fixed</span>
               {% else %}
               <span
-                class="px-1 py-1 bg-gray-100 text-gray-700 rounded-lg text-[10px] font-black uppercase tracking-widest border border-gray-200">Closed</span>
+                class="px-2 py-1 bg-gray-100 text-gray-700 rounded-xl text-[10px] font-black uppercase tracking-widest border border-gray-200">Closed</span>
               {% endif %}
             </td>
 
             <td class="py-4 px-6 pt-8 text-right text-xs space-x-2 flex items-center gap-2">
               {% if t.status != 'fixed' and t.status != 'closed' %}
               <a href="{% url 'admin_resolve_ticket' t.id 'mark_fixed' %}" title="Mark Fixed"
-                class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-green-50 text-green-600 hover:bg-green-500 hover:text-white transition-colors border border-green-200 hover:border-transparent">
+                class="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-green-50 text-green-600 hover:bg-green-500 hover:text-white transition-colors border border-green-200 hover:border-transparent">
                 <i data-lucide="check" class="w-4 h-4"></i>
               </a>
               {% endif %}
 
               {% if t.status == 'open' %}
               <a href="{% url 'admin_resolve_ticket' t.id 'mark_progress' %}" title="Mark In Progress"
-                class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-500 hover:text-white transition-colors border border-blue-200 hover:border-transparent">
+                class="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-500 hover:text-white transition-colors border border-blue-200 hover:border-transparent">
                 <i data-lucide="loader" class="w-4 h-4"></i>
               </a>
               {% endif %}
 
               {% if t.status != 'closed' %}
               <a href="{% url 'admin_resolve_ticket' t.id 'mark_closed' %}" title="Close Ticket"
-                class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-50 text-slate-400 hover:bg-slate-700 hover:text-white transition-colors border border-slate-200 hover:border-transparent cursor-pointer">
+                class="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-slate-50 text-slate-400 hover:bg-slate-700 hover:text-white transition-colors border border-slate-200 hover:border-transparent cursor-pointer">
                 <i data-lucide="x" class="w-4 h-4"></i>
               </a>
               {% endif %}

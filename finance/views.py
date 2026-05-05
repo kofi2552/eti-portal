@@ -34,7 +34,7 @@ def finance_login(request):
     if request.user.is_authenticated:
         if getattr(request.user, "role", None) == "finance":
             return redirect("finance_dashboard")
-        return redirect("home")
+        return redirect("portal:home")
 
     if request.method == "POST":
         email = request.POST.get("email")
@@ -69,9 +69,9 @@ def generate_pin():
 
 @login_required
 def finance_main(request):
-    if getattr(request.user, "role", None) != "finance":
+    if getattr(request.user, "role", None) not in ["finance", "admin", "superadmin"]:
         messages.error(request, "Access denied.")
-        return redirect("home")
+        return redirect("portal:home")
 
     return render(
         request,
@@ -82,9 +82,9 @@ def finance_main(request):
 
 @login_required
 def finance_dashboard(request):
-    if getattr(request.user, "role", None) != "finance":
+    if getattr(request.user, "role", None) not in ["finance", "admin", "superadmin"]:
         messages.error(request, "Access denied.")
-        return redirect("home")
+        return redirect("portal:home")
 
     # ---------------------------------
     # Dashboard stats
@@ -145,7 +145,7 @@ def finance_dashboard(request):
 
 def semester_fee_list(request):
     if request.user.role != "finance":
-        return redirect("home")
+        return redirect("portal:home")
 
     fees = (
         ProgramFee.objects
@@ -455,10 +455,10 @@ def finance_create_student_payment(request):
     # ---------------------------------------
     # ACCESS CONTROL
     # ---------------------------------------
-    if getattr(request.user, "role", None) != "finance":
+    if getattr(request.user, "role", None) not in ["finance", "admin", "superadmin"]:
         log_event(request.user, "auth", "Unauthorized attempt to access student enrollment page")
         messages.error(request, "Access denied.")
-        return redirect("home")
+        return redirect("portal:home")
 
     # Fetch all payments
     payments = Payment.objects.select_related("student", "academic_year", "semester").order_by("-created_at")
@@ -622,8 +622,8 @@ def finance_create_student_payment(request):
 
 @login_required
 def finance_export_summary_payments_csv(request):
-    if getattr(request.user, "role", None) != "finance":
-        return redirect("home")
+    if getattr(request.user, "role", None) not in ["finance", "admin", "superadmin"]:
+        return redirect("portal:home")
 
     response = HttpResponse(content_type="text/csv")
     response["Content-Disposition"] = 'attachment; filename="student_finance_data.csv"'
@@ -672,8 +672,8 @@ def finance_export_summary_payments_csv(request):
 
 @login_required
 def finance_export_payments_csv(request):
-    if getattr(request.user, "role", None) != "finance":
-        return redirect("home")
+    if getattr(request.user, "role", None) not in ["finance", "admin", "superadmin"]:
+        return redirect("portal:home")
 
     response = HttpResponse(content_type="text/csv")
     response["Content-Disposition"] = (
@@ -759,7 +759,7 @@ def finance_export_payments_csv(request):
 def finance_payment_detail(request, student_id):
     if getattr(request.user, "role", None) != "finance":
         messages.error(request, "Access denied.")
-        return redirect("home")
+        return redirect("portal:home")
 
     student = get_object_or_404(
         User.objects.select_related("program"),

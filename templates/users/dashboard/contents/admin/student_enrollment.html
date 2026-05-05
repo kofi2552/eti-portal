@@ -3,27 +3,23 @@ Fee Payments {% endblock %} {% block content %}
 
 <div class="max-w-5xl mx-auto px-4 pt-6 pb-8">
   <div class="w-full flex items-center justify-between">
-    <h2 class="text-xl font-semibold mb-3">Student Registration</h2>
+    <h2 class="text-xl font-semibold mb-3">Enrollment and Fee Payment</h2>
     <form method="GET" class="flex gap-3 mb-4">
-      <input
-        type="text"
-        name="q"
-        value="{{ search_query }}"
-        placeholder="Search student name..."
-        class="border rounded px-3 py-2 w-64"
-      />
-      <button class="px-4 py-2 bg-gray-100 rounded">Search</button>
+      <input type="text" name="q" value="{{ search_query }}" placeholder="Search student name..."
+        class="border rounded px-3 py-2 w-64" />
+      <button
+        class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold rounded-xl text-sm transition-colors">Search</button>
     </form>
   </div>
-  <div class="w-full mx-auto bg-white p-6 rounded-md border py-6 space-y-8">
+  <div class="w-full mx-auto bg-white p-6 rounded-2xl border border-slate-100 space-y-8">
     <!-- <div class="flex justify-between items-center mb-4">
       <h2 class="text-lg font-semibold">Student Fee Payments</h2>
     </div> -->
     <!-- PAYMENT TABLE -->
     <div class="bg-white">
       <table class="min-w-full text-sm divide-y divide-gray-200">
-        <thead class="bg-gray-50">
-          <tr class="text-left">
+        <thead class="bg-slate-50/50">
+          <tr class="text-xs font-black uppercase tracking-widest text-slate-400">
             <th class="px-4 py-2">Student</th>
             <!-- <th class=" px-4 py-2">Year</th> -->
             <th class="px-4 py-2">Semester</th>
@@ -47,9 +43,7 @@ Fee Payments {% endblock %} {% block content %}
             <!-- <td class="px-4 py-2"></td> -->
             <td class="flex flex-col text-left px-4 py-2">
               <span>{{ p.semester.name }}</span>
-              <span class="text-xs text-gray-400"
-                >({{ p.academic_year.name }})</span
-              >
+              <span class="text-xs text-gray-400">({{ p.academic_year.name }})</span>
             </td>
             <td class="px-4 py-2">{{ p.amount_expected }}</td>
             <td class="px-4 py-2">{{ p.amount_paid }}</td>
@@ -66,9 +60,7 @@ Fee Payments {% endblock %} {% block content %}
                 {% csrf_token %}
                 <input type="hidden" name="verify_payment" value="1" />
                 <input type="hidden" name="payment_id" value="{{ p.id }}" />
-                <button
-                  class="text-xs text-blue-600 hover:underline cursor-pointer mr-4 border px-4 py-1"
-                >
+                <button class="text-xs text-blue-600 hover:underline cursor-pointer mr-4 border px-4 py-1">
                   Verify
                 </button>
               </form>
@@ -78,21 +70,12 @@ Fee Payments {% endblock %} {% block content %}
                 {% csrf_token %}
                 <input type="hidden" name="delete_payment" value="1" />
                 <input type="hidden" name="payment_id" value="{{ p.id }}" />
-                <button
-                  class="text-xs text-red-600 hover:underline cursor-pointer border px-4 py-1"
-                >
+                <button class="text-xs text-red-600 hover:underline cursor-pointer border px-4 py-1">
                   Delete
                 </button>
               </form>
-              <form
-                method="GET"
-                action="{% url 'payment_pdf' p.id %}"
-                style="display: inline"
-                class=""
-              >
-                <button
-                  class="text-xs text-gray-700 hover:underline cursor-pointer border px-4 py-1"
-                >
+              <form method="GET" action="{% url 'payment_pdf' p.id %}" style="display: inline" class="">
+                <button class="text-xs text-gray-700 hover:underline cursor-pointer border px-4 py-1">
                   Save PDF
                 </button>
               </form>
@@ -104,12 +87,12 @@ Fee Payments {% endblock %} {% block content %}
     </div>
   </div>
 
-  <div class="bg-white border rounded-md p-6 mb-8 mt-8">
-    <h3 class="text-xl font-semibold mb-4">Program Fee Control</h3>
+  <div class="bg-white border border-slate-100 rounded-2xl p-6 mb-8 mt-8">
+    <h3 class="text-md font-semibold mb-4">Program Fee Control</h3>
 
     <table class="min-w-full text-sm divide-y divide-gray-200">
-      <thead class="bg-gray-50">
-        <tr>
+      <thead class="bg-slate-50/50">
+        <tr class="text-xs font-black uppercase tracking-widest text-slate-400">
           <th class="px-4 py-2 text-left">Academic Year</th>
           <th class="px-4 py-2 text-left">Semester</th>
           <th class="px-4 py-2 text-left">Total Program Cost</th>
@@ -142,8 +125,7 @@ Fee Payments {% endblock %} {% block content %}
               <input type="hidden" name="fee_id" value="{{ fee.id }}" />
 
               <button
-                class="px-3 py-1 rounded text-sm font-semibold {% if fee.is_allowed %} bg-red-100 text-red-700 {% else %} bg-green-100 text-green-700 {% endif %}"
-              >
+                class="px-3 py-1 rounded text-sm font-semibold {% if fee.is_allowed %} bg-red-100 text-red-700 {% else %} bg-green-100 text-green-700 {% endif %}">
                 {% if fee.is_allowed %} Disable Editing {% else %} Allow Editing
                 {% endif %}
               </button>
@@ -155,8 +137,7 @@ Fee Payments {% endblock %} {% block content %}
               <input type="hidden" name="del_fee_id" value="{{ fee.id }}" />
 
               <button
-                class="px-3 py-1 rounded text-sm font-semibold {% if fee.is_archived %} border border-green-500 text-green-700 {% else %} border border-red-500 text-red-700 {% endif %}"
-              >
+                class="px-3 py-1 rounded text-sm font-semibold {% if fee.is_archived %} border border-green-500 text-green-700 {% else %} border border-red-500 text-red-700 {% endif %}">
                 {% if fee.is_archived %} Recover {% else %} Archive {% endif %}
               </button>
             </form>
@@ -167,12 +148,12 @@ Fee Payments {% endblock %} {% block content %}
     </table>
   </div>
 
-  <div class="bg-white border rounded-md p-6 mb-8 mt-8">
-    <h3 class="text-xl font-semibold mb-4">Semester Enrollment Control</h3>
+  <div class="bg-white border border-slate-100 rounded-2xl p-6 mb-8 mt-8">
+    <h3 class="text-md font-semibold mb-4">Semester Enrollment Control</h3>
 
     <table class="min-w-full text-sm divide-y divide-gray-200">
-      <thead class="bg-gray-50">
-        <tr>
+      <thead class="bg-slate-50/50">
+        <tr class="text-xs font-black uppercase tracking-widest text-slate-400">
           <th class="px-4 py-2 text-left">Semester</th>
           <th class="px-4 py-2 text-left">Academic Year</th>
           <th class="px-4 py-2 text-left">Registration Status</th>
@@ -201,15 +182,11 @@ Fee Payments {% endblock %} {% block content %}
               <input type="hidden" name="semester_id" value="{{ s.id }}" />
 
               {% if s.sem_reg_is_active %}
-              <button
-                class="px-3 py-1 bg-red-600 text-sm text-white hover:bg-red-700 cursor-pointer"
-              >
+              <button class="px-3 py-1 bg-red-600 text-sm text-white hover:bg-red-700 cursor-pointer">
                 Deactivate Sem Registration
               </button>
               {% else %}
-              <button
-                class="px-3 py-1 bg-green-600 text-sm text-white hover:bg-green-700 cursor-pointer"
-              >
+              <button class="px-3 py-1 bg-green-600 text-sm text-white hover:bg-green-700 cursor-pointer">
                 Activate Sem Registration
               </button>
               {% endif %}
@@ -226,17 +203,11 @@ Fee Payments {% endblock %} {% block content %}
 
     <div class="flex gap-2">
       {% if payments.has_previous %}
-      <a
-        href="?page={{ payments.previous_page_number }}&q={{ search_query }}"
-        class="px-3 py-1 border rounded"
-      >
+      <a href="?page={{ payments.previous_page_number }}&q={{ search_query }}" class="px-3 py-1 border rounded">
         Prev
       </a>
       {% endif %} {% if payments.has_next %}
-      <a
-        href="?page={{ payments.next_page_number }}&q={{ search_query }}"
-        class="px-3 py-1 border rounded"
-      >
+      <a href="?page={{ payments.next_page_number }}&q={{ search_query }}" class="px-3 py-1 border rounded">
         Next
       </a>
       {% endif %}
@@ -245,25 +216,18 @@ Fee Payments {% endblock %} {% block content %}
   {% endif %}
 
   <div>
-    <a
-      href="{% url 'finance_export_payments_csv' %}"
-      class="px-4 py-2 text-blue-600 border rounded text-sm hover:bg-gray-100"
-    >
+    <a href="{% url 'finance_export_payments_csv' %}"
+      class="inline-flex items-center gap-2 px-5 py-2.5 text-blue-600 bg-blue-50/50 hover:bg-blue-50 border border-blue-100 rounded-xl text-sm font-bold transition-colors">
+      <i data-lucide="download" class="w-4 h-4"></i>
       Download Full Student Finance Data (CSV)
     </a>
   </div>
 </div>
 
 <!-- CREATE PAYMENT MODAL -->
-<div
-  id="createPaymentModal"
-  class="w-full hidden fixed inset-0 flex items-center justify-center"
-  style="backdrop-filter: blur(6px); background-color: rgba(255, 255, 255, 0.3)"
->
-  <div
-    class="bg-white mx-auto p-6 rounded-md border-c shadow-sm"
-    style="width: 500px"
-  >
+<div id="createPaymentModal" class="w-full hidden fixed inset-0 flex items-center justify-center"
+  style="backdrop-filter: blur(6px); background-color: rgba(255, 255, 255, 0.3)">
+  <div class="bg-white mx-auto p-6 rounded-md border-c shadow-sm" style="width: 500px">
     <h3 class="text-lg font-semibold mb-3">Add Payment</h3>
 
     <form method="POST" class="w-full">
@@ -282,12 +246,7 @@ Fee Payments {% endblock %} {% block content %}
         <!-- PROGRAM -->
         <div class="w-full">
           <label class="block mb-1">Program</label>
-          <select
-            name="program_id"
-            id="programSelect"
-            class="w-full border px-3 py-2 mb-3"
-            required
-          >
+          <select name="program_id" id="programSelect" class="w-full border px-3 py-2 mb-3" required>
             <option value="">-- Select Program --</option>
             {% for prog in programs %}
             <option value="{{ prog.id }}">{{ prog.name }}</option>
@@ -298,12 +257,7 @@ Fee Payments {% endblock %} {% block content %}
         <!-- LEVEL -->
         <div class="w-full">
           <label class="block mb-1">Level</label>
-          <select
-            name="level_id"
-            id="levelSelect"
-            class="w-full border px-3 py-2 mb-3"
-            required
-          >
+          <select name="level_id" id="levelSelect" class="w-full border px-3 py-2 mb-3" required>
             <option value="">-- Select Level --</option>
           </select>
         </div>
@@ -312,11 +266,7 @@ Fee Payments {% endblock %} {% block content %}
       <div class="flex items-center justify-between gap-4">
         <div class="w-full">
           <label class="block mb-1">Academic Year</label>
-          <select
-            name="academic_year_id"
-            required
-            class="w-full border px-3 py-2 mb-3"
-          >
+          <select name="academic_year_id" required class="w-full border px-3 py-2 mb-3">
             {% for y in years %}
             <option value="{{ y.id }}">{{ y.name }}</option>
             {% endfor %}
@@ -325,11 +275,7 @@ Fee Payments {% endblock %} {% block content %}
 
         <div class="w-full">
           <label class="block mb-1">Semester</label>
-          <select
-            name="semester_id"
-            required
-            class="w-full border px-3 py-2 mb-3"
-          >
+          <select name="semester_id" required class="w-full border px-3 py-2 mb-3">
             {% for sem in semesters %}
             <option value="{{ sem.id }}">{{ sem.name }}</option>
             {% endfor %}
@@ -338,29 +284,16 @@ Fee Payments {% endblock %} {% block content %}
       </div>
 
       <label class="block mb-1">Expected Amount</label>
-      <input
-        name="amount_expected"
-        type="number"
-        required
-        class="w-full border px-3 py-2 mb-3"
-      />
+      <input name="amount_expected" type="number" required class="w-full border px-3 py-2 mb-3" />
 
       <label class="block mb-1">Amount Paid</label>
-      <input
-        name="amount_paid"
-        type="number"
-        class="w-full border px-3 py-2 mb-3"
-      />
+      <input name="amount_paid" type="number" class="w-full border px-3 py-2 mb-3" />
 
       <label class="block mb-1">Reference</label>
       <input name="reference" required class="w-full border px-3 py-2 mb-3" />
 
       <div class="flex justify-end space-x-2">
-        <button
-          type="button"
-          onclick="closeCreatePayment()"
-          class="px-4 py-2 border rounded-md"
-        >
+        <button type="button" onclick="closeCreatePayment()" class="px-4 py-2 border rounded-md">
           Cancel
         </button>
         <button class="px-4 py-2 bg-blue-600 text-white rounded-md">
