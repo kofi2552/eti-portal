@@ -4,6 +4,9 @@ from django.conf import settings
 from academics.models import Department, Program, AcademicYear, Semester, ProgramCourse, ProgramLevel
 from users.models import Payment
 from decimal import Decimal
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from django.utils.crypto import get_random_string
 
 
 class ProgramFee(models.Model):
@@ -216,9 +219,6 @@ class ApplicationForm(models.Model):
     def __str__(self):
         return f"{self.application_id} - {self.student.get_full_name()}"
 
-from django.db.models.signals import post_save
-from django.dispatch import receiver
-from django.utils.crypto import get_random_string
 
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
 def create_application_id_for_student(sender, instance, created, **kwargs):

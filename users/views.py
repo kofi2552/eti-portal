@@ -376,7 +376,6 @@ def student_main(request):
     fee_balance = Decimal("0.00")
     if verified_payments.exists():
         from finance.models import PaymentBreakdown
-        from django.db.models import Sum
         unique_semesters = set((p.program_id, p.academic_year_id, p.semester_id) for p in verified_payments)
         total_billed = Decimal("0.00")
         for pf_key in unique_semesters:
