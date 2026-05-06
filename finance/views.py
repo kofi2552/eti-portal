@@ -399,6 +399,8 @@ def semester_fee_list(request):
 
 @login_required
 def ajax_program_fee_components(request, program_id, year_id, semester_id):
+    student_id = request.GET.get("student_id")
+    
     program_fee = get_object_or_404(
         ProgramFee,
         program_id=program_id,
@@ -407,18 +409,54 @@ def ajax_program_fee_components(request, program_id, year_id, semester_id):
     )
 
     components = program_fee.program_fee_components.select_related("component")
-
-    return JsonResponse({
-        "initial_amount": str(program_fee.initial_amount),
-        "components": [
-            {
+    
+    component_data = []
+    
+    for pfc in components:
+        paid_so_far = Decimal("0.00")
+        if student_id:
+            try:
+                s_id = int(student_id)
+                paid_so_far = (
+                    PaymentBreakdown.objects
+                    .filter(
+                        payment__student_id=s_id, 
+                        component=pfc, 
+                        is_active=True,
+                        payment__is_verified=True  # Only count verified payments
+                    )
+                    .aggregate(total=models.Sum("amount_paid"))["total"] or Decimal("0.00")
+                )
+            except (ValueError, TypeError):
+                pass
+            
+        remaining = max(Decimal("0.00"), pfc.total_fee - paid_so_far)
+        
+        if remaining > 0:
+            component_data.append({
                 "id": pfc.id,
                 "name": pfc.component.name,
                 "total_fee": str(pfc.total_fee),
-                "balance": str(pfc.total_fee),
-            }
-            for pfc in components
-        ]
+                "balance": str(remaining),
+            })
+
+    available_credit = Decimal("0.00")
+    if student_id:
+        try:
+            s_id = int(student_id)
+            from finance.models import StudentOverpayment
+            available_credit = StudentOverpayment.objects.filter(
+                student_id=s_id, 
+                is_reimbursed=False, 
+                is_used=False
+            ).aggregate(total=models.Sum("amount"))["total"] or Decimal("0.00")
+        except (ValueError, TypeError):
+            pass
+
+    return JsonResponse({
+        "initial_amount": str(program_fee.initial_amount),
+        "available_credit": str(available_credit),
+        "components": component_data
     })
 
 
@@ -521,12 +559,88 @@ def finance_create_student_payment(request):
         amount_expected = Decimal(request.POST["amount_expected"])
         amount_paid = Decimal(request.POST["amount_paid"])
         reference = request.POST["reference"]
+        
+        tx_id = request.POST.get("tx_id")
 
         component_ids = [cid for cid in request.POST.getlist("component_id") if cid.isdigit()]
+        
+        # -----------------------------------------------------------
+        # CREDIT UTILIZATION LOGIC
+        # Fetch all unused overpayments for this student
+        # -----------------------------------------------------------
+        from finance.models import StudentOverpayment
+        available_overpayments = StudentOverpayment.objects.filter(
+            student=student, 
+            is_reimbursed=False, 
+            is_used=False
+        )
+        total_credit = available_overpayments.aggregate(total=models.Sum("amount"))["total"] or Decimal("0.00")
+        
+        # Combined funds available for this transaction
+        total_available_funds = amount_paid + total_credit
 
         if not component_ids:
-            messages.error(request, "Select at least one fee component.")
-            return redirect("finance_create_student_payment")
+            # -------------------------------------------------------
+            # OVERPAYMENT-ONLY EXCEPTION (strict rule):
+            # Finance may submit a payment with NO fee components
+            # selected ONLY when there is an actual amount being paid
+            # (i.e. the entire amount goes directly to credit/wallet).
+            # If amount_paid is zero with no components → reject.
+            # -------------------------------------------------------
+            if amount_paid > Decimal("0.00"):
+                with transaction.atomic():
+                    payment = Payment.objects.create(
+                        student=student,
+                        program=program,
+                        level=level,
+                        academic_year=year,
+                        semester=semester,
+                        amount_expected=amount_expected,
+                        amount_paid=amount_paid,
+                        credit_balance=total_available_funds,   # Entire combined sum is now credit
+                        reference=reference,
+                        date_paid=timezone.now(),
+                        is_verified=False,
+                    )
+                    
+                    # Mark old overpayments as used (absorbed into the new one)
+                    for op in available_overpayments:
+                        op.is_used = True
+                        op.used_at = timezone.now()
+                        op.used_for_payment = payment
+                        op.save()
+
+                    # Create new consolidated overpayment
+                    StudentOverpayment.objects.create(
+                        student=student,
+                        payment=payment,
+                        academic_year=year,
+                        semester=semester,
+                        amount=total_available_funds,
+                    )
+                    
+                    if tx_id:
+                        try:
+                            from finance.models import BankTransaction
+                            tx = BankTransaction.objects.get(id=tx_id)
+                            tx.status = "acknowledged"
+                            tx.save()
+                        except BankTransaction.DoesNotExist:
+                            pass
+                    log_event(
+                        request.user,
+                        "payment",
+                        f"Pure overpayment recorded for {student.get_full_name()}. "
+                        f"Paid: {amount_paid}, Used Credit: {total_credit}, Total New Wallet: {total_available_funds}."
+                    )
+                    messages.success(
+                        request,
+                        f"Payment recorded. Combined GHS {total_available_funds} saved to student wallet."
+                    )
+                return redirect("finance_create_student_payment")
+            else:
+                messages.error(request, "Select at least one fee component.")
+                return redirect("finance_create_student_payment")
 
         components = ProgramFeeComponent.objects.filter(id__in=component_ids)
 
@@ -536,10 +650,9 @@ def finance_create_student_payment(request):
         for c in components:
             paid_so_far = (
                 PaymentBreakdown.objects
-                .filter(component=c, is_active=True)
+                .filter(component=c, is_active=True, payment__student=student)
                 .aggregate(total=models.Sum("amount_paid"))["total"] or Decimal("0")
             )
-
             remaining = max(Decimal("0"), c.total_fee - paid_so_far)
             if remaining > 0:
                 allocations.append((c, remaining))
@@ -549,11 +662,11 @@ def finance_create_student_payment(request):
             messages.error(request, "Selected components are already fully paid.")
             return redirect("finance_create_student_payment")
 
-        if amount_paid < allocated_total:
-            messages.error(request, "Amount paid is less than selected component totals.")
+        if total_available_funds < allocated_total:
+            messages.error(request, f"Insufficient funds (Paid: {amount_paid} + Credit: {total_credit} = {total_available_funds}) for selected components (Total: {allocated_total}).")
             return redirect("finance_create_student_payment")
 
-        credit_balance = amount_paid - allocated_total
+        new_credit_balance = total_available_funds - allocated_total
 
         with transaction.atomic():
             payment = Payment.objects.create(
@@ -564,11 +677,18 @@ def finance_create_student_payment(request):
                 semester=semester,
                 amount_expected=amount_expected,
                 amount_paid=amount_paid,
-                credit_balance=credit_balance,
+                credit_balance=new_credit_balance,
                 reference=reference,
                 date_paid=timezone.now(),
                 is_verified=False,
             )
+
+            # Mark utilized overpayments
+            for op in available_overpayments:
+                op.is_used = True
+                op.used_at = timezone.now()
+                op.used_for_payment = payment
+                op.save()
 
             for comp, amt in allocations:
                 PaymentBreakdown.objects.create(
@@ -579,13 +699,29 @@ def finance_create_student_payment(request):
                     is_active=True,
                 )
 
-            if credit_balance > 0:
+            if new_credit_balance > 0:
+                StudentOverpayment.objects.create(
+                    student=student,
+                    payment=payment,
+                    academic_year=year,
+                    semester=semester,
+                    amount=new_credit_balance
+                )
                 messages.success(
                     request,
-                    f"Payment recorded. Credit balance: GHS {credit_balance}"
+                    f"Payment recorded. Used GHS {total_credit} credit. Remaining overpayment of GHS {new_credit_balance} saved to wallet."
                 )
             else:
-                messages.success(request, "Payment recorded successfully.")
+                messages.success(request, f"Payment recorded successfully. Used GHS {total_credit} credit.")
+                
+            if tx_id:
+                try:
+                    from finance.models import BankTransaction
+                    tx = BankTransaction.objects.get(id=tx_id)
+                    tx.status = "acknowledged"
+                    tx.save()
+                except BankTransaction.DoesNotExist:
+                    pass
 
             
             log_event(
@@ -606,7 +742,21 @@ def finance_create_student_payment(request):
         #     "search_query": search_query, 
         # })
  
- 
+    tx_id_get = request.GET.get("tx_id")
+    prefill_student = None
+    prefill_amount = None
+    if tx_id_get:
+        try:
+            from finance.models import BankTransaction
+            tx = BankTransaction.objects.get(id=tx_id_get)
+            prefill_student = tx.student
+            prefill_amount = tx.total_amount
+        except BankTransaction.DoesNotExist:
+            pass
+
+    from finance.models import StudentOverpayment
+    overpayments = StudentOverpayment.objects.select_related("student", "academic_year", "semester").order_by("-created_at")
+
     # Render page
     return render(request, "accounts/finance_payments.html", {
         "payments": payments_page,     
@@ -616,6 +766,10 @@ def finance_create_student_payment(request):
         "semesters": Semester.objects.all(),
         "programs": Program.objects.all(),
         "levels": ProgramLevel.objects.all(),
+        "tx_id": tx_id_get,
+        "prefill_student": prefill_student,
+        "prefill_amount": prefill_amount,
+        "overpayments": overpayments,
     })
 
 
@@ -860,16 +1014,415 @@ def finance_payment_detail(request, student_id):
     )
 
 
+from .models import ApplicationForm, BankTransaction
+
+@login_required
+def finance_applications(request):
+    if getattr(request.user, "role", None) not in ["finance", "admin", "superadmin"]:
+        return redirect("portal:home")
+
+    query = request.GET.get("q", "")
+    applications = ApplicationForm.objects.select_related("student")
+
+    if query:
+        applications = applications.filter(
+            models.Q(student__first_name__icontains=query) |
+            models.Q(student__last_name__icontains=query) |
+            models.Q(student__username__icontains=query) |
+            models.Q(application_id__icontains=query)
+        )
+
+    applications = applications.order_by("-created_at")
+
+    return render(request, "accounts/applications.html", {
+        "applications": applications,
+        "query": query
+    })
+
+@login_required
+def finance_bank_transactions(request):
+    if getattr(request.user, "role", None) not in ["finance", "admin", "superadmin"]:
+        return redirect("portal:home")
+
+    query = request.GET.get("q", "")
+    start_date = request.GET.get("start_date", "")
+    end_date = request.GET.get("end_date", "")
+    show_archived = request.GET.get("show_archived", "off") == "on"
+
+    transactions = BankTransaction.objects.select_related("student")
+
+    # Filter by Archive Status
+    transactions = transactions.filter(is_archived=show_archived)
+
+    # Filter by Query
+    if query:
+        transactions = transactions.filter(
+            models.Q(student__first_name__icontains=query) |
+            models.Q(student__last_name__icontains=query) |
+            models.Q(student__username__icontains=query) |
+            models.Q(bank_reference_id__icontains=query)
+        )
+
+    # Filter by Date Range
+    if start_date:
+        transactions = transactions.filter(created_at__date__gte=start_date)
+    if end_date:
+        transactions = transactions.filter(created_at__date__lte=end_date)
+
+    transactions = transactions.order_by("-created_at")
+
+    return render(request, "accounts/bank_transactions.html", {
+        "transactions": transactions,
+        "query": query,
+        "start_date": start_date,
+        "end_date": end_date,
+        "show_archived": show_archived
+    })
+
+@login_required
+def finance_verify_bank_transaction(request, tx_id):
+    if getattr(request.user, "role", None) not in ["finance", "admin", "superadmin"]:
+        return redirect("portal:home")
+        
+    if request.method == "POST":
+        tx = get_object_or_404(BankTransaction, id=tx_id)
+        
+        if tx.status == "verified":
+            messages.error(request, "Already verified")
+            return redirect("finance_bank_transactions")
+            
+        with transaction.atomic():
+            tx.status = "verified"
+            tx.save()
+            
+            student = tx.student
+            if student:
+                # If they don't have a student ID, generate one
+                if not student.student_id:
+                    new_id = generate_student_id()
+                    student.student_id = new_id
+                    student.save()
+                    messages.success(request, f"Transaction verified. Generated Student ID: {new_id}")
+                else:
+                    messages.success(request, "Transaction verified successfully.")
+                
+                log_event(
+                    request.user,
+                    "finance",
+                    f"Bank Transaction VERIFIED: {tx.bank_reference_id} for student {student.get_full_name()} "
+                    f"(ID: {student.student_id})."
+                )
+                    
+                # Update the application status if it exists
+                app = ApplicationForm.objects.filter(student=student, is_paid=False).first()
+                if app:
+                    app.is_paid = True
+                    app.save()
+            else:
+                messages.success(request, "Transaction verified successfully.")
+                log_event(
+                    request.user,
+                    "finance",
+                    f"Bank Transaction VERIFIED: {tx.bank_reference_id} (No student linked)."
+                )
+
+        return redirect("finance_bank_transactions")
+        
+    return redirect("finance_bank_transactions")
 
 
+# -----------------------------------------------------------------------
+# OVERPAYMENT REIMBURSEMENT – STEP 1: Finance requests refund
+# -----------------------------------------------------------------------
+@login_required
+def finance_request_reimbursement(request, op_id):
+    """Finance staff mark an overpayment record as 'refund requested'.
+    This surfaces a pending confirmation task to Admin."""
+    if getattr(request.user, "role", None) not in ["finance", "admin", "superadmin"]:
+        messages.error(request, "Access denied.")
+        return redirect("portal:home")
+
+    if request.method != "POST":
+        return redirect("finance_create_student_payment")
+
+    from finance.models import StudentOverpayment
+    op = get_object_or_404(StudentOverpayment, id=op_id)
+
+    if op.is_reimbursed:
+        messages.info(request, "This overpayment has already been reimbursed.")
+        return redirect("finance_create_student_payment")
+
+    if op.reimbursement_requested:
+        messages.info(request, "Reimbursement request already submitted. Awaiting admin confirmation.")
+        return redirect("finance_create_student_payment")
+
+    op.reimbursement_requested = True
+    op.reimbursement_requested_by = request.user
+    op.reimbursement_requested_at = timezone.now()
+    op.save()
+
+    log_event(
+        request.user,
+        "finance",
+        f"Reimbursement requested for overpayment of GHS {op.amount} "
+        f"belonging to {op.student.get_full_name()} (Overpayment ID: {op.id})."
+    )
+    messages.success(
+        request,
+        f"Refund request submitted for GHS {op.amount} — awaiting admin confirmation."
+    )
+    return redirect("finance_create_student_payment")
 
 
+# -----------------------------------------------------------------------
+# OVERPAYMENT REIMBURSEMENT – STEP 2: Admin confirms & marks reimbursed
+# -----------------------------------------------------------------------
+@login_required
+def admin_confirm_reimbursement(request, op_id):
+    """Admin confirms that the student has been physically paid back.
+    This can only be done after Finance has submitted a refund request."""
+    if getattr(request.user, "role", None) not in ["admin", "superadmin"]:
+        messages.error(request, "Access denied. Only admins can confirm reimbursements.")
+        return redirect("portal:home")
+
+    if request.method != "POST":
+        return redirect("portal:home")
+
+    from finance.models import StudentOverpayment
+    op = get_object_or_404(StudentOverpayment, id=op_id)
+
+    if not op.reimbursement_requested:
+        messages.error(request, "No reimbursement request has been made for this record.")
+        return redirect("admin_main")
+
+    if op.is_reimbursed:
+        messages.info(request, "This overpayment has already been marked as reimbursed.")
+        return redirect("admin_main")
+
+    op.is_reimbursed = True
+    op.reimbursed_at = timezone.now()
+    op.save()
+
+    log_event(
+        request.user,
+        "finance",
+        f"Reimbursement CONFIRMED for overpayment of GHS {op.amount} "
+        f"belonging to {op.student.get_full_name()} (Overpayment ID: {op.id})."
+    )
+    messages.success(
+        request,
+        f"Reimbursement of GHS {op.amount} confirmed for {op.student.get_full_name()}."
+    )
+    # Redirect back to wherever admin came from, default to admin dashboard
+    next_url = request.POST.get("next") or "admin_main"
+    return redirect(next_url)
 
 
+# -----------------------------------------------------------------------
+# OVERPAYMENT REIMBURSEMENT – STEP 2.5: Admin REJECTS refund request
+# -----------------------------------------------------------------------
+@login_required
+def admin_reject_reimbursement(request, op_id):
+    """Admin rejects the refund request. The overpayment remains in the wallet."""
+    if getattr(request.user, "role", None) not in ["admin", "superadmin"]:
+        messages.error(request, "Access denied.")
+        return redirect("portal:home")
+
+    if request.method != "POST":
+        return redirect("portal:home")
+
+    from finance.models import StudentOverpayment
+    op = get_object_or_404(StudentOverpayment, id=op_id)
+
+    if op.is_reimbursed:
+        messages.error(request, "This overpayment is already reimbursed.")
+        return redirect("admin_main")
+
+    op.reimbursement_requested = False
+    op.reimbursement_requested_by = None
+    op.reimbursement_requested_at = None
+    op.save()
+
+    log_event(
+        request.user,
+        "finance",
+        f"Reimbursement REJECTED for overpayment of GHS {op.amount} "
+        f"belonging to {op.student.get_full_name()} (Overpayment ID: {op.id})."
+    )
+    messages.warning(
+        request,
+        f"Refund request for {op.student.get_full_name()} has been rejected. The amount remains in their wallet."
+    )
+    next_url = request.POST.get("next") or "admin_main"
+    return redirect(next_url)
 
 
+# -----------------------------------------------------------------------
+# BANK TRANSACTION ARCHIVAL (FINANCE REQUEST → ADMIN CONFIRM)
+# -----------------------------------------------------------------------
+
+@login_required
+def finance_request_bank_transaction_deletion(request, tx_id):
+    """Finance staff requests that a bank transaction be archived/deleted."""
+    if getattr(request.user, "role", None) not in ["finance", "admin", "superadmin"]:
+        messages.error(request, "Access denied.")
+        return redirect("portal:home")
+
+    if request.method != "POST":
+        return redirect("finance_bank_transactions")
+
+    tx = get_object_or_404(BankTransaction, id=tx_id)
+
+    if tx.is_archived:
+        messages.info(request, "This transaction is already archived.")
+        return redirect("finance_bank_transactions")
+
+    if tx.deletion_requested:
+        messages.info(request, "Deletion request already pending for this transaction.")
+        return redirect("finance_bank_transactions")
+
+    tx.deletion_requested = True
+    tx.deletion_requested_by = request.user
+    tx.deletion_requested_at = timezone.now()
+    tx.save()
+
+    log_event(
+        request.user,
+        "finance",
+        f"Archive request submitted for bank transaction {tx.bank_reference_id} — awaiting admin confirmation."
+    )
+    messages.success(
+        request,
+        f"Archive request submitted for {tx.bank_reference_id} — awaiting admin confirmation."
+    )
+    return redirect("finance_bank_transactions")
 
 
+@login_required
+def admin_confirm_bank_transaction_deletion(request, tx_id):
+    """Admin confirms the archival/deletion of a bank transaction."""
+    if getattr(request.user, "role", None) not in ["admin", "superadmin"]:
+        messages.error(request, "Access denied. Only admins can confirm bank transaction deletions.")
+        return redirect("portal:home")
+
+    if request.method != "POST":
+        return redirect("portal:home")
+
+    tx = get_object_or_404(BankTransaction, id=tx_id)
+
+    if not tx.deletion_requested:
+        messages.error(request, "No deletion request has been made for this record.")
+        return redirect("admin_main")
+
+    if tx.is_archived:
+        messages.info(request, "This record is already archived.")
+        return redirect("admin_main")
+
+    tx.is_archived = True
+    tx.save()
+
+    log_event(
+        request.user,
+        "finance",
+        f"Bank Transaction ARCHIVED: {tx.bank_reference_id} (requested by {tx.deletion_requested_by.get_full_name()})."
+    )
+    messages.success(
+        request,
+        f"Bank transaction {tx.bank_reference_id} has been archived successfully."
+    )
+    
+    next_url = request.POST.get("next") or "admin_main"
+    return redirect(next_url)
+
+
+@login_required
+def admin_reject_bank_transaction_deletion(request, tx_id):
+    """Admin rejects the archival/deletion request."""
+    if getattr(request.user, "role", None) not in ["admin", "superadmin"]:
+        messages.error(request, "Access denied.")
+        return redirect("portal:home")
+
+    if request.method != "POST":
+        return redirect("portal:home")
+
+    tx = get_object_or_404(BankTransaction, id=tx_id)
+
+    if tx.is_archived:
+        messages.error(request, "This record is already archived.")
+        return redirect("admin_main")
+
+    tx.deletion_requested = False
+    tx.deletion_requested_by = None
+    tx.deletion_requested_at = None
+    tx.save()
+
+    log_event(
+        request.user,
+        "finance",
+        f"Archive request REJECTED for bank transaction {tx.bank_reference_id}."
+    )
+    messages.warning(
+        request,
+        f"Archive request for {tx.bank_reference_id} has been rejected."
+    )
+    
+    next_url = request.POST.get("next") or "admin_main"
+    return redirect(next_url)
+
+
+import csv
+from django.http import HttpResponse
+
+@login_required
+def finance_export_bank_transactions_csv(request):
+    """Exports filtered bank transactions to CSV."""
+    if getattr(request.user, "role", None) not in ["finance", "admin", "superadmin"]:
+        return redirect("portal:home")
+
+    query = request.GET.get("q", "")
+    start_date = request.GET.get("start_date", "")
+    end_date = request.GET.get("end_date", "")
+    show_archived = request.GET.get("show_archived", "off") == "on"
+
+    transactions = BankTransaction.objects.select_related("student")
+    transactions = transactions.filter(is_archived=show_archived)
+
+    if query:
+        transactions = transactions.filter(
+            models.Q(student__first_name__icontains=query) |
+            models.Q(student__last_name__icontains=query) |
+            models.Q(student__username__icontains=query) |
+            models.Q(bank_reference_id__icontains=query)
+        )
+
+    if start_date:
+        transactions = transactions.filter(created_at__date__gte=start_date)
+    if end_date:
+        transactions = transactions.filter(created_at__date__lte=end_date)
+
+    transactions = transactions.order_by("-created_at")
+
+    response = HttpResponse(content_type='text/csv')
+    filename = f"bank_transactions_{timezone.now().strftime('%Y%m%d_%H%M%S')}.csv"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+    writer = csv.writer(response)
+    writer.writerow([
+        'Reference ID', 'Student Name', 'Student ID', 
+        'Amount (GHS)', 'Status', 'Date Received'
+    ])
+
+    for tx in transactions:
+        writer.writerow([
+            tx.bank_reference_id,
+            tx.student.get_full_name() if tx.student else "N/A",
+            tx.student.username if tx.student else "N/A",
+            tx.total_amount,
+            tx.status.title(),
+            tx.created_at.strftime("%Y-%m-%d %H:%M")
+        ])
+
+    return response
 
 
 

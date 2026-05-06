@@ -27,6 +27,7 @@ class SystemLog(models.Model):
         ("registration", "Registration"),
         ("assessment", "Assessment"),
         ("resource", "Resource"),
+        ("finance", "Finance"),
     ]
 
     user = models.ForeignKey(

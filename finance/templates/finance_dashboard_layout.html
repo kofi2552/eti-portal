@@ -108,6 +108,16 @@
           <span class="nav-text">Fee Payment</span>
         </a>
 
+        <a href="{% url 'finance_applications' %}" class="flex items-center gap-3 p-2 rounded hover:bg-gray-100">
+          <i data-lucide="file-text" class="w-5 h-5 flex-shrink-0"></i>
+          <span class="nav-text">Applications</span>
+        </a>
+
+        <a href="{% url 'finance_bank_transactions' %}" class="flex items-center gap-3 p-2 rounded hover:bg-gray-100">
+          <i data-lucide="building-2" class="w-5 h-5 flex-shrink-0"></i>
+          <span class="nav-text">Bank Fees</span>
+        </a>
+
         <a href="{% url 'logout' %}" class="flex items-center gap-3 p-2 rounded hover:bg-red-50 text-red-600">
           <i data-lucide="log-out" class="w-5 h-5 flex-shrink-0"></i>
           <span class="nav-text">Logout</span>

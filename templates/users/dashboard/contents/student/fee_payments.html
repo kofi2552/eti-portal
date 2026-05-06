@@ -100,5 +100,65 @@
     No fee payment records found.
   </div>
   {% endif %}
+
+  <!-- OVERPAYMENTS / WALLET -->
+  <div class="mt-12">
+    <div class="flex justify-between items-center mb-6">
+      <h2 class="text-xl font-bold text-slate-800">Credit / Overpayment Wallet</h2>
+      <div class="bg-blue-50 text-blue-700 px-4 py-2 rounded-xl border border-blue-100 flex items-center gap-2">
+        <span class="text-xs font-bold uppercase tracking-wider">Total Balance:</span>
+        <span class="text-lg font-extrabold">GHS {{ total_wallet }}</span>
+      </div>
+    </div>
+    <div class="bg-white border rounded-xl overflow-hidden">
+      <table class="min-w-full text-sm divide-y divide-gray-200">
+        <thead class="bg-slate-50 text-slate-700">
+          <tr class="text-left">
+            <th class="px-6 py-4 font-semibold">Semester / Year</th>
+            <th class="px-6 py-4 font-semibold">Credit Amount</th>
+            <th class="px-6 py-4 font-semibold">Status</th>
+            <th class="px-6 py-4 font-semibold">Date Saved</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          {% for op in overpayments %}
+          <tr class="hover:bg-slate-50">
+            <td class="px-6 py-4">
+              <span class="font-medium text-slate-800">{{ op.semester.name }}</span>
+              <span class="text-slate-500">({{ op.academic_year.name }})</span>
+            </td>
+            <td class="px-6 py-4 text-green-600 font-bold">+ GHS {{ op.amount }}</td>
+            <td class="px-6 py-4">
+              {% if op.is_reimbursed %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                  Refunded
+                </span>
+              {% elif op.is_used %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                  Used
+                </span>
+              {% elif op.reimbursement_requested %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                  Refund Requested
+                </span>
+              {% else %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  In Wallet
+                </span>
+              {% endif %}
+            </td>
+            <td class="px-6 py-4 text-slate-500">{{ op.created_at|date:"M d, Y" }}</td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="3" class="px-6 py-8 text-center text-slate-500">
+              No credit balance in your wallet.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
 </div>
 {% endblock %}

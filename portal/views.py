@@ -113,11 +113,11 @@ def toggle_system_lock(request):
 
 
 def home(request):
-    # anns = Announcement.objects.filter(role="admin", is_active=True).order_by("-created_at")[:5]
-    return render(request, "portal/home.html")
+    anns = Announcement.objects.filter(role="admin", is_active=True).order_by("-created_at")[:5]
+    return render(request, "portal/home.html", {"announcements": anns})
 
 
 def auth_portal(request):
     anns = Announcement.objects.filter(role="admin", is_active=True).order_by("-created_at")[:5]
-    return render(request, "portal/auth_page.html", {"announcements": anns})
+    return render(request, "portal/home.html", {"announcements": anns})
 

@@ -1,17 +1,18 @@
 {% extends "base.html" %} {% load static %} {% block content %}
 
-<div class="flex-grow flex items-center justify-center p-4 bg-slate-50 min-h-[100vh]">
-  <div class="w-full max-w-md">
-    <div class="bg-white rounded-3xl border-2 border-slate-200 overflow-hidden">
+<div class="flex-grow flex items-center justify-center p-4 min-h-screen bg-cover bg-center bg-no-repeat"
+  style="background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0, 0, 0, 0)), url('{% static 'images/login_bg.png' %}');">
+  <div class="w-full max-w-sm animate-in fade-in zoom-in duration-500">
+    <div class="bg-white backdrop-blur-md  border border-white/20 shadow-2xl overflow-hidden">
       <!-- HEADER -->
-      <div class="pt-10 pb-6 px-8 text-center border-b-2 border-slate-100">
-        <div class="w-16 h-16 mx-auto mb-4 p-2 bg-white rounded-2xl flex items-center justify-center">
+      <div class="pt-4 pb-2 px-8 text-center border-b-2 border-slate-100">
+        <div class="w-full h-[50px] mx-auto mb-4 p-2 bg-transparent rounded-2xl flex items-center justify-center">
           <img src="{% static 'images/eti_favicon.png' %}" class="h-full w-full object-contain" />
         </div>
-        <h2 class="text-2xl font-extrabold text-slate-600 mb-1">
+        <h2 class="text-xl font-extrabold text-gray-600 mb-1">
           System Admin
         </h2>
-        <p class="text-slate-400 font-bold text-sm">Secure Authentication</p>
+        <!-- <p class="text-slate-400 font-bold text-sm">Secure Authentication</p> -->
       </div>
 
       <!-- FORM -->
@@ -59,9 +60,7 @@
         </div>
         {% endif %}
       </div>
-      <div class="px-8 pt-4 pb-8 text-center text-xs font-bold text-slate-400">
-        Protected by ETI Secure Access.
-      </div>
+      <div class="pt-4" />
     </div>
   </div>
 </div>

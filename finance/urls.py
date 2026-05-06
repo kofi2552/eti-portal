@@ -13,7 +13,23 @@ urlpatterns = [
     path("ajax/program-fee/<int:fee_id>/detail/",views.finance_program_fee_detail,name="finance_program_fee_detail"),
     path("students/<int:student_id>/finance/",views.finance_payment_detail,name="finance_payment_detail",),
     
+    # Applications & Bank Transactions
+    path("applications/", views.finance_applications, name="finance_applications"),
+    path("bank-transactions/", views.finance_bank_transactions, name="finance_bank_transactions"),
+    path("bank-transactions/<int:tx_id>/verify/", views.finance_verify_bank_transaction, name="finance_verify_bank_transaction"),
+    
     # Bank Integration API Endpoints
-    path("api/bank/students/validate/", api_views.bank_validate_student, name="bank_validate_student"),
-    path("api/bank/payments/notify/", api_views.bank_notify_payment, name="bank_notify_payment"),
+    path("api/v1/bank/students/validate/", api_views.bank_validate_student, name="bank_validate_student"),
+    path("api/v1/bank/payments/notify/", api_views.bank_notify_payment, name="bank_notify_payment"),
+    
+    # Overpayment Reimbursements
+    path("overpayments/<int:op_id>/request-refund/", views.finance_request_reimbursement, name="finance_request_reimbursement"),
+    path("overpayments/<int:op_id>/confirm-reimbursement/", views.admin_confirm_reimbursement, name="admin_confirm_reimbursement"),
+    path("overpayments/<int:op_id>/reject-reimbursement/", views.admin_reject_reimbursement, name="admin_reject_reimbursement"),
+
+    # Bank Transaction Archival
+    path("bank-transactions/<int:tx_id>/request-archive/", views.finance_request_bank_transaction_deletion, name="finance_request_bank_transaction_deletion"),
+    path("bank-transactions/<int:tx_id>/confirm-archive/", views.admin_confirm_bank_transaction_deletion, name="admin_confirm_bank_transaction_deletion"),
+    path("bank-transactions/<int:tx_id>/reject-archive/", views.admin_reject_bank_transaction_deletion, name="admin_reject_bank_transaction_deletion"),
+    path("bank-transactions/export-csv/", views.finance_export_bank_transactions_csv, name="finance_export_bank_transactions_csv"),
 ]

@@ -3,6 +3,7 @@ from django.db import models
 from django.conf import settings 
 from academics.models import Department, Program, AcademicYear, Semester, ProgramCourse, ProgramLevel
 from users.models import Payment
+from decimal import Decimal
 
 
 class ProgramFee(models.Model):
@@ -166,9 +167,127 @@ class BankTransaction(models.Model):
     status = models.CharField(max_length=20, default="pending", choices=[
         ("pending", "Pending"),
         ("success", "Success"),
-        ("failed", "Failed")
+        ("failed", "Failed"),
+        ("acknowledged", "Acknowledged")
     ])
     created_at = models.DateTimeField(auto_now_add=True)
 
+    # --- Archival / Deletion request tracking ---
+    is_archived = models.BooleanField(
+        default=False,
+        help_text="Soft delete/Archive. Hides transaction from standard views."
+    )
+    deletion_requested = models.BooleanField(
+        default=False,
+        help_text="Finance requested to delete/archive this record."
+    )
+    deletion_requested_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="bank_deletion_requests"
+    )
+    deletion_requested_at = models.DateTimeField(null=True, blank=True)
+
     def __str__(self):
         return f"{self.bank_reference_id} - {self.status}"
+
+
+class ApplicationForm(models.Model):
+    student = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        limit_choices_to={'role': 'student'},
+        related_name="application_forms"
+    )
+    application_id = models.CharField(max_length=50, unique=True)
+    amount_expected = models.DecimalField(max_digits=10, decimal_places=2)
+    is_paid = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        limit_choices_to={'role': 'finance'},
+        related_name="generated_applications"
+    )
+
+    def __str__(self):
+        return f"{self.application_id} - {self.student.get_full_name()}"
+
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from django.utils.crypto import get_random_string
+
+@receiver(post_save, sender=settings.AUTH_USER_MODEL)
+def create_application_id_for_student(sender, instance, created, **kwargs):
+    if created and getattr(instance, "role", None) == "student":
+        app_id = f"APP-{get_random_string(6, allowed_chars='0123456789')}"
+        ApplicationForm.objects.create(
+            student=instance,
+            application_id=app_id,
+            amount_expected=Decimal("0.00")
+        )
+
+class StudentOverpayment(models.Model):
+    student = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="overpayments"
+    )
+    payment = models.ForeignKey(
+        Payment,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="overpayments"
+    )
+    academic_year = models.ForeignKey(
+        AcademicYear, 
+        on_delete=models.CASCADE
+    )
+    semester = models.ForeignKey(
+        Semester, 
+        on_delete=models.CASCADE
+    )
+    amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    # --- Refund / Reimbursement tracking ---
+    reimbursement_requested = models.BooleanField(
+        default=False,
+        help_text="Set to True when Finance requests a refund for the student."
+    )
+    reimbursement_requested_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="reimbursement_requests",
+        help_text="The Finance staff member who initiated the refund request."
+    )
+    reimbursement_requested_at = models.DateTimeField(null=True, blank=True)
+    is_reimbursed = models.BooleanField(
+        default=False,
+        help_text="Set to True by Admin once the student has been physically paid back."
+    )
+    reimbursed_at = models.DateTimeField(null=True, blank=True)
+
+    # --- Credit Utilization ---
+    is_used = models.BooleanField(
+        default=False,
+        help_text="Set to True when this credit is used to pay for a future fee."
+    )
+    used_at = models.DateTimeField(null=True, blank=True)
+    used_for_payment = models.ForeignKey(
+        Payment,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="utilized_overpayments",
+        help_text="The new payment record where this credit was applied."
+    )
+
+    def __str__(self):
+        return f"{self.student.get_full_name()} - GHS {self.amount}"

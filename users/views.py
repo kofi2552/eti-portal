@@ -38,7 +38,7 @@ from django.db.models import Sum, F, DecimalField, ExpressionWrapper
 from academics.services.assessment_tasks import create_task_with_scores
 from academics.services.assessment_aggregation import recalculate_student_assessment
 from decimal import ROUND_HALF_UP
-from finance.models import ProgramFee
+from finance.models import ProgramFee, StudentOverpayment
 from academics.models import CourseAnnouncement
 from portal.models import SupportTicket
 from django.db import models
@@ -374,11 +374,24 @@ def student_main(request):
             program_fee_map[key] = pf
 
     fee_balance = Decimal("0.00")
-    for p in verified_payments:
-        pf_key = (p.program_id, p.academic_year_id, p.semester_id)
-        pf = program_fee_map.get(pf_key)
-        total_fee = pf.total_amount if pf else p.amount_expected
-        fee_balance += max(Decimal("0.00"), total_fee - p.amount_paid)
+    if verified_payments.exists():
+        from finance.models import PaymentBreakdown
+        from django.db.models import Sum
+        unique_semesters = set((p.program_id, p.academic_year_id, p.semester_id) for p in verified_payments)
+        total_billed = Decimal("0.00")
+        for pf_key in unique_semesters:
+            pf = program_fee_map.get(pf_key)
+            if pf:
+                total_billed += pf.total_amount
+            else:
+                sem_payments = [p for p in verified_payments if (p.program_id, p.academic_year_id, p.semester_id) == pf_key]
+                total_billed += sum(p.amount_expected for p in sem_payments)
+                
+        total_allocated = PaymentBreakdown.objects.filter(
+            payment__in=verified_payments, is_active=True
+        ).aggregate(total=Sum('amount_paid'))['total'] or Decimal("0.00")
+        
+        fee_balance = max(Decimal("0.00"), total_billed - total_allocated)
 
     # ---------------------------
     # GRAPH DATA (UNCHANGED)
@@ -427,6 +440,7 @@ def student_main(request):
             "total_credits": total_credits,
             "max_credits": 120,  # optional / program-based later
             "fee_balance": fee_balance,
+            "total_overpayment": StudentOverpayment.objects.filter(student=user, is_reimbursed=False, is_used=False).aggregate(total=Sum("amount"))["total"] or Decimal("0.00"),
 
             # Existing tiles
             "enrolled_courses": enrolled_courses,
@@ -630,7 +644,25 @@ def admin_manage_users(request):
 
 @login_required
 def admin_main(request):
-    return render(request, "users/dashboard/contents/admin/admin_main.html")
+    if request.user.role not in ['admin', 'superadmin']:
+        messages.error(request, "Access denied.")
+        return redirect("portal:home")
+
+    pending_reimbursements = StudentOverpayment.objects.filter(
+        reimbursement_requested=True,
+        is_reimbursed=False
+    ).select_related("student", "academic_year", "semester", "reimbursement_requested_by")
+
+    from finance.models import BankTransaction
+    pending_bank_deletions = BankTransaction.objects.filter(
+        deletion_requested=True,
+        is_archived=False
+    ).select_related("student", "deletion_requested_by")
+
+    return render(request, "users/dashboard/contents/admin/admin_main.html", {
+        "pending_reimbursements": pending_reimbursements,
+        "pending_bank_deletions": pending_bank_deletions
+    })
 
 
 @login_required
@@ -4231,6 +4263,7 @@ def student_fee_payments(request):
                 "credit": Decimal("0.00"),
                 "balance": None,
                 "is_fully_paid": False,
+                "total_allocated": Decimal("0.00"),
             }
 
         block = finance_blocks[key]
@@ -4238,6 +4271,9 @@ def student_fee_payments(request):
         block["payments"].append(payment)
         block["total_paid"] += payment.amount_paid
         block["credit"] += payment.credit_balance
+        
+        allocated = sum(b.amount_paid for b in payment.breakdowns.all() if b.is_active)
+        block["total_allocated"] += allocated
 
     # Final balance per semester
     for block in finance_blocks.values():
@@ -4245,17 +4281,24 @@ def student_fee_payments(request):
         if pf:
             block["balance"] = max(
                 Decimal("0.00"),
-                pf.total_amount - block["total_paid"]
+                pf.total_amount - block["total_allocated"]
             )
             block["is_fully_paid"] = block["balance"] == 0
         else:
             block["balance"] = None
 
+    from finance.models import StudentOverpayment
+    overpayments = StudentOverpayment.objects.filter(student=user).select_related("academic_year", "semester").order_by("-created_at")
+
+    total_wallet = overpayments.filter(is_reimbursed=False, is_used=False).aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
+ 
     return render(
         request,
         "users/dashboard/contents/student/fee_payments.html",
         {
             "finance_blocks": finance_blocks,
+            "overpayments": overpayments,
+            "total_wallet": total_wallet,
         }
     )
 

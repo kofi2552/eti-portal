@@ -11,7 +11,7 @@
     <p class="flex items-center text-xs pl-1 pt-2 mb-8 text-gray-500">{{user.program}}  <span
                   class="w-2 h-2 bg-gray-500 mx-3 rounded-full border border-white"
                 ></span> {{user.level.level_name}}</p>
-<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
 
   <!-- ===================== -->
   <!-- CURRENT GPA CARD -->
@@ -74,36 +74,52 @@
   </div>
 
   <!-- ===================== -->
-  <!-- FEE BALANCE CARD -->
+  <!-- FINANCE STATUS CARD -->
   <!-- ===================== -->
   <div class="bg-white p-6 rounded-3xl border-2 border-slate-200 shadow-card flex items-center justify-between">
-
     <div>
-      <div class="text-slate-400 text-xs font-extrabold uppercase mb-1">
-        Fee Balance
-      </div>
-
-      <div class="text-4xl font-extrabold text-slate-800">
-        {{ fee_balance|default:"0.00" }}
-      </div>
-
-      {% if fee_balance|floatformat:2 == "0.00" %}
-        <div class="mt-2 text-green-500 text-xs font-bold flex items-center bg-green-50 px-2 py-1 rounded-lg w-fit">
-          <i data-lucide="check-circle-2" class="w-3 h-3 mr-1 stroke-[3]"></i>
-          Cleared
+      {% if total_overpayment > 0 %}
+        <div class="text-slate-400 text-xs font-extrabold uppercase mb-1">
+          Available Credit
+        </div>
+        <div class="text-4xl font-extrabold text-slate-800">
+          {{ total_overpayment|default:"0.00" }}
+        </div>
+        <div class="mt-2 text-blue-500 text-xs font-bold flex items-center bg-blue-50 px-2 py-1 rounded-lg w-fit">
+          <i data-lucide="wallet" class="w-3 h-3 mr-1 stroke-[3]"></i>
+          Overpaid
         </div>
       {% else %}
-        <div class="mt-2 text-red-500 text-xs font-bold flex items-center bg-red-50 px-2 py-1 rounded-lg w-fit">
-          <i data-lucide="alert-circle" class="w-3 h-3 mr-1 stroke-[3]"></i>
-          Outstanding
+        <div class="text-slate-400 text-xs font-extrabold uppercase mb-1">
+          Fee Balance
         </div>
+        <div class="text-4xl font-extrabold text-slate-800">
+          {{ fee_balance|default:"0.00" }}
+        </div>
+        
+        {% if fee_balance|floatformat:2 == "0.00" %}
+          <div class="mt-2 text-green-500 text-xs font-bold flex items-center bg-green-50 px-2 py-1 rounded-lg w-fit">
+            <i data-lucide="check-circle-2" class="w-3 h-3 mr-1 stroke-[3]"></i>
+            Cleared
+          </div>
+        {% else %}
+          <div class="mt-2 text-red-500 text-xs font-bold flex items-center bg-red-50 px-2 py-1 rounded-lg w-fit">
+            <i data-lucide="alert-circle" class="w-3 h-3 mr-1 stroke-[3]"></i>
+            Outstanding
+          </div>
+        {% endif %}
       {% endif %}
     </div>
 
-    <div class="w-14 h-14 bg-green-100 rounded-2xl flex items-center justify-center text-green-600">
-      <i data-lucide="credit-card" class="w-7 h-7 stroke-[2.5]"></i>
-    </div>
-
+    {% if total_overpayment > 0 %}
+      <div class="w-14 h-14 bg-blue-100 rounded-2xl flex items-center justify-center text-blue-600">
+        <i data-lucide="wallet" class="w-7 h-7 stroke-[2.5]"></i>
+      </div>
+    {% else %}
+      <div class="w-14 h-14 bg-green-100 rounded-2xl flex items-center justify-center text-green-600">
+        <i data-lucide="credit-card" class="w-7 h-7 stroke-[2.5]"></i>
+      </div>
+    {% endif %}
   </div>
 
 </div>

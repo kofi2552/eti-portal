@@ -1,0 +1,81 @@
+{% extends "finance_dashboard_layout.html" %}
+
+{% block title %}Application Registeration{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-lg p-6 border border-gray-100 mb-6">
+    <div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-800">Student Applications</h2>
+            <p class="text-sm text-gray-500 mt-1">Applicants use these IDs for their initial bank payments.</p>
+        </div>
+
+        <!-- SEARCH BOX -->
+        <form method="GET" class="flex items-center gap-2">
+            <div class="relative group">
+                <i data-lucide="search"
+                    class="w-4 h-4 absolute mt-2 left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors"></i>
+                <input type="text" name="q" value="{{ query|default:'' }}" placeholder="Search applicant or ID..."
+                    class="pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all w-full md:w-64" />
+            </div>
+            {% if query %}
+            <a href="{% url 'finance_applications' %}" class="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                title="Clear search">
+                <i data-lucide="x-circle" class="w-5 h-5"></i>
+            </a>
+            {% endif %}
+            <button type="submit"
+                class="bg-gray-900 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-gray-800 transition-all">
+                Search
+            </button>
+        </form>
+    </div>
+
+    <!-- TABLE CONTAINER WITH SCROLL -->
+    <div class="overflow-x-auto max-h-[600px] overflow-y-auto border border-gray-100 rounded-xl shadow-sm">
+        <table class="w-full text-left border-collapse">
+            <thead class="sticky top-0 bg-gray-50 z-10">
+                <tr class="border-b border-gray-200 text-xs uppercase tracking-wider text-gray-500">
+                    <th class="p-4 font-semibold">Application ID</th>
+                    <th class="p-4 font-semibold">Applicant</th>
+                    <th class="p-4 font-semibold">Amount</th>
+                    <th class="p-4 font-semibold">Status</th>
+                    <th class="p-4 font-semibold">Created Date</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 text-sm">
+                {% for app in applications %}
+                <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="p-4 font-mono font-medium text-brand-600">{{ app.application_id }}</td>
+                    <td class="p-4">
+                        <div class="font-medium text-gray-800">{{ app.student.get_full_name }}</div>
+                        <div class="text-xs text-gray-500">{{ app.student.username }}</div>
+                    </td>
+                    <td class="p-4 font-medium">GHS {{ app.amount_expected }}</td>
+                    <td class="p-4">
+                        {% if app.is_paid %}
+                        <span
+                            class="inline-flex items-center px-2 py-1 rounded text-xs font-semibold bg-green-100 text-green-700">
+                            Paid
+                        </span>
+                        {% else %}
+                        <span
+                            class="inline-flex items-center px-2 py-1 rounded text-xs font-semibold bg-yellow-100 text-yellow-700">
+                            Pending
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="p-4 text-gray-500">{{ app.created_at|date:"M d, Y" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="p-8 text-center text-gray-500">
+                        No applications generated yet.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

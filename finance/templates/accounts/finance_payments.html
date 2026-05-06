@@ -100,30 +100,105 @@
     </div>
     {% endif %}
   </div>
+
+  <!-- OVERPAYMENTS TABLE -->
+  <div class="mt-12 mb-4 flex justify-between items-center">
+    <h2 class="text-xl font-semibold">Student Overpayments (Wallet)</h2>
+  </div>
+  <div class="w-full mx-auto bg-white rounded-lg border">
+    <div class="bg-white">
+      <table class="min-w-full text-sm p-6 divide-y divide-gray-200">
+        <thead class="bg-white">
+          <tr class="text-left">
+            <th class="px-4 py-2">Student</th>
+            <th class="px-4 py-2">Semester</th>
+            <th class="px-4 py-2">Amount (Credit)</th>
+            <th class="px-4 py-2">Date Created</th>
+            <th class="px-4 py-2">Status / Action</th>
+          </tr>
+        </thead>
+
+        <tbody class="divide-y divide-gray-100">
+          {% for op in overpayments %}
+          <tr>
+            <td class="px-4 py-2">
+              {{ op.student.get_full_name }}
+              <div class="text-left text-xs text-gray-500">
+                <span>{{ op.student.username }}</span>
+              </div>
+            </td>
+            <td class="flex flex-col text-left px-4 py-2">
+              <span>{{ op.semester.name }}</span>
+              <span class="text-xs text-gray-400">({{ op.academic_year.name }})</span>
+            </td>
+            <td class="px-4 py-2 font-semibold text-green-600">+ GHS {{ op.amount }}</td>
+            <td class="px-4 py-2 text-gray-500">{{ op.created_at|date:"M d, Y" }}</td>
+            <td class="px-4 py-2">
+              {% if op.is_reimbursed %}
+              <span class="text-xs font-bold text-gray-500 uppercase flex items-center gap-1">
+                <i data-lucide="check-circle" class="w-3 h-3 text-green-600"></i>
+                Reimbursed
+              </span>
+              {% elif op.is_used %}
+              <span class="text-xs font-bold text-blue-500 uppercase flex items-center gap-1">
+                <i data-lucide="info" class="w-3 h-3"></i>
+                Used
+              </span>
+              {% elif op.reimbursement_requested %}
+              <span class="text-xs font-bold text-amber-600 uppercase flex items-center gap-1">
+                <i data-lucide="clock" class="w-3 h-3"></i>
+                Pending Admin
+              </span>
+              {% else %}
+              <form method="POST" action="{% url 'finance_request_reimbursement' op.id %}">
+                {% csrf_token %}
+                <button type="submit" class="text-xs border px-3 py-1 text-blue-600 hover:bg-blue-50 transition-colors">
+                  Refund
+                </button>
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="4" class="px-4 py-8 text-center text-gray-500">
+              No student overpayments recorded yet.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
 </div>
 
 <!-- CREATE PAYMENT MODAL -->
 <div id="createPaymentModal" class="w-full hidden fixed inset-0 bg-black/40 flex items-center justify-center">
-  <div class="max-w-7xl bg-white mx-auto p-6 rounded-md border-c shadow-sm">
+  <div class="max-w-7xl bg-white mx-auto px-6 py-4 rounded-md border-c shadow-sm">
     <h3 class="text-lg font-semibold mb-3">Add Payment</h3>
 
     <form method="POST" id="createPaymentForm" class="w-full mx-auto space-y-4">
       {% csrf_token %}
       <input type="hidden" name="create_payment" value="1" />
-
-      <!-- STUDENT -->
-      <label class="block text-sm font-medium">Student</label>
-      <select name="student_id" required class="w-full border px-3 py-2">
-        <option value="">Select student</option>
-        {% for s in students %}
-        <option value="{{ s.id }}">{{ s.get_full_name }}</option>
-        {% endfor %}
-      </select>
+      <input type="hidden" name="tx_id" value="{{ tx_id|default_if_none:'' }}" />
 
       <div class="flex items-start gap-8">
         <div class="space-y-4" style="width: 600px">
+
+          <!-- STUDENT -->
+          <div>
+            <label class="block text-sm font-medium">Student</label>
+            <select name="student_id" required class="w-full border px-3 py-2">
+              <option value="">Select student</option>
+              {% for s in students %}
+              <option value="{{ s.id }}">{{ s.get_full_name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
           <!-- PROGRAM / LEVEL -->
           <div class="grid grid-cols-2 gap-4">
+
             <div>
               <label class="block text-sm font-medium mb-1">Program</label>
               <select name="program_id" id="programSelect" required class="w-full border px-3 py-2">
@@ -193,8 +268,24 @@
               Select program, year & semester to load fee components.
             </div>
 
+            <!-- Available Credit Info -->
+            <div id="creditInfo"
+              class="hidden bg-blue-50 text-blue-800 px-3 py-2 border border-blue-200 rounded text-sm mb-2">
+              <div class="flex justify-between items-center">
+                <span>Available Credit:</span>
+                <span id="creditAmount" class="font-bold">GHS 0.00</span>
+              </div>
+              <input type="hidden" id="rawCreditAmount" value="0">
+            </div>
+
             <!-- Components injected here -->
             <div id="componentBreakdown" class="space-y-2 hidden"></div>
+
+            <div id="overpaymentRow"
+              class="hidden flex justify-between items-center bg-green-50 text-green-700 px-3 py-2 border border-green-200 rounded font-semibold mt-2">
+              <span>Credit</span>
+              <span id="overpaymentAmount">GHS 0.00</span>
+            </div>
 
             <div class="text-right font-semibold mt-3">
               Selected Total: GHS <span id="allocatedTotal">0.00</span>
@@ -204,8 +295,10 @@
       </div>
 
       <!-- REFERENCE -->
-      <label class="block text-sm font-medium">Bank Reference</label>
-      <input name="reference" required class="w-full border px-3 py-2" style="width: 600px" />
+      <div class="mt-[-120px]">
+        <label class="block text-sm font-medium">Bank Reference</label>
+        <input name="reference" required class="w-full border px-3 py-2" style="width: 600px" />
+      </div>
 
       <!-- ACTIONS -->
       <div class="flex justify-end gap-3 pt-2">
@@ -257,6 +350,8 @@
     document.getElementById("createPaymentModal").classList.add("hidden");
   }
 
+
+
   /* -------------------------------
    PAYMENT BREAKDOWN LOGIC (NEW)
 */
@@ -272,6 +367,14 @@
     const placeholder = document.getElementById("componentPlaceholder");
     const allocatedSpan = document.getElementById("allocatedTotal");
 
+    const overpaymentRow = document.getElementById("overpaymentRow");
+    const overpaymentAmountSpan = document.getElementById("overpaymentAmount");
+    const studentSelectObj = document.querySelector('select[name="student_id"]');
+
+    const creditInfo = document.getElementById("creditInfo");
+    const creditAmountSpan = document.getElementById("creditAmount");
+    const rawCreditInput = document.getElementById("rawCreditAmount");
+
     function recalcTotal() {
       let total = 0;
       breakdown
@@ -281,20 +384,47 @@
         });
 
       allocatedSpan.textContent = total.toFixed(2);
+
+      const paid = parseFloat(amountPaidInput.value || 0);
+      const credit = parseFloat(rawCreditInput.value || 0);
+      const totalAvailable = paid + credit;
+      const diff = totalAvailable - total;
+
+      if (diff > 0 && totalAvailable > 0) {
+        overpaymentRow.classList.remove("hidden");
+        overpaymentAmountSpan.textContent = `GHS ${diff.toFixed(2)}`;
+      } else {
+        overpaymentRow.classList.add("hidden");
+        overpaymentAmountSpan.textContent = `GHS 0.00`;
+      }
+
       return total;
     }
 
+    amountPaidInput.addEventListener("input", recalcTotal);
+
     function loadFeeComponents() {
+      const studentId = studentSelectObj ? studentSelectObj.value : "";
       const programId = programSelect.value;
       const yearId = yearSelect.value;
       const semesterId = semesterSelect.value;
 
       if (!programId || !yearId || !semesterId) return;
 
-      fetch(`/finance/ajax/program-fee/${programId}/${yearId}/${semesterId}/`)
+      fetch(`/finance/ajax/program-fee/${programId}/${yearId}/${semesterId}/?student_id=${studentId}`)
         .then((res) => res.json())
         .then((data) => {
           expectedInput.value = data.initial_amount;
+
+          // Update Credit Info
+          const credit = parseFloat(data.available_credit || 0);
+          rawCreditInput.value = credit;
+          if (credit > 0) {
+            creditInfo.classList.remove("hidden");
+            creditAmountSpan.textContent = `GHS ${credit.toFixed(2)}`;
+          } else {
+            creditInfo.classList.add("hidden");
+          }
 
           breakdown.innerHTML = "";
           placeholder.classList.add("hidden");
@@ -317,7 +447,7 @@
             </div>
 
             <span class="text-sm font-semibold">
-              GHS ${c.total_fee}
+              GHS ${c.balance}
             </span>
           `;
 
@@ -335,24 +465,45 @@
         });
     }
 
-    [programSelect, yearSelect, semesterSelect].forEach((el) =>
-      el.addEventListener("change", loadFeeComponents)
-    );
+    [studentSelectObj, programSelect, yearSelect, semesterSelect].forEach((el) => {
+      if (el) el.addEventListener("change", loadFeeComponents);
+    });
 
     // FINAL FORM VALIDATION
     document
       .getElementById("createPaymentForm")
       .addEventListener("submit", function (e) {
         const paid = parseFloat(amountPaidInput.value || 0);
+        const credit = parseFloat(rawCreditInput.value || 0);
+        const totalAvailable = paid + credit;
         const selectedTotal = recalcTotal();
 
-        if (paid < selectedTotal) {
+        if (totalAvailable < selectedTotal) {
           e.preventDefault();
           alert(
-            "Amount being paid must not be smaller than selected fee components total."
+            `Insufficient funds. Total Available (Paid: ${paid} + Credit: ${credit} = ${totalAvailable}) is less than selected components total (${selectedTotal}).`
           );
         }
       });
+
+    // Prefill logic
+    {% if tx_id %}
+      openCreatePayment();
+      
+      {% if prefill_amount %}
+      if (amountPaidInput) {
+        amountPaidInput.value = "{{ prefill_amount }}";
+        recalcTotal();
+      }
+      {% endif %}
+
+      {% if prefill_student %}
+      if (studentSelectObj) {
+        studentSelectObj.value = "{{ prefill_student.id }}";
+        loadFeeComponents();
+      }
+      {% endif %}
+    {% endif %}
   });
 </script>
 
