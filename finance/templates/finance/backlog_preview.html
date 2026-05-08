@@ -1,0 +1,92 @@
+{% extends "finance_dashboard_layout.html" %}
+{% block title %} Backlog Preview {% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-8">
+  <div class="mb-8 flex justify-between items-end">
+    <div>
+      <h2 class="text-3xl font-bold text-gray-800">Backlog Upload Preview</h2>
+      <p class="text-gray-500 mt-1">Please verify that all students and programs have been correctly identified before finalizing.</p>
+    </div>
+    <div class="flex gap-3">
+      <a href="{% url 'finance_create_student_payment' %}" class="px-6 py-2.5 border border-gray-300 rounded-xl text-gray-600 font-semibold hover:bg-gray-50 transition-all">
+        Cancel
+      </a>
+      <form method="POST" action="{% url 'finance_save_backlog' %}">
+        {% csrf_token %}
+        <button type="submit" class="px-8 py-2.5 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition-all shadow-sm shadow-emerald-200">
+          Finalize & Save Backlog
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div class="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+    <div class="overflow-x-auto max-h-[600px] overflow-y-auto">
+      <table class="min-w-full divide-y divide-gray-200 text-sm">
+        <thead class="bg-gray-50 sticky top-0 z-10">
+          <tr>
+            <th class="px-6 py-4 text-left font-bold text-gray-600 uppercase tracking-wider">Status</th>
+            <th class="px-6 py-4 text-left font-bold text-gray-600 uppercase tracking-wider">Student Email</th>
+            <th class="px-6 py-4 text-left font-bold text-gray-600 uppercase tracking-wider">Identified Student</th>
+            <th class="px-6 py-4 text-left font-bold text-gray-600 uppercase tracking-wider">Program</th>
+            <th class="px-6 py-4 text-left font-bold text-gray-600 uppercase tracking-wider">Level</th>
+            <th class="px-6 py-4 text-left font-bold text-gray-600 uppercase tracking-wider">Year/Sem</th>
+            <th class="px-6 py-4 text-left font-bold text-gray-600 uppercase tracking-wider">Amount</th>
+            <th class="px-6 py-4 text-left font-bold text-gray-600 uppercase tracking-wider">Expected</th>
+            <th class="px-6 py-4 text-left font-bold text-gray-600 uppercase tracking-wider">Reference</th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-100">
+          {% for row in preview %}
+          <tr class="{% if row.status == 'Error' %}bg-red-50{% elif row.status == 'Warning' %}bg-amber-50{% endif %}">
+            <td class="px-6 py-4 whitespace-nowrap">
+              {% if row.status == 'Ready' %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  Ready
+                </span>
+              {% elif row.status == 'Error' %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800" title="{{ row.errors }}">
+                  Error
+                </span>
+              {% else %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800" title="{{ row.errors }}">
+                  Warning
+                </span>
+              {% endif %}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900">{{ row.email }}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-gray-600">
+              {{ row.student_name }}
+              {% if row.index_number %}
+              <div class="text-[10px] text-gray-400">Index: {{ row.index_number }}</div>
+              {% endif %}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-gray-600">
+              <div class="text-xs font-semibold">{{ row.identified_program }}</div>
+              <div class="text-[10px] text-gray-400 italic">{{ row.program_name }}</div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-gray-600">{{ row.identified_level }}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-gray-600">
+              <div class="text-xs">{{ row.identified_year }}</div>
+              <div class="text-[10px]">{{ row.identified_semester }}</div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap font-bold text-gray-900">GHS {{ row.amount_paid }}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-gray-500">GHS {{ row.amount_expected }}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-gray-400 text-xs">{{ row.reference|default:"Auto-gen" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {% if any_errors %}
+  <div class="mt-6 p-4 bg-red-50 border border-red-200 rounded-xl">
+    <p class="text-red-700 text-sm font-medium">
+      <strong>Note:</strong> Rows with "Error" status will be skipped during finalization. Please correct your CSV and re-upload if these records are essential.
+    </p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

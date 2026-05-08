@@ -53,12 +53,42 @@ def system_is_locked():
     return lock.is_locked if lock else False
 
 
-def generate_student_id():
-    # Example: STU + year + random digits
-    from datetime import datetime
-    year = datetime.now().year % 100
-    random_part = get_random_string(4, allowed_chars='0123456789')
-    return f"STU{year}{random_part}"
+def generate_student_id(program):
+    # Prefix mapping
+    award = program.award_type
+    name = program.name.upper()
+    if award == 'bachelor':
+        if "EDUCATION" in name or "B.ED" in name:
+            prefix = "BE"
+        else:
+            prefix = "BS"
+    elif award == 'diploma':
+        prefix = "DI"
+    elif award == 'master':
+        prefix = "MA"
+    elif award == 'phd':
+        prefix = "PH"
+    else:
+        prefix = "ST" # Fallback
+
+    # Year (last 2 digits)
+    year = datetime.datetime.now().year % 100
+    prefix_year = f"{prefix}{year}"
+
+    # Find the last student with this prefix and year
+    last_student = User.objects.filter(student_id__startswith=prefix_year).order_by('-student_id').first()
+    
+    if last_student:
+        try:
+            last_num_str = last_student.student_id[len(prefix_year):]
+            last_num = int(last_num_str)
+            new_num = last_num + 1
+        except (ValueError, IndexError):
+            new_num = 20100
+    else:
+        new_num = 20100
+
+    return f"{prefix_year}{new_num:05d}"
 
 
 def generate_pin():
@@ -1236,7 +1266,7 @@ def student_enrollment(request):
                 first_time = False
 
                 if not student.student_id:
-                    student.student_id = generate_student_id()
+                    student.student_id = generate_student_id(program)
                     first_time = True
 
                 if not student.pin_code:
@@ -2133,6 +2163,11 @@ def admin_manage_semesters(request):
         start_date = request.POST.get("start_date") or None
         end_date = request.POST.get("end_date") or None
 
+        # Check for duplicates before creating
+        if Semester.objects.filter(name=name, academic_year=year, level=level).exists():
+            messages.error(request, f"A semester with the name '{name}' already exists for this level and year.")
+            return redirect(f"{request.path}?program={level.program.id}&level={level.id}")
+
         Semester.objects.create(
             name=name,
             academic_year=year,
@@ -2327,6 +2362,11 @@ def admin_school(request):
         start_date = request.POST.get("start_date") or None
         end_date = request.POST.get("end_date") or None
 
+        # Check for duplicates before creating
+        if Semester.objects.filter(name=name, academic_year=year, level=level).exists():
+            messages.error(request, f"A semester with the name '{name}' already exists for this level and year.")
+            return redirect(f"{request.path}?program={level.program.id}&level={level.id}")
+
         Semester.objects.create(
             name=name,
             academic_year=year,
@@ -2347,7 +2387,15 @@ def admin_school(request):
         sem_id = request.POST.get("semester_id")
         sem = get_object_or_404(Semester, id=sem_id)
 
-        sem.name = request.POST.get("name")
+        new_name = request.POST.get("name")
+        
+        # Check for duplicates if name is changing
+        if new_name != sem.name:
+            if Semester.objects.filter(name=new_name, academic_year=sem.academic_year, level=sem.level).exists():
+                messages.error(request, f"Cannot rename to '{new_name}'. That semester already exists for this level.")
+                return redirect(f"{request.path}?program={sem.level.program.id}&level={sem.level.id}")
+            sem.name = new_name
+
         sem.start_date = request.POST.get("start_date") or None
         sem.end_date = request.POST.get("end_date") or None
         sem.is_active = request.POST.get("is_active") == "on"

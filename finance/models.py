@@ -7,7 +7,7 @@ from decimal import Decimal
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils.crypto import get_random_string
-
+import random
 
 class ProgramFee(models.Model):
     academic_year = models.ForeignKey(
@@ -82,12 +82,34 @@ class FeeComponent(models.Model):
         decimal_places=2,
     )
 
+    code = models.CharField(
+        max_length=50,
+        default="code",
+        help_text="Unique generated code for the fee component",
+        editable=False
+    )
+
     class Meta:
         verbose_name = "Fee Component"
         verbose_name_plural = "Fee Components"
 
     def __str__(self):
         return self.name
+
+    def save(self, *args, **kwargs):
+        if self.code == "code" or not self.code:
+            letters = "".join([word[0] for word in self.name.split() if word]).upper()
+            if len(letters) == 1:
+                letters = self.name[:3].upper()
+            
+            while True:
+                d1 = str(random.randint(0, 9))
+                d2 = str(random.randint(0, 9))
+                new_code = f"{d1}{letters}{d2}"
+                if not FeeComponent.objects.filter(code=new_code).exclude(pk=self.pk).exists():
+                    self.code = new_code
+                    break
+        super().save(*args, **kwargs)
 
 
 
@@ -238,7 +260,7 @@ class StudentOverpayment(models.Model):
     )
     payment = models.ForeignKey(
         Payment,
-        on_delete=models.SET_NULL,
+        on_delete=models.CASCADE,
         null=True,
         blank=True,
         related_name="overpayments"

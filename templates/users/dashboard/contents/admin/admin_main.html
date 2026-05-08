@@ -7,64 +7,76 @@
 
 <div class="max-w-7xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
   <div>
-    <h1 class="text-3xl font-extrabold text-slate-800 tracking-tight">Admin Dashboard</h1>
+    <h1 class="text-2xl font-bold text-slate-800 tracking-tight">Admin Dashboard</h1>
     <p class="text-slate-500 font-medium text-sm mt-1">Institutional overview and quick management tools.</p>
   </div>
 
   <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
     <!-- USERS CARD -->
-    <div class="bg-white p-8 rounded-2xl border border-slate-200 hover:border-slate-300 transition-all flex flex-col justify-between group">
+    <div
+      class="bg-white p-8 rounded-2xl border border-slate-200 hover:border-slate-300 transition-all flex flex-col justify-between group">
       <div>
-        <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-6 group-hover:bg-blue-600 group-hover:text-white transition-all">
+        <div
+          class="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-6 group-hover:bg-blue-600 group-hover:text-white transition-all">
           <i data-lucide="users" class="w-6 h-6"></i>
         </div>
-        <h2 class="text-xl font-extrabold text-slate-800 mb-2">Users</h2>
-        <p class="text-slate-500 text-sm font-medium leading-relaxed">Maintain student, lecturer, and administrative staff profiles.</p>
+        <h2 class="text-xl font-bold text-slate-800 mb-2">Users</h2>
+        <p class="text-slate-500 text-sm font-medium leading-relaxed">Maintain student, lecturer, and administrative
+          staff profiles.</p>
       </div>
-      <a href="{% url 'admin_manage_users' %}" class="mt-6 inline-flex items-center gap-2 text-blue-600 font-bold text-sm tracking-tight hover:gap-3 transition-all">
+      <a href="{% url 'admin_manage_users' %}"
+        class="mt-6 inline-flex items-center gap-2 text-blue-600 font-bold text-sm tracking-tight hover:gap-3 transition-all">
         Manage Users <i data-lucide="arrow-right" class="w-4 h-4"></i>
       </a>
     </div>
 
     <!-- PROGRAMS CARD -->
-    <div class="bg-white p-8 rounded-2xl border border-slate-200 hover:border-slate-300 transition-all flex flex-col justify-between group">
+    <div
+      class="bg-white p-8 rounded-2xl border border-slate-200 hover:border-slate-300 transition-all flex flex-col justify-between group">
       <div>
-        <div class="w-12 h-12 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center mb-6 group-hover:bg-purple-600 group-hover:text-white transition-all">
+        <div
+          class="w-12 h-12 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center mb-6 group-hover:bg-purple-600 group-hover:text-white transition-all">
           <i data-lucide="book-open" class="w-6 h-6"></i>
         </div>
-        <h2 class="text-xl font-extrabold text-slate-800 mb-2">Curriculum</h2>
-        <p class="text-slate-500 text-sm font-medium leading-relaxed">Oversee academic programs, base courses, and department logic.</p>
+        <h2 class="text-xl font-bold text-slate-800 mb-2">Curriculum</h2>
+        <p class="text-slate-500 text-sm font-medium leading-relaxed">Oversee academic programs, base courses, and
+          department logic.</p>
       </div>
-      <a href="{% url 'admin_manage_programs' %}" class="mt-6 inline-flex items-center gap-2 text-blue-600 font-bold text-sm tracking-tight hover:gap-3 transition-all">
+      <a href="{% url 'admin_manage_programs' %}"
+        class="mt-6 inline-flex items-center gap-2 text-blue-600 font-bold text-sm tracking-tight hover:gap-3 transition-all">
         Manage Programs <i data-lucide="arrow-right" class="w-4 h-4"></i>
       </a>
     </div>
 
     <!-- CALENDAR CARD -->
-    <div class="bg-white p-8 rounded-2xl border border-slate-200 hover:border-slate-300 transition-all flex flex-col justify-between group">
+    <div
+      class="bg-white p-8 rounded-2xl border border-slate-200 hover:border-slate-300 transition-all flex flex-col justify-between group">
       <div>
-        <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center mb-6 group-hover:bg-emerald-600 group-hover:text-white transition-all">
+        <div
+          class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center mb-6 group-hover:bg-emerald-600 group-hover:text-white transition-all">
           <i data-lucide="calendar" class="w-6 h-6"></i>
         </div>
-        <h2 class="text-xl font-extrabold text-slate-800 mb-2">School</h2>
-        <p class="text-slate-500 text-sm font-medium leading-relaxed">Configure academic semesters, school terms, and global settings.</p>
+        <h2 class="text-xl font-bold text-slate-800 mb-2">School</h2>
+        <p class="text-slate-500 text-sm font-medium leading-relaxed">Configure academic semesters, school terms, and
+          global settings.</p>
       </div>
-      <a href="{% url 'admin_school' %}" class="mt-6 inline-flex items-center gap-2 text-blue-600 font-bold text-sm tracking-tight hover:gap-3 transition-all">
+      <a href="{% url 'admin_school' %}"
+        class="mt-6 inline-flex items-center gap-2 text-blue-600 font-bold text-sm tracking-tight hover:gap-3 transition-all">
         Configure School <i data-lucide="arrow-right" class="w-4 h-4"></i>
       </a>
     </div>
   </div>
   <!-- PENDING REIMBURSEMENTS SECTION -->
   {% if pending_reimbursements %}
-  <div class="mt-12 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
+  <div class="max-w-4xl mx-auto mt-12 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
     <div class="flex items-center justify-between mb-6">
-      <h2 class="text-2xl font-bold text-slate-800">Pending Reimbursement Requests</h2>
+      <h2 class="text-xl font-bold text-slate-800">Pending Reimbursement Requests</h2>
       <span class="px-3 py-1 bg-amber-100 text-amber-700 text-xs font-extrabold rounded-full uppercase tracking-wider">
         {{ pending_reimbursements.count }} Action Required
       </span>
     </div>
 
-    <div class="bg-white rounded-3xl border-2 border-slate-200 overflow-hidden shadow-sm">
+    <div class="bg-white rounded-3xl border-2 border-slate-200 overflow-x-auto shadow-sm">
       <table class="min-w-full divide-y divide-slate-100">
         <thead class="bg-slate-50/50">
           <tr class="text-left text-xs font-extrabold text-slate-400 uppercase tracking-widest">
@@ -78,37 +90,41 @@
           {% for op in pending_reimbursements %}
           <tr class="hover:bg-slate-50/50 transition-colors group">
             <td class="px-8 py-6">
-              <div class="flex items-center gap-4">
-                <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold">
+              <div class="flex items-center gap-4 text-sm">
+                <div
+                  class="w-10 h-10 rounded-full text-sm bg-slate-100 flex items-center justify-center text-slate-500 font-bold">
                   {{ op.student.first_name|first }}{{ op.student.last_name|first }}
                 </div>
                 <div>
-                  <div class="font-bold text-slate-800">{{ op.student.get_full_name }}</div>
+                  <div class="font-bold text-sm text-slate-800">{{ op.student.get_full_name }}</div>
                   <div class="text-xs text-slate-400 font-medium">{{ op.student.username }}</div>
                 </div>
               </div>
             </td>
-            <td class="px-8 py-6 text-center">
-              <span class="px-4 py-1.5 bg-green-50 text-green-600 font-extrabold text-sm rounded-full">
+            <td class="px-8 py-6 text-center text-[14px]">
+              <span class="px-4 py-1.5 bg-green-50 text-green-600 font-extrabold  rounded-full">
                 GHS {{ op.amount }}
               </span>
             </td>
             <td class="px-8 py-6">
-              <div class="text-sm font-bold text-slate-700">{{ op.reimbursement_requested_by.get_full_name|default:"Finance Staff" }}</div>
-              <div class="text-xs text-slate-400 font-medium">{{ op.reimbursement_requested_at|date:"M d, Y • H:i" }}</div>
+              <div class="text-sm font-bold text-slate-700">{{ op.reimbursement_requested_by.get_full_name|default:op.reimbursement_requested_by.username|default:"Finance Staff" }}</div>
+              <div class="text-xs text-slate-400 font-medium">{{ op.reimbursement_requested_at|date:"M d, Y • H:i" }}
+              </div>
             </td>
             <td class="px-8 py-6 text-right">
               <div class="flex justify-end gap-2">
                 <form method="POST" action="{% url 'admin_reject_reimbursement' op.id %}">
                   {% csrf_token %}
-                  <button type="submit" class="inline-flex items-center gap-2 bg-white border border-slate-200 text-slate-600 px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-slate-50 transition-all active:scale-95">
+                  <button type="submit"
+                    class="inline-flex items-center gap-2 bg-white border border-slate-200 text-slate-600 px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-slate-50 transition-all active:scale-95">
                     Reject
                   </button>
                 </form>
 
                 <form method="POST" action="{% url 'admin_confirm_reimbursement' op.id %}">
                   {% csrf_token %}
-                  <button type="submit" class="inline-flex items-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-slate-800 transition-all active:scale-95 shadow-lg shadow-slate-200">
+                  <button type="submit"
+                    class="inline-flex items-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-slate-800 transition-all active:scale-95 shadow-lg shadow-slate-200">
                     <i data-lucide="check-circle" class="w-4 h-4"></i>
                     Confirm Reimbursement
                   </button>
@@ -125,15 +141,15 @@
 
   <!-- PENDING BANK TRANSACTION DELETIONS -->
   {% if pending_bank_deletions %}
-  <div class="mt-12 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
+  <div class="max-w-6xl mx-auto mt-12 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
     <div class="flex items-center justify-between mb-6">
-      <h2 class="text-2xl font-bold text-slate-800">Pending Bank Transaction Archives</h2>
+      <h2 class="text-xl font-bold text-slate-800">Pending Bank Transaction Archives</h2>
       <span class="px-3 py-1 bg-red-100 text-red-700 text-xs font-extrabold rounded-full uppercase tracking-wider">
         {{ pending_bank_deletions.count }} Action Required
       </span>
     </div>
 
-    <div class="bg-white rounded-3xl border-2 border-slate-200 overflow-hidden shadow-sm">
+    <div class="bg-white rounded-3xl border-2 border-slate-200 overflow-x-auto shadow-sm">
       <table class="min-w-full divide-y divide-slate-100">
         <thead class="bg-slate-50/50">
           <tr class="text-left text-xs font-extrabold text-slate-400 uppercase tracking-widest">
@@ -148,8 +164,8 @@
           {% for tx in pending_bank_deletions %}
           <tr class="hover:bg-slate-50/50 transition-colors group">
             <td class="px-8 py-6">
-                <div class="font-bold text-slate-800">{{ tx.bank_reference_id }}</div>
-                <div class="text-xs text-slate-400 font-medium">{{ tx.created_at|date:"M d, Y" }}</div>
+              <div class="font-bold text-slate-800">{{ tx.bank_reference_id }}</div>
+              <div class="text-xs text-slate-400 font-medium">{{ tx.created_at|date:"M d, Y" }}</div>
             </td>
             <td class="px-8 py-6">
               {% if tx.student %}
@@ -164,22 +180,24 @@
                 GHS {{ tx.total_amount }}
               </span>
             </td>
-            <td class="px-8 py-6">
-              <div class="text-sm font-bold text-slate-700">{{ tx.deletion_requested_by.get_full_name|default:"Finance Staff" }}</div>
+            <td class="px-8 py-6 max-w-md overflow-hidden">
+              <div class="text-sm font-bold text-slate-700">{{ tx.deletion_requested_by.get_full_name|default:tx.deletion_requested_by.username|default:"Finance Staff" }}</div>
               <div class="text-xs text-slate-400 font-medium">{{ tx.deletion_requested_at|date:"M d, Y • H:i" }}</div>
             </td>
             <td class="px-8 py-6 text-right">
               <div class="flex justify-end gap-2">
                 <form method="POST" action="{% url 'admin_reject_bank_transaction_deletion' tx.id %}">
                   {% csrf_token %}
-                  <button type="submit" class="inline-flex items-center gap-2 bg-white border border-slate-200 text-slate-600 px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-slate-50 transition-all active:scale-95">
+                  <button type="submit"
+                    class="inline-flex items-center gap-2 bg-white border border-slate-200 text-slate-600 px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-slate-50 transition-all active:scale-95">
                     Reject
                   </button>
                 </form>
 
                 <form method="POST" action="{% url 'admin_confirm_bank_transaction_deletion' tx.id %}">
                   {% csrf_token %}
-                  <button type="submit" class="inline-flex items-center gap-2 bg-red-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-red-700 transition-all active:scale-95 shadow-lg shadow-red-100">
+                  <button type="submit"
+                    class="inline-flex items-center gap-2 bg-red-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-red-700 transition-all active:scale-95 shadow-lg shadow-red-100">
                     <i data-lucide="archive" class="w-4 h-4"></i>
                     Archive
                   </button>

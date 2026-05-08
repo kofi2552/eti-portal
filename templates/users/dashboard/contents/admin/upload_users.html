@@ -10,36 +10,28 @@
       <h2 class="text-3xl font-extrabold text-slate-800 tracking-tight">Upload Users (CSV)</h2>
       <p class="text-slate-500 font-medium text-sm mt-1">Bulk import students and staff into the ETI Portal.</p>
     </div>
-    
-    <a href="{% static 'user_upload_template.csv' %}" download class="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-100 text-slate-600 font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-slate-200 transition-all cursor-pointer">
+
+    <a href="{% static 'user_upload_template.csv' %}" download
+      class="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-100 text-slate-600 font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-slate-200 transition-all cursor-pointer">
       <i data-lucide="download" class="w-4 h-4"></i>
       CSV Template
     </a>
   </div>
 
   <!-- CSV Upload Form -->
-  <form
-    method="POST"
-    enctype="multipart/form-data"
-    class="mb-12 bg-white border border-slate-100 p-8 rounded-2xl shadow-sm flex flex-col md:flex-row items-center justify-between gap-6"
-  >
+  <form method="POST" enctype="multipart/form-data"
+    class="mb-12 bg-white border border-slate-100 p-8 rounded-2xl shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
     {% csrf_token %}
 
     <div class="flex-1 w-full">
       <label class="block text-xs font-black uppercase tracking-widest text-slate-400 mb-2 px-1">Select CSV File</label>
-      <input
-        type="file"
-        name="file"
-        accept=".csv"
+      <input type="file" name="file" accept=".csv"
         class="w-full text-sm border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-1 focus:ring-blue-500 transition-all font-medium text-slate-500"
-        required
-      />
+        required />
     </div>
 
-    <button
-      name="upload_csv"
-      class="w-full md:w-auto px-8 py-3 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition-all shadow-sm cursor-pointer"
-    >
+    <button name="upload_csv"
+      class="w-full md:w-auto md:mb-[-17px] px-8 py-2.5 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition-all shadow-sm cursor-pointer">
       Process File
     </button>
   </form>
@@ -51,28 +43,37 @@
     </h3>
 
     <div class="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
-      <table class="min-w-full text-sm">
-      <thead class="bg-gray-50">
-        <tr>
-          {% for column in preview.0.keys %}
-            <th class="px-6 py-4 text-left">
-              {{ column|capfirst }}
-            </th>
-          {% endfor %}
-        </tr>
-      </thead>
-
-        </tbody>
-      </table>
+      <div class="max-h-[500px] overflow-y-auto overflow-x-auto">
+        <table class="min-w-full text-sm">
+          <thead class="bg-slate-50 sticky top-0 z-10">
+            <tr>
+              {% for column in preview.0.keys %}
+              <th
+                class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500 border-b border-slate-100 bg-slate-50">
+                {{ column|capfirst }}
+              </th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            {% for row in preview %}
+            <tr>
+              {% for key, value in row.items %}
+              <td class="px-6 py-4 text-slate-600 font-medium">
+                {{ value }}
+              </td>
+              {% endfor %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
     <div class="flex w-full justify-end mt-10 pb-12">
       <form method="post" action="{% url 'save_uploaded_users' %}">
         {% csrf_token %}
-        <button
-          name="upload_csv"
-          type="submit"
-          class="px-10 py-4 bg-emerald-600 text-white font-black uppercase tracking-widest text-xs rounded-xl hover:bg-emerald-700 transition-all shadow-sm cursor-pointer"
-        >
+        <button name="upload_csv" type="submit"
+          class="px-10 py-4 bg-emerald-600 text-white font-black uppercase tracking-widest text-xs rounded-xl hover:bg-emerald-700 transition-all shadow-sm cursor-pointer">
           Finalize & Save
         </button>
       </form>

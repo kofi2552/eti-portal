@@ -10,6 +10,9 @@ urlpatterns = [
     path("ajax/program-fee/<int:program_id>/<int:year_id>/<int:semester_id>/",views.ajax_program_fee_components,),
     path("payments/export/csv/", views.finance_export_summary_payments_csv, name="finance_export_summary_payments_csv"),
     path("full-payments/export/csv/", views.finance_export_payments_csv, name="finance_export_payments_csv"),
+    path("students/export-template/csv/", views.finance_export_student_template_csv, name="finance_export_student_template_csv"),
+    path("payments/upload-backlog/csv/", views.finance_upload_backlog_csv, name="finance_upload_backlog_csv"),
+    path("payments/save-backlog/", views.finance_save_backlog, name="finance_save_backlog"),
     path("ajax/program-fee/<int:fee_id>/detail/",views.finance_program_fee_detail,name="finance_program_fee_detail"),
     path("students/<int:student_id>/finance/",views.finance_payment_detail,name="finance_payment_detail",),
     
