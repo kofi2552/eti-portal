@@ -12,20 +12,18 @@ Fee Payments {% endblock %} {% block content %}
     </form>
   </div>
   <div class="w-full mx-auto bg-white p-6 rounded-2xl border border-slate-100 space-y-8">
-    <!-- <div class="flex justify-between items-center mb-4">
-      <h2 class="text-lg font-semibold">Student Fee Payments</h2>
-    </div> -->
+
     <!-- PAYMENT TABLE -->
     <div class="bg-white">
       <table class="min-w-full text-sm divide-y divide-gray-200">
         <thead class="bg-slate-50/50">
           <tr class="text-xs font-black uppercase tracking-widest text-slate-400">
-            <th class="px-4 py-2">Student</th>
+            <th class="px-4 py-2 text-left">Student</th>
             <!-- <th class=" px-4 py-2">Year</th> -->
-            <th class="px-4 py-2">Semester</th>
-            <th class="px-4 py-2">Initial Amount</th>
-            <th class="px-4 py-2">Paid</th>
-            <th class="px-4 py-2">Verified</th>
+            <th class="px-4 py-2 text-left">Semester</th>
+            <th class="px-4 py-2 text-left">Initial Amt</th>
+            <th class="px-4 py-2 text-left">Paid</th>
+            <th class="px-4 py-2 text-left">Verified</th>
             <th class="px-4 py-2">Actions</th>
           </tr>
         </thead>
@@ -148,57 +146,64 @@ Fee Payments {% endblock %} {% block content %}
     </table>
   </div>
 
-  <div class="bg-white border border-slate-100 rounded-2xl p-6 mb-8 mt-8">
+  <div class="bg-white border border-slate-100 rounded-2xl p-6 mb-0 mt-8">
     <h3 class="text-md font-semibold mb-4">Semester Enrollment Control</h3>
 
-    <table class="min-w-full text-sm divide-y divide-gray-200">
-      <thead class="bg-slate-50/50">
-        <tr class="text-xs font-black uppercase tracking-widest text-slate-400">
-          <th class="px-4 py-2 text-left">Semester</th>
-          <th class="px-4 py-2 text-left">Academic Year</th>
-          <th class="px-4 py-2 text-left">Registration Status</th>
-          <th class="px-4 py-2 text-left">Action</th>
-        </tr>
-      </thead>
+    <div class="overflow-y-auto max-h-[500px]">
+      <table class="min-w-full text-sm divide-y divide-gray-200">
+        <thead class="bg-slate-50/50 sticky top-0 z-10">
+          <tr class="text-xs font-black uppercase tracking-widest text-slate-400">
+            <th class="px-4 py-2 text-left">Semester</th>
+            <th class="px-4 py-2 text-left">Academic Year</th>
+            <th class="px-4 py-2 text-left">Program</th>
+            <th class="px-4 py-2 text-left">Level</th>
+            <th class="px-4 py-2 text-left">Reg Status</th>
+            <th class="px-4 py-2 text-left w-32">Action</th>
+          </tr>
+        </thead>
 
-      <tbody class="divide-y divide-gray-100">
-        {% for s in semesters %}
-        <tr>
-          <td class="px-4 py-2">{{ s.name }}</td>
-          <td class="px-4 py-2">{{ s.academic_year.name }}</td>
+        <tbody class="divide-y divide-gray-100">
+          {% for s in semesters %}
+          <tr>
+            <td class="px-4 py-2">{{ s.name }}</td>
+            <td class="px-4 py-2">{{ s.academic_year.name }}</td>
+            <td class="px-4 py-2">{{ s.level.program.name|default:"N/A" }}</td>
+            <td class="px-4 py-2">{{ s.level.level_name|default:"N/A" }}</td>
 
-          <td class="px-4 py-2">
-            {% if s.sem_reg_is_active %}
-            <span class="text-green-600 font-semibold">Active</span>
-            {% else %}
-            <span class="text-red-600 font-semibold">Inactive</span>
-            {% endif %}
-          </td>
-
-          <td class="px-4 py-2">
-            <form method="POST">
-              {% csrf_token %}
-              <input type="hidden" name="toggle_sem_reg" value="1" />
-              <input type="hidden" name="semester_id" value="{{ s.id }}" />
-
+            <td class="px-4 py-2">
               {% if s.sem_reg_is_active %}
-              <button class="px-3 py-1 bg-red-600 text-sm text-white hover:bg-red-700 cursor-pointer">
-                Deactivate Sem Registration
-              </button>
+              <span class="text-green-600 font-semibold">Active</span>
               {% else %}
-              <button class="px-3 py-1 bg-green-600 text-sm text-white hover:bg-green-700 cursor-pointer">
-                Activate Sem Registration
-              </button>
+              <span class="text-red-600 font-semibold">Inactive</span>
               {% endif %}
-            </form>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+            </td>
+
+            <td class="px-4 py-2 w-32">
+              <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="toggle_sem_reg" value="1" />
+                <input type="hidden" name="semester_id" value="{{ s.id }}" />
+
+                {% if s.sem_reg_is_active %}
+                <button class="w-full px-3 py-1 bg-red-600 text-xs text-white hover:bg-red-700 cursor-pointer rounded">
+                  Deactivate
+                </button>
+                {% else %}
+                <button
+                  class="w-full px-3 py-1 bg-green-600 text-xs text-white hover:bg-green-700 cursor-pointer rounded">
+                  Activate
+                </button>
+                {% endif %}
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </div>
   {% if payments.has_other_pages %}
-  <div class="flex justify-between items-center mt-4 text-sm">
+  <div class="flex justify-between items-center mt-2 mb-6 text-sm px-4">
     <div>Page {{ payments.number }} of {{ payments.paginator.num_pages }}</div>
 
     <div class="flex gap-2">

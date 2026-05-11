@@ -44,6 +44,7 @@
             <!-- <th class=" px-4 py-2">Year</th> -->
             <th class="px-4 py-2">Semester</th>
             <th class="px-4 py-2">Initial Amount</th>
+            <th class="px-4 py-2">Total Fees</th>
             <th class="px-4 py-2">Paid</th>
             <th class="px-4 py-2">Owing</th>
             <th class="px-4 py-2">Verified</th>
@@ -67,6 +68,7 @@
               <span class="text-xs text-gray-400">({{ p.academic_year.name }})</span>
             </td>
             <td class="px-4 py-2">{{ p.amount_expected }}</td>
+            <td class="px-4 py-2 font-semibold">{{ p.total_fee }}</td>
             <td class="px-4 py-2">{{ p.amount_paid }}</td>
             <td class="px-4 py-2">{{ p.amount_owing }}</td>
             <td class="px-4 py-2">
@@ -186,7 +188,10 @@
 <!-- CREATE PAYMENT MODAL -->
 <div id="createPaymentModal" class="w-full hidden fixed inset-0 bg-black/40 flex items-center justify-center">
   <div class="max-w-7xl bg-white mx-auto px-6 py-4 rounded-md border-c shadow-sm">
-    <h3 class="text-lg font-semibold mb-3">Add Payment</h3>
+    <div style="display: flex; justify-content: space-between;">
+      <h3 class="text-lg font-semibold mb-3">Add Payment</h3><span id="studentInfoDisplay"
+        class="text-xs font-bold text-red-500 uppercase flex items-center gap-1"></span>
+    </div>
 
     <form method="POST" id="createPaymentForm" class="w-full mx-auto space-y-4">
       {% csrf_token %}
@@ -225,7 +230,7 @@
               <select name="level_id" id="levelSelect" required class="w-full border px-3 py-2">
                 <option value="">Select level</option>
                 {% for lvl in levels %}
-                <option value="{{ lvl.id }}">{{ lvl.name }}</option>
+                <option value="{{ lvl.id }}">{{ lvl.level_name }}</option>
                 {% endfor %}
               </select>
             </div>
@@ -372,7 +377,8 @@
       levelSelect.innerHTML = '<option value="">-- Select Level --</option>';
       if (!programId) return;
 
-      fetch(`/users/admin/ajax/program-levels/${programId}/`)
+      const url = "{% url 'ajax_program_levels' 0 %}".replace('0', programId);
+      fetch(url)
         .then((response) => response.json())
         .then((data) => {
           data.levels.forEach((level) => {
@@ -383,6 +389,44 @@
           });
         })
         .catch((err) => console.error("Error loading levels:", err));
+    });
+
+  /* -------------------------------
+   LEVEL → SEMESTER (NEW)
+-------------------------------- */
+  document
+    .getElementById("levelSelect")
+    .addEventListener("change", function () {
+      const levelId = this.value;
+      const semesterSelect = document.getElementById("semesterSelect");
+      const yearSelect = document.getElementById("yearSelect");
+
+      semesterSelect.innerHTML = '<option value="">-- Select Semester --</option>';
+      if (!levelId) return;
+
+      const url = "{% url 'ajax_get_semesters' 0 %}".replace('0', levelId);
+      fetch(url)
+        .then((response) => response.json())
+        .then((data) => {
+          data.semesters.forEach((sem) => {
+            const opt = document.createElement("option");
+            opt.value = sem.id;
+            opt.textContent = sem.name;
+            opt.dataset.yearId = sem.year_id;
+            if (sem.is_active) {
+              opt.selected = true;
+              // Auto set year if active
+              if (yearSelect) yearSelect.value = sem.year_id;
+            }
+            semesterSelect.appendChild(opt);
+          });
+
+          // Trigger breakdown load if we auto-selected
+          if (semesterSelect.value) {
+            semesterSelect.dispatchEvent(new Event("change"));
+          }
+        })
+        .catch((err) => console.error("Error loading semesters:", err));
     });
 
   /* -------------------------------
@@ -460,15 +504,24 @@
     function loadFeeComponents() {
       const studentId = studentSelectObj ? studentSelectObj.value : "";
       const programId = programSelect.value;
+      const levelId = document.getElementById("levelSelect").value;
       const yearId = yearSelect.value;
       const semesterId = semesterSelect.value;
 
       if (!programId || !yearId || !semesterId) return;
 
-      fetch(`/finance/ajax/program-fee/${programId}/${yearId}/${semesterId}/?student_id=${studentId}`)
-        .then((res) => res.json())
+      const url = "{% url 'ajax_program_fee_components' 0 1 2 %}"
+        .replace('0', programId)
+        .replace('1', yearId)
+        .replace('2', semesterId);
+
+      fetch(`${url}?student_id=${studentId}&level_id=${levelId}`)
+        .then((res) => {
+          if (!res.ok) throw new Error("No fee structure found");
+          return res.json();
+        })
         .then((data) => {
-          expectedInput.value = data.initial_amount;
+          expectedInput.value = data.initial_amount || "0.00";
 
           // Update Credit Info
           const credit = parseFloat(data.available_credit || 0);
@@ -511,16 +564,92 @@
 
           recalcTotal();
         })
-        .catch(() => {
+        .catch((err) => {
+          expectedInput.value = "0.00";
           breakdown.innerHTML = "";
           placeholder.classList.remove("hidden");
-          placeholder.textContent =
-            "No fee structure declared for this selection.";
+          placeholder.textContent = err.message || "No fee structure declared for this selection.";
+          recalcTotal();
         });
     }
 
-    [studentSelectObj, programSelect, yearSelect, semesterSelect].forEach((el) => {
-      if (el) el.addEventListener("change", loadFeeComponents);
+    [studentSelectObj, programSelect, levelSelect, yearSelect, semesterSelect].forEach((el) => {
+      if (el)
+        el.addEventListener("change", function () {
+          // If student changed, try to pre-fill their details (only for continuing students)
+          if (el === studentSelectObj) {
+            const studentId = el.value;
+            if (studentId) {
+              const detailUrl = "{% url 'ajax_get_student_details' 0 %}".replace('0', studentId);
+              fetch(detailUrl)
+                .then(res => res.json())
+                .then(data => {
+                  // Update visibility display
+                  const infoDisplay = document.getElementById("studentInfoDisplay");
+                  if (infoDisplay) {
+                    infoDisplay.textContent = `${data.program_name} | ${data.level_name} | ${data.semester_name}`;
+                  }
+                  if (data.program_id) {
+                    programSelect.value = data.program_id;
+
+                    // 1. Load Levels
+                    const levelUrl = "{% url 'ajax_program_levels' 0 %}".replace('0', data.program_id);
+                    fetch(levelUrl)
+                      .then(r => r.json())
+                      .then(levelData => {
+                        levelSelect.innerHTML = '<option value="">-- Select Level --</option>';
+                        levelData.levels.forEach(lvl => {
+                          const opt = document.createElement("option");
+                          opt.value = lvl.id;
+                          opt.textContent = lvl.name;
+                          levelSelect.appendChild(opt);
+                        });
+
+                        if (data.level_id) {
+                          levelSelect.value = data.level_id;
+
+                          // 2. Load Semesters
+                          const semUrl = "{% url 'ajax_get_semesters' 0 %}".replace('0', data.level_id);
+                          fetch(semUrl)
+                            .then(r => r.json())
+                            .then(semData => {
+                              semesterSelect.innerHTML = '<option value="">-- Select Semester --</option>';
+                              semData.semesters.forEach(sem => {
+                                const opt = document.createElement("option");
+                                opt.value = sem.id;
+                                opt.textContent = sem.name;
+                                opt.dataset.yearId = sem.year_id;
+                                semesterSelect.appendChild(opt);
+                              });
+
+                              if (data.semester_id) {
+                                semesterSelect.value = data.semester_id;
+                                if (data.academic_year_id) {
+                                  yearSelect.value = data.academic_year_id;
+                                }
+                                loadFeeComponents();
+                              }
+                            });
+                        }
+                      });
+                  }
+                });
+            }
+          }
+
+          // If semester changed, sync the year
+          if (el === semesterSelect) {
+            const opt = semesterSelect.options[semesterSelect.selectedIndex];
+            if (opt && opt.dataset.yearId) {
+              yearSelect.value = opt.dataset.yearId;
+            }
+          }
+
+          // Avoid double loading if we already triggered it via student pre-fill
+          if (el !== studentSelectObj) {
+            loadFeeComponents();
+          }
+        });
     });
 
     // FINAL FORM VALIDATION
@@ -554,7 +683,7 @@
     {% if prefill_student %}
     if (studentSelectObj) {
       studentSelectObj.value = "{{ prefill_student.id }}";
-      loadFeeComponents();
+      studentSelectObj.dispatchEvent(new Event("change"));
     }
     {% endif %}
     {% endif %}

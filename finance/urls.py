@@ -7,7 +7,7 @@ urlpatterns = [
     path("dashboard/", views.finance_main, name="finance_main"),
     path("semester-fees/", views.semester_fee_list, name="semester_fee_list"),
     path("payments/create/", views.finance_create_student_payment, name="finance_create_student_payment"),
-    path("ajax/program-fee/<int:program_id>/<int:year_id>/<int:semester_id>/",views.ajax_program_fee_components,),
+    path("ajax/program-fee/<int:program_id>/<int:year_id>/<int:semester_id>/",views.ajax_program_fee_components, name="ajax_program_fee_components"),
     path("payments/export/csv/", views.finance_export_summary_payments_csv, name="finance_export_summary_payments_csv"),
     path("full-payments/export/csv/", views.finance_export_payments_csv, name="finance_export_payments_csv"),
     path("students/export-template/csv/", views.finance_export_student_template_csv, name="finance_export_student_template_csv"),
@@ -35,4 +35,6 @@ urlpatterns = [
     path("bank-transactions/<int:tx_id>/confirm-archive/", views.admin_confirm_bank_transaction_deletion, name="admin_confirm_bank_transaction_deletion"),
     path("bank-transactions/<int:tx_id>/reject-archive/", views.admin_reject_bank_transaction_deletion, name="admin_reject_bank_transaction_deletion"),
     path("bank-transactions/export-csv/", views.finance_export_bank_transactions_csv, name="finance_export_bank_transactions_csv"),
+    path("ajax/semesters/<int:level_id>/", views.ajax_get_semesters, name="ajax_get_semesters"),
+    path("ajax/student-details/<int:student_id>/", views.ajax_get_student_details, name="ajax_get_student_details"),
 ]

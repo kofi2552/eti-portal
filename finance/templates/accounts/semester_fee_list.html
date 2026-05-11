@@ -21,6 +21,7 @@
             <th class="p-3">Academic Year</th>
             <th class="p-3">Semester</th>
             <th class="p-3">Program</th>
+            <th class="p-3">Level</th>
             <th class="p-3">Initial Amount</th>
             <th class="p-3">Full Amount</th>
             <th class="p-3">Fee Breakdown</th>
@@ -38,6 +39,9 @@
 
             <!-- Program -->
             <td class="p-3">{{ fee.program.name }}</td>
+
+            <!-- Level -->
+            <td class="p-3">{{ fee.level.level_name|default:"All Levels" }}</td>
 
             <!-- Expected / Initial Amount -->
             <td class="p-3 font-semibold">GHS {{ fee.initial_amount }}</td>
@@ -236,8 +240,16 @@
           </select>
 
           <select name="program" required class="border rounded px-3 py-2">
+            <option value="">-- Select Program --</option>
             {% for p in programs %}
             <option value="{{ p.id }}">{{ p.name }}</option>
+            {% endfor %}
+          </select>
+
+          <select name="level" class="border rounded px-3 py-2">
+            <option value="">-- All Levels (Default) --</option>
+            {% for l in levels %}
+            <option value="{{ l.id }}">{{ l.level_name }}</option>
             {% endfor %}
           </select>
         </div>
@@ -326,10 +338,16 @@
         <input type="hidden" name="total_amount" id="editTotalAmountHidden" />
 
         <!-- READ ONLY INFO -->
-        <div class="grid grid-cols-3 gap-4">
+        <div class="grid grid-cols-4 gap-4">
           <input id="editAcademicYear" class="border rounded px-3 py-2 bg-gray-100" disabled />
           <input id="editSemester" class="border rounded px-3 py-2 bg-gray-100" disabled />
           <input id="editProgram" class="border rounded px-3 py-2 bg-gray-100" disabled />
+          <select name="level" id="editLevel" class="border rounded px-3 py-2">
+            <option value="">-- All Levels (Default) --</option>
+            {% for l in levels %}
+            <option value="{{ l.id }}">{{ l.level_name }}</option>
+            {% endfor %}
+          </select>
         </div>
 
         <!-- INITIAL AMOUNT -->
@@ -413,6 +431,7 @@
         document.getElementById("editAcademicYear").value = data.academic_year;
         document.getElementById("editSemester").value = data.semester;
         document.getElementById("editProgram").value = data.program;
+        document.getElementById("editLevel").value = data.level_id || "";
         document.getElementById("editInitialAmount").value =
           data.initial_amount;
 

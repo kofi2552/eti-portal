@@ -5,17 +5,21 @@
 <div class="max-w-7xl mx-auto px-4 py-8">
   <div class="mb-8 flex justify-between items-end">
     <div>
-      <h2 class="text-3xl font-bold text-gray-800">Backlog Upload Preview</h2>
-      <p class="text-gray-500 mt-1">Please verify that all students and programs have been correctly identified before finalizing.</p>
+      <h2 class="text-2xl font-bold text-gray-800">Backlog Upload Preview</h2>
+      <p class="text-gray-500 mt-1 text-sm">Please verify that all students and programs have been correctly identified
+        before
+        finalizing.</p>
     </div>
     <div class="flex gap-3">
-      <a href="{% url 'finance_create_student_payment' %}" class="px-6 py-2.5 border border-gray-300 rounded-xl text-gray-600 font-semibold hover:bg-gray-50 transition-all">
+      <a href="{% url 'finance_create_student_payment' %}"
+        class="px-6 py-2.5 border border-gray-300 rounded-xl text-gray-600 font-semibold hover:bg-gray-50 transition-all">
         Cancel
       </a>
       <form method="POST" action="{% url 'finance_save_backlog' %}">
         {% csrf_token %}
-        <button type="submit" class="px-8 py-2.5 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition-all shadow-sm shadow-emerald-200">
-          Finalize & Save Backlog
+        <button type="submit" {% if any_errors %}disabled{% endif %}
+          class="px-8 py-2.5 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition-all shadow-sm shadow-emerald-200 disabled:opacity-50 disabled:cursor-not-allowed">
+          Finalize & Save
         </button>
       </form>
     </div>
@@ -27,8 +31,8 @@
         <thead class="bg-gray-50 sticky top-0 z-10">
           <tr>
             <th class="px-6 py-4 text-left font-bold text-gray-600 uppercase tracking-wider">Status</th>
-            <th class="px-6 py-4 text-left font-bold text-gray-600 uppercase tracking-wider">Student Email</th>
-            <th class="px-6 py-4 text-left font-bold text-gray-600 uppercase tracking-wider">Identified Student</th>
+            <th class="px-6 py-4 text-left font-bold text-gray-600 uppercase tracking-wider">Email</th>
+            <th class="px-6 py-4 text-left font-bold text-gray-600 uppercase tracking-wider">Student</th>
             <th class="px-6 py-4 text-left font-bold text-gray-600 uppercase tracking-wider">Program</th>
             <th class="px-6 py-4 text-left font-bold text-gray-600 uppercase tracking-wider">Level</th>
             <th class="px-6 py-4 text-left font-bold text-gray-600 uppercase tracking-wider">Year/Sem</th>
@@ -42,17 +46,22 @@
           <tr class="{% if row.status == 'Error' %}bg-red-50{% elif row.status == 'Warning' %}bg-amber-50{% endif %}">
             <td class="px-6 py-4 whitespace-nowrap">
               {% if row.status == 'Ready' %}
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                  Ready
-                </span>
+              <span
+                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                Ready
+              </span>
               {% elif row.status == 'Error' %}
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800" title="{{ row.errors }}">
-                  Error
-                </span>
+              <span
+                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800"
+                title="{{ row.errors }}">
+                Error
+              </span>
               {% else %}
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800" title="{{ row.errors }}">
-                  Warning
-                </span>
+              <span
+                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800"
+                title="{{ row.errors }}">
+                Warning
+              </span>
               {% endif %}
             </td>
             <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900">{{ row.email }}</td>
@@ -84,7 +93,9 @@
   {% if any_errors %}
   <div class="mt-6 p-4 bg-red-50 border border-red-200 rounded-xl">
     <p class="text-red-700 text-sm font-medium">
-      <strong>Note:</strong> Rows with "Error" status will be skipped during finalization. Please correct your CSV and re-upload if these records are essential.
+      <strong>Attention:</strong> Your upload contains errors. To ensure financial data integrity, <strong>all errors
+        must be resolved</strong> before you can finalize the backlog. No partial data will be uploaded. Please correct
+      your CSV and re-upload.
     </p>
   </div>
   {% endif %}

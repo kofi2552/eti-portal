@@ -24,6 +24,13 @@ class ProgramFee(models.Model):
         on_delete=models.CASCADE
     )
 
+    level = models.ForeignKey(
+        ProgramLevel,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True
+    )
+
     name = models.CharField(
         max_length=100,
         default="Semester Fee"
@@ -61,7 +68,7 @@ class ProgramFee(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ("academic_year", "semester", "program")
+        unique_together = ("academic_year", "semester", "program", "level")
 
     def __str__(self):
         return f"{self.semester} ({self.academic_year}) - {self.total_amount}"

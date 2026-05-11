@@ -123,10 +123,10 @@ def bank_notify_payment(request):
     from finance.models import FeeComponent
     for item in fee_breakdown:
         code = item.get("component_code")
-        if not FeeComponent.objects.filter(name__iexact=code, is_active=True).exists():
+        if not FeeComponent.objects.filter(code__iexact=code, is_active=True).exists():
             return JsonResponse({
                 "status": "error",
-                "message": f"Invalid fee component: '{code}'. This component does not exist in our system."
+                "message": f"Invalid fee component code: '{code}'. This component code does not exist in our system."
             }, status=422)
 
     # Idempotency check: Don't process the same reference twice
@@ -189,9 +189,9 @@ def bank_notify_payment(request):
                 status=422
             )
 
-        # Build a lookup: component name (lower) -> ProgramFeeComponent
+        # Build a lookup: component code (lower) -> ProgramFeeComponent
         component_lookup = {
-            pfc.component.name.strip().lower(): pfc
+            pfc.component.code.strip().lower(): pfc
             for pfc in program_fee.program_fee_components.all()
         }
 
@@ -219,7 +219,7 @@ def bank_notify_payment(request):
                     "component": component_code,
                     "issue": "unrecognised",
                     "detail": (
-                        f"Fee component '{component_code}' is not part of the active fee schedule "
+                        f"Fee component code '{component_code}' is not part of the active fee schedule "
                         f"for program '{student_program.name if student_program else 'N/A'}' "
                         f"in semester '{active_semester.name}'."
                     )

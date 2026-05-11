@@ -156,6 +156,7 @@ def semester_fee_list(request):
     academic_years = AcademicYear.objects.filter(is_active=True).order_by("-start_date")
     semesters = Semester.objects.filter(is_active=True)
     programs = Program.objects.filter(is_active=True).order_by("name")
+    levels = ProgramLevel.objects.all().order_by("level_name")
 
 
    # -----------------------------------
@@ -165,6 +166,7 @@ def semester_fee_list(request):
         program_id = request.POST.get("program")
         academic_year_id = request.POST.get("academic_year")
         semester_id = request.POST.get("semester")
+        level_id = request.POST.get("level")
         initial_amount = Decimal(request.POST.get("initial_amount"))
         total_amount = Decimal(request.POST.get("total_amount"))
 
@@ -209,6 +211,7 @@ def semester_fee_list(request):
                 program_id=program_id,
                 academic_year_id=academic_year_id,
                 semester_id=semester_id,
+                level_id=level_id if level_id else None,
                 initial_amount=initial_amount,
                 total_amount=total_amount,
                 created_by=request.user,
@@ -252,6 +255,7 @@ def semester_fee_list(request):
         fee_id = request.POST.get("program_fee_id")
         program_fee = get_object_or_404(ProgramFee, id=fee_id, is_allowed=True)
 
+        level_id = request.POST.get("level")
         initial_amount = Decimal(request.POST.get("initial_amount"))
         total_amount = Decimal(request.POST.get("total_amount"))
 
@@ -267,6 +271,7 @@ def semester_fee_list(request):
             return redirect("semester_fee_list")
 
         with transaction.atomic():
+            program_fee.level_id = level_id if level_id else None
             program_fee.initial_amount = initial_amount
             program_fee.total_amount = total_amount
             program_fee.save()
@@ -390,6 +395,7 @@ def semester_fee_list(request):
             "academic_years": academic_years,
             "semesters": semesters,
             "programs": programs,
+            "levels": levels,
         }
     )
 
@@ -397,13 +403,29 @@ def semester_fee_list(request):
 @login_required
 def ajax_program_fee_components(request, program_id, year_id, semester_id):
     student_id = request.GET.get("student_id")
+    level_id = request.GET.get("level_id")
     
-    program_fee = get_object_or_404(
-        ProgramFee,
-        program_id=program_id,
-        academic_year_id=year_id,
-        semester_id=semester_id
-    )
+    # i) First with the level, semester and program selected
+    program_fee = None
+    if level_id:
+        program_fee = ProgramFee.objects.filter(
+            program_id=program_id,
+            academic_year_id=year_id,
+            semester_id=semester_id,
+            level_id=level_id
+        ).first()
+    
+    # ii) With the semester and program selected (fallback if level is optional or not found)
+    if not program_fee:
+        program_fee = ProgramFee.objects.filter(
+            program_id=program_id,
+            academic_year_id=year_id,
+            semester_id=semester_id,
+            level_id=None
+        ).first()
+
+    if not program_fee:
+        return JsonResponse({"error": "No fee structure declared for this selection."}, status=404)
 
     components = program_fee.program_fee_components.select_related("component")
     
@@ -450,8 +472,22 @@ def ajax_program_fee_components(request, program_id, year_id, semester_id):
         except (ValueError, TypeError):
             pass
 
+    # Check if student has already made any verified payments for this semester
+    has_paid_initially = False
+    if student_id:
+        try:
+            from users.models import Payment
+            has_paid_initially = Payment.objects.filter(
+                student_id=student_id,
+                academic_year_id=year_id,
+                semester_id=semester_id,
+                is_verified=True
+            ).exists()
+        except Exception:
+            pass
+
     return JsonResponse({
-        "initial_amount": str(program_fee.initial_amount),
+        "initial_amount": str(program_fee.initial_amount if not has_paid_initially else "0.00"),
         "available_credit": str(available_credit),
         "components": component_data
     })
@@ -473,6 +509,8 @@ def finance_program_fee_detail(request, fee_id):
         "academic_year": fee.academic_year.name,
         "semester": fee.semester.name,
         "program": fee.program.name,
+        "level_id": fee.level_id,
+        "level_name": fee.level.level_name if fee.level else "All Levels",
         "initial_amount": str(fee.initial_amount),
         "components": [
             {
@@ -540,6 +578,7 @@ def finance_create_student_payment(request):
         pf_key = (p.program_id, p.academic_year_id, p.semester_id)
         pf = program_fee_map.get(pf_key)
         total_fee = pf.total_amount if pf else p.amount_expected
+        p.total_fee = total_fee
         p.amount_owing = max(0, total_fee - p.amount_paid)
 
 
@@ -553,8 +592,45 @@ def finance_create_student_payment(request):
         year = get_object_or_404(AcademicYear, id=request.POST["academic_year_id"])
         semester = get_object_or_404(Semester, id=request.POST["semester_id"])
 
-        amount_expected = Decimal(request.POST["amount_expected"])
-        amount_paid = Decimal(request.POST["amount_paid"])
+        # ===========================================================
+        # VITAL INTEGRITY CHECKS (New Rule)
+        # ===========================================================
+        
+        # Check if student is "Continuing" (has at least one verified payment)
+        is_continuing = Payment.objects.filter(student=student, is_verified=True).exists()
+
+        if is_continuing:
+            # 1. Validate Program Match
+            if student.program != program:
+                messages.error(request, f"Payment Rejected: Student '{student.get_full_name()}' is enrolled in {student.program.name if student.program else 'N/A'}, not {program.name}.")
+                return redirect("finance_create_student_payment")
+                
+            # 2. Validate Level Match
+            if student.level != level:
+                messages.error(request, f"Payment Rejected: Student '{student.get_full_name()}' is currently in {student.level.level_name if student.level else 'N/A'}, not {level.level_name}.")
+                return redirect("finance_create_student_payment")
+
+        # 3. Validate Semester belongs to Level (Applies to everyone)
+        if semester.level != level:
+            messages.error(request, f"Payment Rejected: {semester.name} is not a valid semester for {level.level_name}.")
+            return redirect("finance_create_student_payment")
+
+        # 4. Critical: Check if an official fee schedule exists (Applies to everyone)
+        # i) Try with the specific level first
+        pf = ProgramFee.objects.filter(program=program, academic_year=year, semester=semester, level=level).first()
+        
+        # ii) Fallback to program/semester fee (where level is null)
+        if not pf:
+            pf = ProgramFee.objects.filter(program=program, academic_year=year, semester=semester, level=None).first()
+
+        if not pf:
+            messages.error(request, f"Payment Rejected: No official fee schedule (Program Fee) found for {program.name} - {semester.name} ({year.name}). Finance must set up the fee structure before accepting payments.")
+            return redirect("finance_create_student_payment")
+
+        # ALWAYS use the initial_amount from the official ProgramFee schedule as the expected amount
+        amount_expected = pf.initial_amount
+
+        amount_paid = Decimal(request.POST.get("amount_paid", "0") or "0")
         reference = request.POST["reference"]
         
         tx_id = request.POST.get("tx_id")
@@ -576,77 +652,103 @@ def finance_create_student_payment(request):
         # Combined funds available for this transaction
         total_available_funds = amount_paid + total_credit
 
+        components = None
+
         if not component_ids:
-            # -------------------------------------------------------
-            # OVERPAYMENT-ONLY EXCEPTION (strict rule):
-            # Finance may submit a payment with NO fee components
-            # selected ONLY when there is an actual amount being paid
-            # (i.e. the entire amount goes directly to credit/wallet).
-            # If amount_paid is zero with no components → reject.
-            # -------------------------------------------------------
-            if amount_paid > Decimal("0.00"):
-                with transaction.atomic():
-                    payment = Payment.objects.create(
-                        student=student,
-                        program=program,
-                        level=level,
-                        academic_year=year,
-                        semester=semester,
-                        amount_expected=amount_expected,
-                        amount_paid=amount_paid,
-                        credit_balance=total_available_funds,   # Entire combined sum is now credit
-                        reference=reference,
-                        date_paid=timezone.now(),
-                        is_verified=False,
+            if not is_continuing:
+                # ===========================================================
+                # NEW STUDENT SECURITY LAYER
+                # ===========================================================
+                # 1. Block if amount is less than initial registration amount
+                if amount_paid < amount_expected:
+                    messages.error(
+                        request, 
+                        f"New Student Payment Rejected: The amount paid (GHS {amount_paid}) is less than the required initial registration amount (GHS {amount_expected}) for this semester."
                     )
-                    
-                    # Mark application as paid if this is their first payment
-                    from finance.models import ApplicationForm
-                    app = ApplicationForm.objects.filter(student=student, is_paid=False).first()
-                    if app:
-                        app.is_paid = True
-                        app.save()
-                    
-                    # Mark old overpayments as used (absorbed into the new one)
-                    for op in available_overpayments:
-                        op.is_used = True
-                        op.used_at = timezone.now()
-                        op.used_for_payment = payment
-                        op.save()
-
-                    # Create new consolidated overpayment
-                    StudentOverpayment.objects.create(
-                        student=student,
-                        payment=payment,
-                        academic_year=year,
-                        semester=semester,
-                        amount=total_available_funds,
-                    )
-                    
-                    if tx_id:
-                        try:
-                            from finance.models import BankTransaction
-                            tx = BankTransaction.objects.get(id=tx_id)
-                            tx.status = "acknowledged"
-                            tx.save()
-                        except BankTransaction.DoesNotExist:
-                            pass
-                    log_event(
-                        request.user,
-                        "payment",
-                        f"Pure overpayment recorded for {student.get_full_name()}. "
-                        f"Paid: {amount_paid}, Used Credit: {total_credit}, Total New Wallet: {total_available_funds}."
-                    )
-                    messages.success(
-                        request,
-                        f"Payment recorded. Combined GHS {total_available_funds} saved to student wallet."
-                    )
-                return redirect("finance_create_student_payment")
+                    return redirect("finance_create_student_payment")
+                
+                # 2. Automatically select ALL fee components for this semester
+                components = pf.program_fee_components.all()
+                if not components.exists():
+                    messages.error(request, "Critical Error: No fee components found for this program fee schedule. Please setup components first.")
+                    return redirect("finance_create_student_payment")
+                
+                # By-pass the overpayment logic below and proceed to shared allocation
             else:
-                messages.error(request, "Select at least one fee component.")
-                return redirect("finance_create_student_payment")
+                # EXISTING OVERPAYMENT LOGIC (Continuing Students Only)
 
-        components = ProgramFeeComponent.objects.filter(id__in=component_ids)
+                # -------------------------------------------------------
+                # OVERPAYMENT-ONLY EXCEPTION (strict rule):
+                # Finance may submit a payment with NO fee components
+                # selected ONLY when there is an actual amount being paid
+                # (i.e. the entire amount goes directly to credit/wallet).
+                # If amount_paid is zero with no components → reject.
+                # -------------------------------------------------------
+                if amount_paid > Decimal("0.00"):
+                    with transaction.atomic():
+                        payment = Payment.objects.create(
+                            student=student,
+                            program=program,
+                            level=level,
+                            academic_year=year,
+                            semester=semester,
+                            amount_expected=amount_expected,
+                            amount_paid=amount_paid,
+                            credit_balance=total_available_funds,   # Entire combined sum is now credit
+                            reference=reference,
+                            date_paid=timezone.now(),
+                            is_verified=False,
+                        )
+                        
+                        # Mark application as paid if this is their first payment
+                        from finance.models import ApplicationForm
+                        app = ApplicationForm.objects.filter(student=student, is_paid=False).first()
+                        if app:
+                            app.is_paid = True
+                            app.save()
+                        
+                        # Mark old overpayments as used (absorbed into the new one)
+                        for op in available_overpayments:
+                            op.is_used = True
+                            op.used_at = timezone.now()
+                            op.used_for_payment = payment
+                            op.save()
+
+                        # Create new consolidated overpayment
+                        StudentOverpayment.objects.create(
+                            student=student,
+                            payment=payment,
+                            academic_year=year,
+                            semester=semester,
+                            amount=total_available_funds,
+                        )
+                        
+                        if tx_id:
+                            try:
+                                from finance.models import BankTransaction
+                                tx = BankTransaction.objects.get(id=tx_id)
+                                tx.status = "acknowledged"
+                                tx.save()
+                            except BankTransaction.DoesNotExist:
+                                pass
+                        log_event(
+                            request.user,
+                            "payment",
+                            f"Pure overpayment recorded for {student.get_full_name()}. "
+                            f"Paid: {amount_paid}, Used Credit: {total_credit}, Total New Wallet: {total_available_funds}."
+                        )
+                        messages.success(
+                            request,
+                            f"Payment recorded. Combined GHS {total_available_funds} saved to student wallet."
+                        )
+                    return redirect("finance_create_student_payment")
+                else:
+                    messages.error(request, "Select at least one fee component.")
+                    return redirect("finance_create_student_payment")
+
+        # If not already auto-selected for new students, fetch selected components
+        if components is None:
+            components = ProgramFeeComponent.objects.filter(id__in=component_ids)
 
         allocated_total = Decimal("0.00")
         allocations = []
@@ -1568,8 +1670,8 @@ def finance_upload_backlog_csv(request):
                             status = "Warning"
                             errors.append("No fee components found")
                     else:
-                        status = "Warning"
-                        errors.append("No fee structure found")
+                        status = "Error"
+                        errors.append("No fee structure found for this selection")
 
                 preview_data.append({
                     'email': email,
@@ -1615,16 +1717,16 @@ def finance_save_backlog(request):
         messages.error(request, "No backlog data found in session.")
         return redirect("finance_create_student_payment")
         
+    any_errors = any(r['status'] == 'Error' for r in preview_data)
+    if any_errors:
+        messages.error(request, "Cannot finalize backlog while there are errors in the data. Please fix your CSV and re-upload.")
+        return redirect("finance_create_student_payment")
+
     success_count = 0
-    error_count = 0
     
-    for row in preview_data:
-        if row['status'] == "Error":
-            error_count += 1
-            continue
-            
-        try:
-            with transaction.atomic():
+    try:
+        with transaction.atomic():
+            for row in preview_data:
                 email = row['email']
                 student = User.objects.get(email=email)
                 program = Program.objects.get(id=row['program_id'])
@@ -1634,7 +1736,7 @@ def finance_save_backlog(request):
                 amount_paid = Decimal(row['amount_paid'])
                 reference = row['reference']
                 
-                # Update student (Isolated Backlog Logic: Auto-Verify & Credential)
+                # Update student
                 student.program = program
                 student.level = level
                 student.department = program.department
@@ -1648,7 +1750,6 @@ def finance_save_backlog(request):
                     student.username = student.student_id
                 
                 if not student.pin_code:
-                    # Temporary import for isolation
                     from users.views import generate_pin
                     student.pin_code = generate_pin()
                     student.set_password(student.pin_code)
@@ -1675,13 +1776,12 @@ def finance_save_backlog(request):
                     amount_paid=amount_paid,
                     reference=reference or f"BACKLOG-{get_random_string(6, allowed_chars='0123456789')}",
                     date_paid=timezone.now(),
-                    is_verified=True, # Backlog records are auto-verified
+                    is_verified=True,
                     credit_balance=0,
                     generated_student_id=student.student_id,
                     generated_pin=student.pin_code
                 )
                 
-                # Mark application as paid for backlog students
                 from finance.models import ApplicationForm
                 app = ApplicationForm.objects.filter(student=student, is_paid=False).first()
                 if app:
@@ -1691,10 +1791,8 @@ def finance_save_backlog(request):
                 for c in components:
                     if remaining_paid <= 0:
                         break
-                        
                     allocate = min(remaining_paid, c.total_fee)
                     remaining_paid -= allocate
-                    
                     PaymentBreakdown.objects.create(
                         payment=payment,
                         component=c,
@@ -1715,11 +1813,111 @@ def finance_save_backlog(request):
                     )
                 
                 success_count += 1
-        except Exception:
-            error_count += 1
-            continue
-            
-    del request.session['backlog_preview']
-    messages.success(request, f"Backlog processing complete: {success_count} successful, {error_count} skipped/failed.")
+                
+        if 'backlog_preview' in request.session:
+            del request.session['backlog_preview']
+        messages.success(request, f"Backlog processing complete: {success_count} successful records saved.")
+        
+    except Exception as e:
+        messages.error(request, f"Backlog upload failed and was rolled back: {str(e)}")
+        
     return redirect("finance_create_student_payment")
 
+
+@login_required
+def ajax_get_semesters(request, level_id):
+    if getattr(request.user, "role", None) not in ["finance", "admin", "superadmin"]:
+        return JsonResponse({"status": "error", "message": "Access denied"}, status=403)
+    
+    from academics.models import Semester
+    semesters = Semester.objects.filter(level_id=level_id).select_related('academic_year').order_by('-is_active', '-academic_year__name', 'name')
+    
+    data = [
+        {
+            "id": sem.id, 
+            "name": f"{sem.name} ({sem.academic_year.name})", 
+            "is_active": sem.is_active,
+            "year_id": sem.academic_year_id
+        }
+        for sem in semesters
+    ]
+    return JsonResponse({"semesters": data})
+
+
+@login_required
+def ajax_get_student_details(request, student_id):
+    if getattr(request.user, "role", None) not in ["finance", "admin", "superadmin"]:
+        return JsonResponse({"error": "Unauthorized"}, status=403)
+        
+    student = get_object_or_404(User, id=student_id, role="student")
+    
+    data = {
+        "program_id": student.program.id if student.program else None,
+        "program_name": student.program.name if student.program else "N/A",
+        "level_id": student.level.id if student.level else None,
+        "level_name": student.level.level_name if student.level else "N/A",
+        "academic_year_id": None,
+        "semester_id": None,
+        "semester_name": "N/A",
+    }
+
+    # Try to find current enrollment to get academic year and semester
+    # Strictly look for enrollment matching the student's current level
+    current_enrollment = Enrollment.objects.filter(
+        student=student, 
+        is_current=True,
+        semester__level=student.level
+    ).first()
+    
+    if current_enrollment:
+        data["academic_year_id"] = current_enrollment.semester.academic_year.id
+        sem = current_enrollment.semester
+        if sem.level != student.level:
+            match = Semester.objects.filter(name=sem.name, level=student.level).first()
+            if match:
+                sem = match
+        data["semester_id"] = sem.id
+        data["semester_name"] = sem.name
+    else:
+        # Fallback: check their last registration for THEIR CURRENT LEVEL
+        last_reg = student.registrations.filter(level=student.level).order_by("-submitted_at").first()
+        if not last_reg:
+            # Also check any registration, just in case, but we will fix the semester level mismatch
+            last_reg = student.registrations.order_by("-submitted_at").first()
+
+        if last_reg:
+            data["academic_year_id"] = last_reg.academic_year.id
+            sem = last_reg.semester
+            if sem.level != student.level:
+                match = Semester.objects.filter(name=sem.name, level=student.level).first()
+                if match:
+                    sem = match
+            data["semester_id"] = sem.id
+            data["semester_name"] = sem.name
+            if not data["program_id"]:
+                data["program_id"] = last_reg.program.id if last_reg.program else None
+                data["program_name"] = last_reg.program.name if last_reg.program else "N/A"
+        else:
+            # Fallback 2: Check latest payment 
+            last_payment = student.payments.order_by("-created_at").first()
+            if last_payment:
+                data["academic_year_id"] = last_payment.academic_year.id
+                sem = last_payment.semester
+                if sem.level != student.level:
+                    match = Semester.objects.filter(name=sem.name, level=student.level).first()
+                    if match:
+                        sem = match
+                data["semester_id"] = sem.id
+                data["semester_name"] = sem.name
+                if not data["program_id"]:
+                    data["program_id"] = last_payment.program.id if last_payment.program else None
+                    data["program_name"] = last_payment.program.name if last_payment.program else "N/A"
+
+    # Fallback 3: If still no semester, find any active semester for their level
+    if not data["semester_id"] and student.level:
+        active_sem = Semester.objects.filter(level=student.level, is_active=True).first()
+        if active_sem:
+            data["academic_year_id"] = active_sem.academic_year_id
+            data["semester_id"] = active_sem.id
+            data["semester_name"] = active_sem.name
+    return JsonResponse(data)
