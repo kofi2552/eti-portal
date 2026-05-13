@@ -15,12 +15,12 @@
   </div>
 
   <!-- FILTER FORM -->
-  <form method="GET" class="flex gap-3 items-center mb-5">
+  <form method="GET" class="w-full mx-auto flex flex-wrap gap-3 items-center mb-5">
 
     <input type="text" name="q" value="{{ q }}" placeholder="Search..."
-      class="border-white px-3 py-2 rounded w-[1px] ml-[-30px]" />
+      class="border-white pr-3 py-2 rounded w-[1px] ml-[-30px]" />
 
-    <select name="program_id" id="filter_program" class="border-c px-3 py-2 rounded">
+    <select name="program_id" id="filter_program" class="w-52 border-c px-3 py-2 rounded">
       <option value="">All Programs</option>
       {% for p in programs %}
       <option value="{{ p.id }}">
@@ -29,7 +29,7 @@
       {% endfor %}
     </select>
 
-    <select name="level_id" id="filter_level" class="border-c px-3 py-2 rounded">
+    <select name="level_id" id="filter_level" class="w-52 border-c px-3 py-2 rounded">
       <option value="">All Levels</option>
       {% for lvl in levels %}
       <option value="{{ lvl.id }}">
@@ -38,7 +38,7 @@
       {% endfor %}
     </select>
 
-    <select name="semester_id" id="filter_semester" class="border-c px-3 py-2 rounded">
+    <select name="semester_id" id="filter_semester" class="w-52 border-c px-3 py-2 rounded">
       <option value="">All Semesters</option>
       {% for s in semesters %}
       <option value="{{ s.id }}">
@@ -50,89 +50,77 @@
     <button class="px-4 py-2 bg-blue-600 text-white rounded cursor-pointer">Apply</button>
   </form>
 
-  <script>
-    document.addEventListener("DOMContentLoaded", function () {
-      {% if selected_program %}
-      document.getElementById('filter_program').value = "{{ selected_program }}";
-      {% endif %}
 
-      {% if selected_level %}
-      document.getElementById('filter_level').value = "{{ selected_level }}";
-      {% endif %}
-
-      {% if selected_semester %}
-      document.getElementById('filter_semester').value = "{{ selected_semester }}";
-      {% endif %}
-    });
-  </script>
 
 
   <!-- PROGRAM COURSE TABLE -->
-  <div class="bg-white border-c rounded">
-    <table class="min-w-full text-sm">
-      <thead class="bg-gray-50">
-        <tr class="text-left">
-          <th class="px-3 py-2">Code</th>
-          <th class="px-3 py-2">Title</th>
-          <th class="px-3 py-2">Program</th>
-          <th class="px-3 py-2">Level</th>
-          <th class="px-3 py-2">Semester</th>
-          <th class="px-3 py-2">Lecturers</th>
-          <th class="px-3 py-2">Status</th>
-          <th class="px-3 py-2">Actions</th>
-        </tr>
-      </thead>
+  <div class="bg-white border-c rounded overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm">
+        <thead class="bg-gray-50">
+          <tr class="text-left">
+            <th class="px-3 py-2">Code</th>
+            <th class="px-3 py-2">Title</th>
+            <th class="px-3 py-2">Program</th>
+            <th class="px-3 py-2">Level</th>
+            <th class="px-3 py-2">Semester</th>
+            <th class="px-3 py-2">Lecturers</th>
+            <th class="px-3 py-2">Status</th>
+            <th class="px-3 py-2">Actions</th>
+          </tr>
+        </thead>
 
-      <tbody>
-        {% for pc in page_obj %}
-        <tr class="border-t border-gray-100">
-          <td class="px-3 py-2 font-medium">{{ pc.course_code }}</td>
-          <td class="px-3 py-2">{{ pc.title }}</td>
-          <td class="px-3 py-2">
-            {{ pc.program.name }}
-          </td>
-          <td class="px-3 py-2">{{ pc.level.level_name }}</td>
+        <tbody>
+          {% for pc in page_obj %}
+          <tr class="border-t border-gray-100">
+            <td class="px-3 py-2 font-medium">{{ pc.course_code }}</td>
+            <td class="px-3 py-2">{{ pc.title }}</td>
+            <td class="px-3 py-2">
+              {{ pc.program.name }}
+            </td>
+            <td class="px-3 py-2">{{ pc.level.level_name }}</td>
 
-          <td class="px-3 py-2">
-            {% if pc.semester %}
-            {{ pc.semester.name }}
-            {% else %}
-            -
-            {% endif %}
-          </td>
-
-          <td class=""> <!-- LECTURERS -->
-            <div class="px-4 py-2 text-xs">
-              {% if pc.assigned_lecturers.exists %}
-              <!-- ----------------------------- -->
-              {% for lect in pc.assigned_lecturers.all %}
-              <span class="inline-block text-xs px-2 py-1 rounded-md border border-gray-200 mr-1">
-                {{ lect.get_full_name }}
-              </span>
-              {% endfor %}
-              <!-- ------------ -->
+            <td class="px-3 py-2">
+              {% if pc.semester %}
+              {{ pc.semester.name }}
               {% else %}
-              <span class="text-gray-500 text-sm">None</span>
+              -
               {% endif %}
-            </div>
-          </td>
-          <td class="px-3 py-2 text-xs">{{ pc.is_active|yesno:"Active,Locked" }}</td>
+            </td>
 
-          <td class="px-3 py-2">
-            <button onclick="openEditProgramCourse('{{ pc.id }}')"
-              class="text-blue-600 hover:underline text-xs cursor-pointer">
-              Edit
-            </button>
-            <button class="text-red-600 hover:underline text-xs ml-3 cursor-pointer"
-              onclick="openDeleteProgramCourse('{{ pc.id }}', '{{ pc.title|escapejs }}')">
-              Delete
-            </button>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
+            <td class=""> <!-- LECTURERS -->
+              <div class="px-4 py-2 text-xs">
+                {% if pc.assigned_lecturers.exists %}
+                <!-- ----------------------------- -->
+                {% for lect in pc.assigned_lecturers.all %}
+                <span class="inline-block text-xs px-2 py-1 rounded-md border border-gray-200 mr-1 whitespace-nowrap">
+                  {{ lect.get_full_name }}
+                </span>
+                {% endfor %}
+                <!-- ------------ -->
+                {% else %}
+                <span class="text-gray-500 text-sm">None</span>
+                {% endif %}
+              </div>
+            </td>
+            <td class="px-3 py-2 text-xs">{{ pc.is_active|yesno:"Active,Locked" }}</td>
 
-    </table>
+            <td class="px-3 py-2 whitespace-nowrap">
+              <button onclick="openEditProgramCourse('{{ pc.id }}')"
+                class="text-blue-600 hover:underline text-xs cursor-pointer">
+                Edit
+              </button>
+              <button class="text-red-600 hover:underline text-xs ml-3 cursor-pointer"
+                onclick="openDeleteProgramCourse('{{ pc.id }}', '{{ pc.title|escapejs }}')">
+                Delete
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+
+      </table>
+    </div>
   </div>
 
   <!-- PAGINATION -->
@@ -296,6 +284,23 @@
 <!-- ============================ -->
 <!-- JAVASCRIPT -->
 <!-- ============================ -->
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    {% if selected_program %}
+    document.getElementById('filter_program').value = "{{ selected_program }}";
+    {% endif %}
+
+    {% if selected_level %}
+    document.getElementById('filter_level').value = "{{ selected_level }}";
+    {% endif %}
+
+    {% if selected_semester %}
+    document.getElementById('filter_semester').value = "{{ selected_semester }}";
+    {% endif %}
+  });
+</script>
+
 <script>
 
   /* ------------------------------

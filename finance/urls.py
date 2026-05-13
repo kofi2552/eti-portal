@@ -36,5 +36,6 @@ urlpatterns = [
     path("bank-transactions/<int:tx_id>/reject-archive/", views.admin_reject_bank_transaction_deletion, name="admin_reject_bank_transaction_deletion"),
     path("bank-transactions/export-csv/", views.finance_export_bank_transactions_csv, name="finance_export_bank_transactions_csv"),
     path("ajax/semesters/<int:level_id>/", views.ajax_get_semesters, name="ajax_get_semesters"),
+    path("ajax/program-levels/<int:program_id>/", views.ajax_get_program_levels, name="ajax_get_program_levels"),
     path("ajax/student-details/<int:student_id>/", views.ajax_get_student_details, name="ajax_get_student_details"),
 ]

@@ -504,14 +504,19 @@ def finance_program_fee_detail(request, fee_id):
         is_allowed=True
     )
 
+    # Fetch levels for this program
+    available_levels = ProgramLevel.objects.filter(program=fee.program).order_by("order")
+
     return JsonResponse({
         "id": fee.id,
         "academic_year": fee.academic_year.name,
         "semester": fee.semester.name,
+        "semester_id": fee.semester_id,
         "program": fee.program.name,
         "level_id": fee.level_id,
         "level_name": fee.level.level_name if fee.level else "All Levels",
         "initial_amount": str(fee.initial_amount),
+        "available_levels": [{"id": lvl.id, "name": lvl.level_name} for lvl in available_levels],
         "components": [
             {
                 "id": pfc.component.id,
@@ -1842,6 +1847,24 @@ def ajax_get_semesters(request, level_id):
         for sem in semesters
     ]
     return JsonResponse({"semesters": data})
+ 
+ 
+@login_required
+def ajax_get_program_levels(request, program_id):
+    if getattr(request.user, "role", None) not in ["finance", "admin", "superadmin"]:
+        return JsonResponse({"status": "error", "message": "Access denied"}, status=403)
+    
+    from academics.models import ProgramLevel
+    levels = ProgramLevel.objects.filter(program_id=program_id).order_by('order', 'level_name')
+    
+    data = [
+        {
+            "id": lvl.id, 
+            "name": lvl.level_name
+        }
+        for lvl in levels
+    ]
+    return JsonResponse({"levels": data})
 
 
 @login_required

@@ -1832,13 +1832,21 @@ def dean_program_courses_list(request):
     level_id = request.GET.get("level_id")
     semester_id = request.GET.get("semester_id")
 
-    programs = Program.objects.all().order_by("name")
-    levels = ProgramLevel.objects.select_related("program").order_by("program__name", "order")
-    semesters = Semester.objects.all().order_by("academic_year__start_date", "name")
+    if request.user.role == "dean":
+        programs = Program.objects.filter(department__dean=request.user).order_by("name")
+        levels = ProgramLevel.objects.filter(program__department__dean=request.user).select_related("program").order_by("program__name", "order")
+        semesters = Semester.objects.filter(level__program__department__dean=request.user).order_by("academic_year__start_date", "name")
+    else:
+        programs = Program.objects.all().order_by("name")
+        levels = ProgramLevel.objects.select_related("program").order_by("program__name", "order")
+        semesters = Semester.objects.all().order_by("academic_year__start_date", "name")
 
     queryset = ProgramCourse.objects.select_related(
         "program", "level", "semester"
     ).order_by("program__name", "level__order")
+
+    if request.user.role == "dean":
+        queryset = queryset.filter(program__department__dean=request.user)
 
     # SEARCH
     if q:
@@ -2346,7 +2354,12 @@ def admin_school(request):
     levels = ProgramLevel.objects.filter(program=selected_program) if selected_program else []
 
     # Load semesters for selected level
-    semesters = Semester.objects.filter(level=selected_level).order_by("start_date") if selected_level else []
+    semesters = (
+        Semester.objects.filter(level=selected_level)
+        .select_related("level", "academic_year")
+        .order_by("start_date")
+        if selected_level else []
+    )
 
     # ---------------------------------------------------------
     # CREATE SEMESTER

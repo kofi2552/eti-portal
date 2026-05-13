@@ -14,76 +14,78 @@
       </button>
     </div>
 
-    <div class="bg-white border rounded-xl">
-      <table class="w-full text-sm">
-        <thead class="bg-gray-50">
-          <tr class="text-left">
-            <th class="p-3">Academic Year</th>
-            <th class="p-3">Semester</th>
-            <th class="p-3">Program</th>
-            <th class="p-3">Level</th>
-            <th class="p-3">Initial Amount</th>
-            <th class="p-3">Full Amount</th>
-            <th class="p-3">Fee Breakdown</th>
-          </tr>
-        </thead>
+    <div class="bg-white border rounded-xl overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="min-w-full text-sm">
+          <thead class="bg-gray-50">
+            <tr class="text-left">
+              <th class="p-3">Year</th>
+              <th class="p-3">Semester</th>
+              <th class="p-3">Program</th>
+              <th class="p-3">Level</th>
+              <th class="p-3">Initial Amount</th>
+              <th class="p-3">Full Amount</th>
+              <th class="p-3">Fee Breakdown</th>
+            </tr>
+          </thead>
 
-        <tbody class="divide-y">
-          {% for fee in fees %}
-          <tr class="align-top text-left">
-            <!-- Academic Year -->
-            <td class="p-3">{{ fee.academic_year.name }}</td>
+          <tbody class="divide-y">
+            {% for fee in fees %}
+            <tr class="align-top text-left">
+              <!-- Academic Year -->
+              <td class="p-3">{{ fee.academic_year.name }}</td>
 
-            <!-- Semester -->
-            <td class="p-3">{{ fee.semester.name }}</td>
+              <!-- Semester -->
+              <td class="p-3">{{ fee.semester.name }}</td>
 
-            <!-- Program -->
-            <td class="p-3">{{ fee.program.name }}</td>
+              <!-- Program -->
+              <td class="p-3">{{ fee.program.name }}</td>
 
-            <!-- Level -->
-            <td class="p-3">{{ fee.level.level_name|default:"All Levels" }}</td>
+              <!-- Level -->
+              <td class="p-3">{{ fee.level.level_name|default:"All Levels" }}</td>
 
-            <!-- Expected / Initial Amount -->
-            <td class="p-3 font-semibold">GHS {{ fee.initial_amount }}</td>
+              <!-- Expected / Initial Amount -->
+              <td class="p-3 font-semibold">GHS {{ fee.initial_amount }}</td>
 
-            <!-- Total Fee -->
-            <td class="p-3 font-bold text-blue-700">
-              GHS {{ fee.total_amount }}
-            </td>
+              <!-- Total Fee -->
+              <td class="p-3 font-bold text-blue-700">
+                GHS {{ fee.total_amount }}
+              </td>
 
-            <!-- Fee Components -->
-            <td class="p-3">
-              {% if fee.program_fee_components.all %}
-              <ul class="space-y-1">
-                {% for pfc in fee.program_fee_components.all %}
-                <li class="flex justify-between gap-4">
-                  <span class="text-gray-600"> {{ pfc.component.name }} </span>
-                  <span class="font-semibold"> GHS {{ pfc.total_fee }} </span>
-                </li>
-                {% endfor %}
-              </ul>
-              {% else %}
-              <span class="text-gray-400 text-sm">
-                No components assigned
-              </span>
-              {% endif %} {% if fee.is_allowed %}
-              <button type="button"
-                class="mt-2 text-sm text-blue-600 border px-4 py-1 font-semibold hover:underline edit-program-fee-btn"
-                data-fee-id="{{ fee.id }}">
-                Edit Fee
-              </button>
-              {% endif %}
-            </td>
-          </tr>
-          {% empty %}
-          <tr>
-            <td colspan="6" class="p-6 text-center text-gray-400">
-              No semester fees declared yet.
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+              <!-- Fee Components -->
+              <td class="p-3 min-w-[200px]">
+                {% if fee.program_fee_components.all %}
+                <ul class="space-y-1">
+                  {% for pfc in fee.program_fee_components.all %}
+                  <li class="flex justify-between gap-4">
+                    <span class="text-gray-600"> {{ pfc.component.name }} </span>
+                    <span class="font-semibold"> GHS {{ pfc.total_fee }} </span>
+                  </li>
+                  {% endfor %}
+                </ul>
+                {% else %}
+                <span class="text-gray-400 text-sm">
+                  No components assigned
+                </span>
+                {% endif %} {% if fee.is_allowed %}
+                <button type="button"
+                  class="mt-2 text-sm text-blue-600 border px-4 py-1 font-semibold hover:underline edit-program-fee-btn"
+                  data-fee-id="{{ fee.id }}">
+                  Edit Fee
+                </button>
+                {% endif %}
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="7" class="p-6 text-center text-gray-400">
+                No semester fees declared yet.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 
@@ -92,55 +94,69 @@
     <h3 class="text-lg font-bold">Fee Components</h3>
 
     <!-- ADD COMPONENT -->
-    <form method="post" class="flex gap-3">
+    <form method="post" class="flex gap-3 items-center ">
       {% csrf_token %}
-      <input type="hidden" name="action" value="create_component" />
-      <input type="text" name="name" placeholder="New component name" class="border rounded px-3 py-2 w-64" required />
-      <input type="text" name="total_fee" placeholder="Expected Total Amount" class="border rounded px-3 py-2 w-64"
+      <input type="hidden" name="action" value="create_component" /> Add New:
+      <input type="text" name="name" placeholder="Component Name (e.g. Tuition)"
+        class="border rounded px-3 py-2 w-64 text-sm" required />
+      <input type="text" name="total_fee" placeholder="Amount (GHS)" class="border rounded px-3 py-2 w-48 text-sm"
         required />
-      <button class="px-4 py-2 bg-green-600 text-white rounded">Add</button>
+      <button
+        class="px-6 py-2 bg-slate-900 text-white rounded-lg text-sm font-bold hover:bg-slate-800 transition-all">Add
+        Component</button>
     </form>
 
     <!-- COMPONENT TABLE -->
-    <div class="bg-white border rounded-xl">
-      <table class="w-full text-sm">
-        <thead class="bg-gray-50">
-          <tr>
-            <th class="p-3 text-left">Name</th>
-            <th class="p-3 text-left">Default Amount</th>
-            <th class="p-3 text-right">Actions</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y">
-          {% for c in components %}
-          <tr>
-            <td class="p-3">{{ c.name }}</td>
-            <td class="p-3">{{ c.totalFee }}</td>
-            <td class="p-3 text-right space-x-3">
-              <!-- EDIT -->
-              <button type="button" class="edit-btn text-blue-600 font-medium" data-id="{{ c.id }}"
-                data-name="{{ c.name }}" data-total-fee="{{ c.totalFee }}">
-                Edit
-              </button>
+    <div class="bg-white border rounded-xl overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="min-w-full text-sm">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="p-3 text-left whitespace-nowrap">Name</th>
+              <th class="p-3 text-left whitespace-nowrap">Code</th>
+              <th class="p-3 text-left whitespace-nowrap">Default Amount</th>
+              <th class="p-3 text-right whitespace-nowrap">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y">
+            {% for c in components %}
+            <tr>
+              <td class="p-3 font-semibold whitespace-nowrap">{{ c.name }}</td>
+              <td class="p-3 whitespace-nowrap">
+                <span
+                  class="px-2 py-1 bg-gray-100 text-gray-600 rounded text-[10px] font-bold uppercase tracking-wider">
+                  {{ c.code }}
+                </span>
+              </td>
+              <td class="p-3 font-mono whitespace-nowrap">GHS {{ c.totalFee }}</td>
+              <td class="p-3 text-right space-x-3 whitespace-nowrap">
+                <!-- EDIT -->
+                <button type="button"
+                  class="edit-btn text-blue-600 font-bold text-xs uppercase tracking-tight hover:underline"
+                  data-id="{{ c.id }}" data-name="{{ c.name }}" data-code="{{ c.code }}"
+                  data-total-fee="{{ c.totalFee }}">
+                  Edit
+                </button>
 
-              <!-- DELETE -->
-              <form method="post" class="inline" onsubmit="return confirm('Delete this component?')">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="delete_component" />
-                <input type="hidden" name="component_id" value="{{ c.id }}" />
-                <button class="text-red-600 font-medium">Delete</button>
-              </form>
-            </td>
-          </tr>
-          {% empty %}
-          <tr>
-            <td colspan="2" class="p-6 text-center text-gray-400">
-              No fee components defined.
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+                <!-- DELETE -->
+                <form method="post" class="inline" onsubmit="return confirm('Delete this component?')">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="delete_component" />
+                  <input type="hidden" name="component_id" value="{{ c.id }}" />
+                  <button class="text-red-600 font-medium">Delete</button>
+                </form>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="4" class="p-6 text-center text-gray-400">
+                No fee components defined.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 
@@ -160,13 +176,14 @@
         <input type="hidden" name="component_id" id="modalComponentId" />
 
         <div>
-          <label class="text-sm font-semibold">Component Name</label>
-          <input type="text" name="name" id="modalComponentName" class="w-full border rounded px-3 py-2 mt-1"
-            required />
+          <label class="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Component Name</label>
+          <input type="text" name="name" id="modalComponentName"
+            class="w-full border rounded-lg px-3 py-2 mt-1 text-sm focus:ring-2 focus:ring-blue-500/20" required />
         </div>
-        <div class="mt-2">
-          <label class="text-sm font-semibold">Component Amount</label>
-          <input type="text" name="total_fee" id="modalComponentAmount" class="w-full border rounded px-3 py-2 mt-1"
+        <div class="mt-4">
+          <label class="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Default Amount (GHS)</label>
+          <input type="text" name="total_fee" id="modalComponentAmount"
+            class="w-full border rounded-lg px-3 py-2 mt-1 text-sm font-mono focus:ring-2 focus:ring-blue-500/20"
             required />
         </div>
 
@@ -226,32 +243,39 @@
         <input type="hidden" name="total_amount" id="totalAmountHidden" />
 
         <!-- BASIC INFO -->
-        <div class="grid grid-cols-3 gap-4">
-          <select name="academic_year" required class="border rounded px-3 py-2">
-            {% for y in academic_years %}
-            <option value="{{ y.id }}">{{ y.name }}</option>
-            {% endfor %}
-          </select>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Academic Year</label>
+            <select name="academic_year" id="create_academic_year" required class="w-full border rounded px-3 py-2">
+              {% for y in academic_years %}
+              <option value="{{ y.id }}">{{ y.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
 
-          <select name="semester" required class="border rounded px-3 py-2">
-            {% for s in semesters %}
-            <option value="{{ s.id }}">{{ s.name }}</option>
-            {% endfor %}
-          </select>
+          <div>
+            <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Program</label>
+            <select name="program" id="create_program" required class="w-full border rounded px-3 py-2">
+              <option value="">-- Select Program --</option>
+              {% for p in programs %}
+              <option value="{{ p.id }}">{{ p.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
 
-          <select name="program" required class="border rounded px-3 py-2">
-            <option value="">-- Select Program --</option>
-            {% for p in programs %}
-            <option value="{{ p.id }}">{{ p.name }}</option>
-            {% endfor %}
-          </select>
+          <div>
+            <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Level</label>
+            <select name="level" id="create_level" class="w-full border rounded px-3 py-2" disabled>
+              <option value="">-- Select Program First --</option>
+            </select>
+          </div>
 
-          <select name="level" class="border rounded px-3 py-2">
-            <option value="">-- All Levels (Default) --</option>
-            {% for l in levels %}
-            <option value="{{ l.id }}">{{ l.level_name }}</option>
-            {% endfor %}
-          </select>
+          <div>
+            <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Semester</label>
+            <select name="semester" id="create_semester" required class="w-full border rounded px-3 py-2" disabled>
+              <option value="">-- Select Level First --</option>
+            </select>
+          </div>
         </div>
 
         <!-- INITIAL AMOUNT -->
@@ -337,17 +361,30 @@
         <input type="hidden" name="program_fee_id" id="editProgramFeeId" />
         <input type="hidden" name="total_amount" id="editTotalAmountHidden" />
 
-        <!-- READ ONLY INFO -->
-        <div class="grid grid-cols-4 gap-4">
-          <input id="editAcademicYear" class="border rounded px-3 py-2 bg-gray-100" disabled />
-          <input id="editSemester" class="border rounded px-3 py-2 bg-gray-100" disabled />
-          <input id="editProgram" class="border rounded px-3 py-2 bg-gray-100" disabled />
-          <select name="level" id="editLevel" class="border rounded px-3 py-2">
-            <option value="">-- All Levels (Default) --</option>
-            {% for l in levels %}
-            <option value="{{ l.id }}">{{ l.level_name }}</option>
-            {% endfor %}
-          </select>
+        <!-- BASIC INFO -->
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Academic Year</label>
+            <input id="editAcademicYear" class="w-full border rounded px-3 py-2 bg-gray-100" disabled />
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Program</label>
+            <input id="editProgram" class="w-full border rounded px-3 py-2 bg-gray-100" disabled />
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Level</label>
+            <select name="level" id="editLevel" class="w-full border rounded px-3 py-2">
+              <option value="">-- All Levels (Default) --</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Semester</label>
+            <input id="editSemester" class="w-full border rounded px-3 py-2 bg-gray-100" disabled />
+            <input type="hidden" name="semester" id="editSemesterId" />
+          </div>
         </div>
 
         <!-- INITIAL AMOUNT -->
@@ -397,29 +434,273 @@
 <!-- ================= JS ================= -->
 <script>
   document.addEventListener("DOMContentLoaded", function () {
+    // ---------------------------------------------------------
+    // EDIT PROGRAM FEE (FETCH DETAILS)
+    // ---------------------------------------------------------
     document.querySelectorAll(".edit-program-fee-btn").forEach((btn) => {
       btn.addEventListener("click", function () {
         const feeId = this.dataset.feeId;
         if (!feeId) return;
-
         openEditProgramFee(feeId);
       });
     });
+
+    // ---------------------------------------------------------
+    // DEPENDENT DROPDOWNS (Program -> Level -> Semester)
+    // ---------------------------------------------------------
+    const createProgram = document.getElementById("create_program");
+    const createLevel = document.getElementById("create_level");
+    const createSemester = document.getElementById("create_semester");
+
+    if (createProgram) {
+      createProgram.addEventListener("change", function () {
+        const progId = this.value;
+        createLevel.innerHTML = '<option value="">-- Loading Levels... --</option>';
+        createLevel.disabled = true;
+        createSemester.innerHTML = '<option value="">-- Select Level First --</option>';
+        createSemester.disabled = true;
+
+        if (!progId) {
+          createLevel.innerHTML = '<option value="">-- Select Program First --</option>';
+          return;
+        }
+
+        fetch(`/finance/ajax/program-levels/${progId}/`)
+          .then((res) => res.json())
+          .then((data) => {
+            createLevel.innerHTML = '<option value="">-- Select Level --</option>';
+            if (data.levels && data.levels.length > 0) {
+              data.levels.forEach((lvl) => {
+                const opt = document.createElement("option");
+                opt.value = lvl.id;
+                opt.textContent = lvl.name;
+                createLevel.appendChild(opt);
+              });
+              createLevel.disabled = false;
+            } else {
+              createLevel.innerHTML = '<option value="">-- No Levels Found --</option>';
+            }
+          })
+          .catch(err => {
+            console.error("Error fetching levels:", err);
+            createLevel.innerHTML = '<option value="">-- Error Loading Levels --</option>';
+          });
+      });
+    }
+
+    if (createLevel) {
+      createLevel.addEventListener("change", function () {
+        const lvlId = this.value;
+        createSemester.innerHTML = '<option value="">-- Loading Semesters... --</option>';
+        createSemester.disabled = true;
+
+        if (!lvlId) {
+          createSemester.innerHTML = '<option value="">-- Select Level First --</option>';
+          return;
+        }
+
+        fetch(`/finance/ajax/semesters/${lvlId}/`)
+          .then((res) => res.json())
+          .then((data) => {
+            createSemester.innerHTML = '<option value="">-- Select Semester --</option>';
+            if (data.semesters && data.semesters.length > 0) {
+              data.semesters.forEach((sem) => {
+                const opt = document.createElement("option");
+                opt.value = sem.id;
+                opt.textContent = sem.name;
+                createSemester.appendChild(opt);
+              });
+              createSemester.disabled = false;
+            } else {
+              createSemester.innerHTML = '<option value="">-- No Active Semesters Found --</option>';
+            }
+          })
+          .catch(err => {
+            console.error("Error fetching semesters:", err);
+            createSemester.innerHTML = '<option value="">-- Error Loading Semesters --</option>';
+          });
+      });
+    }
+
+    // ---------------------------------------------------------
+    // DECLARE FEE MODAL (OPEN/CLOSE)
+    // ---------------------------------------------------------
+    const progFeeModal = document.getElementById("programFeeModal");
+    const openProgBtn = document.getElementById("openProgramFeeModal");
+    const closeProgBtn = document.getElementById("closeProgramFeeModal");
+    const cancelProgBtn = document.getElementById("cancelProgramFeeModal");
+
+    if (openProgBtn) {
+      openProgBtn.addEventListener("click", () => {
+        progFeeModal.classList.remove("hidden");
+        progFeeModal.classList.add("flex");
+      });
+    }
+
+    const closePFModal = () => {
+      progFeeModal.classList.add("hidden");
+      progFeeModal.classList.remove("flex");
+    };
+    if (closeProgBtn) closeProgBtn.addEventListener("click", closePFModal);
+    if (cancelProgBtn) cancelProgBtn.addEventListener("click", closePFModal);
+
+    // ---------------------------------------------------------
+    // COMPONENT EDIT MODAL (OPEN/CLOSE)
+    // ---------------------------------------------------------
+    const editCompModal = document.getElementById("editModal");
+    const editCompName = document.getElementById("modalComponentName");
+    const editCompAmount = document.getElementById("modalComponentAmount");
+    const editCompId = document.getElementById("modalComponentId");
+
+    window.openEditCompModal = function (id, name, code, totalFee) {
+      editCompId.value = id;
+      editCompName.value = name;
+      editCompAmount.value = totalFee;
+      editCompModal.classList.remove("hidden");
+      editCompModal.classList.add("flex");
+      editCompName.focus();
+    };
+
+    const closeCompModal = () => {
+      editCompModal.classList.add("hidden");
+      editCompModal.classList.remove("flex");
+    };
+
+    document.querySelectorAll(".edit-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        window.openEditCompModal(btn.dataset.id, btn.dataset.name, btn.dataset.code, btn.dataset.totalFee);
+      });
+    });
+
+    const closeCompBtn = document.getElementById("closeModal");
+    const cancelCompBtn = document.getElementById("cancelModal");
+    if (closeCompBtn) closeCompBtn.addEventListener("click", closeCompModal);
+    if (cancelCompBtn) cancelCompBtn.addEventListener("click", closeCompModal);
+
+    // Close modals on outside click
+    window.addEventListener("click", (e) => {
+      if (e.target === progFeeModal) closePFModal();
+      if (e.target === editCompModal) closeCompModal();
+    });
+
+    // ---------------------------------------------------------
+    // COMPONENT CALCULATIONS & DYNAMIC LISTS
+    // ---------------------------------------------------------
+    const useDefault = document.getElementById("useDefaultComponents");
+    const useDefaultHidden = document.getElementById("useDefaultHidden");
+    const manualControls = document.getElementById("manualComponentControls");
+    const manualList = document.getElementById("componentList");
+    const defaultList = document.getElementById("defaultComponentList");
+    const totalDisplay = document.getElementById("totalFeeDisplay");
+    const totalHidden = document.getElementById("totalAmountHidden");
+    const componentSelect = document.getElementById("componentSelect");
+    const addBtn = document.getElementById("addComponentBtn");
+
+    function recalcTotal() {
+      let total = 0;
+      if (useDefault.checked) {
+        defaultList.querySelectorAll(".default-component-checkbox:checked").forEach((cb) => {
+          total += parseFloat(cb.dataset.amount);
+        });
+      } else {
+        manualList.querySelectorAll(".component-amount").forEach((inp) => {
+          total += parseFloat(inp.value || 0);
+        });
+      }
+      total = total.toFixed(2);
+      totalDisplay.textContent = total;
+      totalHidden.value = total;
+    }
+
+    if (useDefault) {
+      useDefault.addEventListener("change", () => {
+        useDefaultHidden.value = useDefault.checked ? "on" : "";
+        if (useDefault.checked) {
+          manualList.innerHTML = "";
+          manualControls.classList.add("hidden");
+          defaultList.classList.remove("hidden");
+        } else {
+          defaultList.querySelectorAll("input").forEach((cb) => (cb.checked = false));
+          defaultList.classList.add("hidden");
+          manualControls.classList.remove("hidden");
+        }
+        recalcTotal();
+      });
+    }
+
+    if (addBtn) {
+      addBtn.addEventListener("click", () => {
+        const option = componentSelect.selectedOptions[0];
+        if (!option || option.value === "") return;
+        const id = option.value;
+        const name = option.dataset.name;
+        if (manualList.querySelector(`[data-id="${id}"]`)) return;
+
+        const row = document.createElement("div");
+        row.className = "flex items-center gap-3";
+        row.dataset.id = id;
+        row.innerHTML = `
+          <input type="hidden" name="component_id" value="${id}" />
+          <span class="w-16">${name}</span>
+          <input type="number" step="0.01" name="component_amount"
+            class="border rounded px-2 py-1 w-32 component-amount" required />
+          <button type="button" class="text-red-600 remove">Remove</button>
+        `;
+        row.querySelector(".component-amount").addEventListener("input", recalcTotal);
+        row.querySelector(".remove").addEventListener("click", () => {
+          row.remove();
+          recalcTotal();
+        });
+        manualList.appendChild(row);
+      });
+    }
+
+    if (defaultList) {
+      defaultList.querySelectorAll(".default-component-checkbox").forEach((cb) => {
+        cb.addEventListener("change", recalcTotal);
+      });
+    }
+
+    // Edit Fee Components Logic
+    const editComponentSelect = document.getElementById("editComponentSelect");
+    const editAddBtn = document.getElementById("editAddComponentBtn");
+    const editComponentList = document.getElementById("editComponentList");
+
+    if (editAddBtn) {
+      editAddBtn.addEventListener("click", () => {
+        const option = editComponentSelect.selectedOptions[0];
+        if (!option || option.value === "") return;
+        const id = option.value;
+        const name = option.dataset.name;
+        if (editComponentList.querySelector(`input[name="component_id"][value="${id}"]`)) return;
+
+        const row = document.createElement("div");
+        row.className = "flex justify-between items-center";
+        row.innerHTML = `
+          <input type="hidden" name="component_id" value="${id}" />
+          <span class="w-16">${name}</span>
+          <input type="number" step="0.01" name="component_amount" value="0.00" 
+            class="border rounded px-2 py-1 w-32 edit-component-amount" required />
+          <button type="button" class="text-red-600 remove-edit-component">Remove</button>
+        `;
+        row.querySelector(".edit-component-amount").addEventListener("input", recalculateEditTotal);
+        row.querySelector(".remove-edit-component").addEventListener("click", () => {
+          row.remove();
+          recalculateEditTotal();
+        });
+        editComponentList.appendChild(row);
+        recalculateEditTotal();
+      });
+    }
   });
 
   function recalculateEditTotal() {
     let total = 0;
-
-    document
-      .querySelectorAll("#editComponentList input[name='component_amount']")
-      .forEach((input) => {
-        const val = parseFloat(input.value);
-        if (!isNaN(val)) total += val;
-      });
-
-    document.getElementById("editTotalFeeDisplay").textContent =
-      total.toFixed(2);
-
+    document.querySelectorAll("#editComponentList input[name='component_amount']").forEach((input) => {
+      const val = parseFloat(input.value);
+      if (!isNaN(val)) total += val;
+    });
+    document.getElementById("editTotalFeeDisplay").textContent = total.toFixed(2);
     document.getElementById("editTotalAmountHidden").value = total.toFixed(2);
   }
 
@@ -430,261 +711,55 @@
         document.getElementById("editProgramFeeId").value = data.id;
         document.getElementById("editAcademicYear").value = data.academic_year;
         document.getElementById("editSemester").value = data.semester;
+        document.getElementById("editSemesterId").value = data.semester_id;
         document.getElementById("editProgram").value = data.program;
-        document.getElementById("editLevel").value = data.level_id || "";
-        document.getElementById("editInitialAmount").value =
-          data.initial_amount;
+        document.getElementById("editInitialAmount").value = data.initial_amount;
+        
+        // Populate Levels dynamically
+        const levelSelect = document.getElementById("editLevel");
+        levelSelect.innerHTML = '<option value="">-- All Levels (Default) --</option>';
+        if (data.available_levels) {
+          data.available_levels.forEach(lvl => {
+            const opt = document.createElement("option");
+            opt.value = lvl.id;
+            opt.textContent = lvl.name;
+            levelSelect.appendChild(opt);
+          });
+        }
+        levelSelect.value = data.level_id || "";
 
         const list = document.getElementById("editComponentList");
         list.innerHTML = "";
-
         let total = 0;
-
         data.components.forEach((c) => {
           total += parseFloat(c.amount);
-
           const row = document.createElement("div");
           row.className = "flex justify-between items-center";
-
           row.innerHTML = `
-          <input type="hidden" name="component_id" value="${c.id}" />
-          <span class="w-16">${c.name}</span>
-          <input
-            type="number"
-            step="0.01"
-            name="component_amount"
-            value="${c.amount}"
-            class="border rounded px-2 py-1 w-32 edit-component-amount"
-          />
-          <button type="button" class="text-red-600 remove-edit-component">Remove</button>
-        `;
-
+            <input type="hidden" name="component_id" value="${c.id}" />
+            <span class="w-16">${c.name}</span>
+            <input type="number" step="0.01" name="component_amount" value="${c.amount}"
+              class="border rounded px-2 py-1 w-32 edit-component-amount" />
+            <button type="button" class="text-red-600 remove-edit-component">Remove</button>
+          `;
           list.appendChild(row);
-
-          row
-            .querySelector(".edit-component-amount")
-            .addEventListener("input", recalculateEditTotal);
+          row.querySelector(".edit-component-amount").addEventListener("input", recalculateEditTotal);
           row.querySelector(".remove-edit-component").addEventListener("click", () => {
             row.remove();
             recalculateEditTotal();
           });
         });
-
-        document.getElementById("editTotalFeeDisplay").textContent =
-          total.toFixed(2);
-        document.getElementById("editTotalAmountHidden").value =
-          total.toFixed(2);
-
-        document
-          .getElementById("editProgramFeeModal")
-          .classList.remove("hidden");
+        document.getElementById("editTotalFeeDisplay").textContent = total.toFixed(2);
+        document.getElementById("editTotalAmountHidden").value = total.toFixed(2);
+        document.getElementById("editProgramFeeModal").classList.remove("hidden");
         document.getElementById("editProgramFeeModal").classList.add("flex");
       });
   }
 
   function closeEditProgramFee() {
     document.getElementById("editProgramFeeModal").classList.add("hidden");
+    document.getElementById("editProgramFeeModal").classList.remove("flex");
   }
-
-  document.addEventListener("DOMContentLoaded", () => {
-    const useDefault = document.getElementById("useDefaultComponents");
-    const useDefaultHidden = document.getElementById("useDefaultHidden");
-
-    const manualControls = document.getElementById("manualComponentControls");
-    const manualList = document.getElementById("componentList");
-
-    const defaultList = document.getElementById("defaultComponentList");
-
-    const totalDisplay = document.getElementById("totalFeeDisplay");
-    const totalHidden = document.getElementById("totalAmountHidden");
-
-    const componentSelect = document.getElementById("componentSelect");
-    const addBtn = document.getElementById("addComponentBtn");
-
-    function recalcTotal() {
-      let total = 0;
-
-      if (useDefault.checked) {
-        defaultList
-          .querySelectorAll(".default-component-checkbox:checked")
-          .forEach((cb) => {
-            total += parseFloat(cb.dataset.amount);
-          });
-      } else {
-        manualList.querySelectorAll(".component-amount").forEach((inp) => {
-          total += parseFloat(inp.value || 0);
-        });
-      }
-
-      total = total.toFixed(2);
-      totalDisplay.textContent = total;
-      totalHidden.value = total;
-    }
-
-    function clearManual() {
-      manualList.innerHTML = "";
-    }
-
-    function clearDefault() {
-      defaultList
-        .querySelectorAll("input")
-        .forEach((cb) => (cb.checked = false));
-    }
-
-    useDefault.addEventListener("change", () => {
-      useDefaultHidden.value = useDefault.checked ? "on" : "";
-
-      if (useDefault.checked) {
-        clearManual();
-        manualControls.classList.add("hidden");
-        defaultList.classList.remove("hidden");
-      } else {
-        clearDefault();
-        defaultList.classList.add("hidden");
-        manualControls.classList.remove("hidden");
-      }
-
-      recalcTotal();
-    });
-
-    addBtn.addEventListener("click", () => {
-      const option = componentSelect.selectedOptions[0];
-      if (!option || option.value === "") return;
-
-      const id = option.value;
-      const name = option.dataset.name;
-
-      if (manualList.querySelector(`[data-id="${id}"]`)) return;
-
-      const row = document.createElement("div");
-      row.className = "flex items-center gap-3";
-      row.dataset.id = id;
-
-      row.innerHTML = `
-      <input type="hidden" name="component_id" value="${id}" />
-      <span class="w-16">${name}</span>
-      <input type="number" step="0.01" name="component_amount"
-        class="border rounded px-2 py-1 w-32 component-amount" required />
-      <button type="button" class="text-red-600 remove">Remove</button>
-    `;
-
-      row
-        .querySelector(".component-amount")
-        .addEventListener("input", recalcTotal);
-      row.querySelector(".remove").addEventListener("click", () => {
-        row.remove();
-        recalcTotal();
-      });
-
-      manualList.appendChild(row);
-    });
-
-    defaultList
-      .querySelectorAll(".default-component-checkbox")
-      .forEach((cb) => {
-        cb.addEventListener("change", recalcTotal);
-      });
-
-    // Handle Adding New Components in Edit Modal
-    const editComponentSelect = document.getElementById("editComponentSelect");
-    const editAddBtn = document.getElementById("editAddComponentBtn");
-    const editComponentList = document.getElementById("editComponentList");
-
-    editAddBtn.addEventListener("click", () => {
-      const option = editComponentSelect.selectedOptions[0];
-      if (!option || option.value === "") return;
-
-      const id = option.value;
-      const name = option.dataset.name;
-
-      // Prevent duplicates in edit list
-      if (editComponentList.querySelector(`input[name="component_id"][value="${id}"]`)) return;
-
-      const row = document.createElement("div");
-      row.className = "flex justify-between items-center";
-
-      row.innerHTML = `
-        <input type="hidden" name="component_id" value="${id}" />
-        <span class="w-16">${name}</span>
-        <input 
-          type="number" step="0.01" name="component_amount" 
-          value="0.00" 
-          class="border rounded px-2 py-1 w-32 edit-component-amount" required 
-        />
-        <button type="button" class="text-red-600 remove-edit-component">Remove</button>
-      `;
-
-      row.querySelector(".edit-component-amount").addEventListener("input", recalculateEditTotal);
-      row.querySelector(".remove-edit-component").addEventListener("click", () => {
-        row.remove();
-        recalculateEditTotal();
-      });
-
-      editComponentList.appendChild(row);
-      recalculateEditTotal();
-    });
-  });
-
-  document.addEventListener("DOMContentLoaded", function () {
-    const modal = document.getElementById("programFeeModal");
-    const openBtn = document.getElementById("openProgramFeeModal");
-    const closeBtn = document.getElementById("closeProgramFeeModal");
-    const cancelBtn = document.getElementById("cancelProgramFeeModal");
-
-    function openModal() {
-      modal.classList.remove("hidden");
-      modal.classList.add("flex");
-    }
-
-    function closeModal() {
-      modal.classList.add("hidden");
-      modal.classList.remove("flex");
-    }
-
-    openBtn?.addEventListener("click", openModal);
-    closeBtn?.addEventListener("click", closeModal);
-    cancelBtn?.addEventListener("click", closeModal);
-
-    modal.addEventListener("click", (e) => {
-      if (e.target === modal) closeModal();
-    });
-  });
-
-  document.addEventListener("DOMContentLoaded", function () {
-    const modal = document.getElementById("editModal");
-    const nameInput = document.getElementById("modalComponentName");
-    const amountInput = document.getElementById("modalComponentAmount");
-    const idInput = document.getElementById("modalComponentId");
-
-    function openModal(id, name, totalFee) {
-      idInput.value = id;
-      nameInput.value = name;
-      amountInput.value = totalFee;
-      modal.classList.remove("hidden");
-      modal.classList.add("flex");
-      nameInput.focus();
-    }
-
-    function closeModal() {
-      modal.classList.add("hidden");
-      modal.classList.remove("flex");
-    }
-
-    document.querySelectorAll(".edit-btn").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        openModal(btn.dataset.id, btn.dataset.name, btn.dataset.totalFee);
-      });
-    });
-
-    document.getElementById("closeModal").addEventListener("click", closeModal);
-    document
-      .getElementById("cancelModal")
-      .addEventListener("click", closeModal);
-
-    modal.addEventListener("click", (e) => {
-      if (e.target === modal) closeModal();
-    });
-  });
 </script>
 
 {% endblock %}

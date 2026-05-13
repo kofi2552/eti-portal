@@ -85,10 +85,11 @@ Academic Years & Semesters {% endblock %} {% block content %}
     <h2 class="text-2xl font-semibold mb-6">Manage Semesters</h2>
 
     <!-- PROGRAM SELECT -->
-    <form method="get" class="flex flex-wrap items-end gap-6 mb-8">
-      <div class="space-y-1.5">
+    <form method="get" id="semesterFilterForm" class="w-full flex flex-wrap items-end gap-6 mb-8">
+      <div class="w-[600px] space-y-1.5">
         <label class="text-xs font-black uppercase tracking-widest text-slate-400 px-1">Program</label>
         <select name="program"
+          required
           class="w-full border border-slate-200 px-4 py-2.5 rounded-xl bg-white text-sm outline-none focus:ring-1 focus:ring-blue-500 transition-all">
           <option value="">-- Select Program --</option>
           {% for p in programs %}
@@ -100,9 +101,10 @@ Academic Years & Semesters {% endblock %} {% block content %}
       </div>
 
       {% if selected_program %}
-      <div class="space-y-1.5">
+      <div class="w-52 space-y-1.5">
         <label class="text-xs font-black uppercase tracking-widest text-slate-400 px-1">Level</label>
         <select name="level"
+        required
           class="w-full border border-slate-200 px-4 py-2.5 rounded-xl bg-white text-sm outline-none focus:ring-1 focus:ring-blue-500 transition-all">
           <option value="">-- Select Level --</option>
           {% for lvl in levels %}
@@ -117,6 +119,34 @@ Academic Years & Semesters {% endblock %} {% block content %}
       <button
         class="px-8 py-2.5 bg-slate-900 text-white font-bold text-sm rounded-xl hover:bg-slate-800 transition-all cursor-pointer">Load</button>
     </form>
+
+    <script>
+      document.getElementById('semesterFilterForm').addEventListener('submit', function (e) {
+        const program = this.querySelector('select[name="program"]').value;
+        const level = this.querySelector('select[name="level"]');
+
+        if (!program) {
+          e.preventDefault();
+          if (typeof toast !== 'undefined') {
+            toast.error("Please select a Program first.");
+          } else {
+            alert("Please select a Program first.");
+          }
+          return;
+        }
+
+        // If level dropdown is present in DOM, it must be selected to "fetch data"
+        if (level && !level.value) {
+          e.preventDefault();
+          if (typeof toast !== 'undefined') {
+            toast.error("Please select an Academic Level.");
+          } else {
+            alert("Please select an Academic Level.");
+          }
+          return;
+        }
+      });
+    </script>
 
 
     {% if selected_level %}
@@ -178,6 +208,7 @@ Academic Years & Semesters {% endblock %} {% block content %}
         <thead class="bg-slate-50/50 border-b border-slate-100">
           <tr class="text-xs font-black uppercase tracking-widest text-slate-400">
             <th class="px-6 py-4 text-left">Semester</th>
+            <th class="px-6 py-4 text-left">Level</th>
             <th class="px-6 py-4 text-left">Year</th>
             <th class="px-6 py-4 text-left">Active</th>
             <th class="px-6 py-4 text-left">Reg Active</th>
@@ -190,7 +221,8 @@ Academic Years & Semesters {% endblock %} {% block content %}
         <tbody>
           {% for s in semesters %}
           <tr class="border-t border-gray-200">
-            <td class="px-3 py-2">{{ s.name }}</td>
+            <td class="px-3 py-2 font-medium text-slate-700">{{ s.name }}</td>
+            <td class="px-3 py-2 text-slate-500 font-semibold">{{ s.level.level_name|default:"-" }}</td>
             <td class="px-3 py-2">{{ s.academic_year.name }}</td>
             <td class="px-3 py-2">{{ s.is_active|yesno:"Yes,No" }}</td>
             <td class="px-3 py-2">{{ s.sem_reg_is_active|yesno:"Yes,No" }}</td>
