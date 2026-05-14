@@ -1827,6 +1827,56 @@ def ajax_update_program_course(request):
 
 
 @login_required
+def ajax_unassign_lecturer(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "Invalid request"}, status=400)
+
+    if request.user.role not in ["dean", "admin"]:
+        return JsonResponse({"error": "Unauthorized"}, status=403)
+
+    try:
+        data = json.loads(request.body)
+        pc_id = data.get("pc_id")
+        lecturer_id = data.get("lecturer_id")
+
+        if not pc_id or not lecturer_id:
+            return JsonResponse({"error": "Missing parameters"}, status=400)
+
+        pc = get_object_or_404(ProgramCourse, id=pc_id)
+        lecturer = get_object_or_404(User, id=lecturer_id, role="lecturer")
+
+        pc.assigned_lecturers.remove(lecturer)
+        return JsonResponse({"success": True})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@login_required
+def ajax_unassign_base_lecturer(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "Invalid request"}, status=400)
+
+    if request.user.role not in ["dean", "admin"]:
+        return JsonResponse({"error": "Unauthorized"}, status=403)
+
+    try:
+        data = json.loads(request.body)
+        course_id = data.get("course_id")
+        lecturer_id = data.get("lecturer_id")
+
+        if not course_id or not lecturer_id:
+            return JsonResponse({"error": "Missing parameters"}, status=400)
+
+        course = get_object_or_404(Course, id=course_id)
+        lecturer = get_object_or_404(User, id=lecturer_id, role="lecturer")
+
+        course.assigned_lecturers.remove(lecturer)
+        return JsonResponse({"success": True})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@login_required
 def dean_program_courses_list(request):
     if request.user.role not in ["dean", "admin"]:
         messages.error(request, "Access denied.")

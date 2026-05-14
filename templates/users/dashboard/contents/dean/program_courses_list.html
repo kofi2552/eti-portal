@@ -93,8 +93,14 @@
                 {% if pc.assigned_lecturers.exists %}
                 <!-- ----------------------------- -->
                 {% for lect in pc.assigned_lecturers.all %}
-                <span class="inline-block text-xs px-2 py-1 rounded-md border border-gray-200 mr-1 whitespace-nowrap">
+                <span class="inline-flex items-center text-xs px-2 py-1 rounded-md border border-gray-200 mr-1 mb-1 whitespace-nowrap bg-gray-50">
                   {{ lect.get_full_name }}
+                  <button onclick="unassignLecturer('{{ pc.id }}', '{{ lect.id }}', '{{ lect.get_full_name|escapejs }}')" 
+                    class="ml-1 text-gray-400 hover:text-red-600 transition-colors cursor-pointer" title="Unassign lecturer">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                    </svg>
+                  </button>
                 </span>
                 {% endfor %}
                 <!-- ------------ -->
@@ -179,12 +185,23 @@
       <!-- </div> -->
 
       <div class="w-full">
-        <label class="mt-3 text-sm text-gray-600">Assigned Lecturers</label>
-        <select name="lecturers" id="pc_lecturers" multiple class="w-full border px-3 py-2 rounded h-28">
-          {% for l in lecturers %}
-          <option value="{{ l.id }}">{{ l.get_full_name }}</option>
-          {% endfor %}
-        </select>
+        <div class="flex justify-between items-center mt-3 mb-1">
+          <label class="text-sm text-gray-600">Assigned Lecturers</label>
+          <div class="space-x-2">
+            <button type="button" onclick="selectAllLecturers(true)" class="text-xs text-blue-600 hover:underline cursor-pointer">Select All</button>
+            <button type="button" onclick="selectAllLecturers(false)" class="text-xs text-gray-500 hover:underline cursor-pointer">Clear All</button>
+          </div>
+        </div>
+        <div class="border rounded-md p-3 max-h-40 overflow-y-auto bg-gray-50">
+          <div class="grid grid-cols-1 gap-2">
+            {% for l in lecturers %}
+            <label class="flex items-center space-x-3 p-2 hover:bg-white rounded transition-colors cursor-pointer border border-transparent hover:border-gray-200">
+              <input type="checkbox" name="lecturers" value="{{ l.id }}" class="lecturer-checkbox h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+              <span class="text-sm text-gray-700">{{ l.get_full_name }}</span>
+            </label>
+            {% endfor %}
+          </div>
+        </div>
       </div>
 
       <div class="flex justify-end gap-2 mt-6">
@@ -464,12 +481,43 @@
         document.getElementById("pc_credit").value = data.credit_hours;
         document.getElementById("pc_active").checked = data.active;
 
-        const lecturerSelect = document.getElementById("pc_lecturers");
-        [...lecturerSelect.options].forEach(opt => {
-          opt.selected = data.lecturer_ids.includes(parseInt(opt.value));
+        // Reset and populate checkboxes
+        const checkboxes = document.querySelectorAll(".lecturer-checkbox");
+        checkboxes.forEach(cb => {
+          cb.checked = data.lecturer_ids.includes(parseInt(cb.value));
         });
 
         document.getElementById("editProgramCourseModal").classList.remove("hidden");
+      });
+  }
+
+  function selectAllLecturers(checked) {
+    const checkboxes = document.querySelectorAll(".lecturer-checkbox");
+    checkboxes.forEach(cb => cb.checked = checked);
+  }
+
+  function unassignLecturer(pcId, lecturerId, name) {
+    if (!confirm(`Are you sure you want to unassign ${name}?`)) return;
+
+    fetch(`/users/dean/program-course/unassign-lecturer/`, {
+      method: "POST",
+      headers: {
+        "X-CSRFToken": document.querySelector('[name=csrfmiddlewaretoken]').value,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ pc_id: pcId, lecturer_id: lecturerId })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          location.reload();
+        } else {
+          alert(data.error || "Unassign failed");
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        alert("An error occurred while unassigning.");
       });
   }
 

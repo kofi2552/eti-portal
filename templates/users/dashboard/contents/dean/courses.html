@@ -59,10 +59,17 @@
               {% if c.assigned_lecturers.exists %}
               <!-- ----------------------------- -->
               {% for lect in c.assigned_lecturers.all %}
-              <span class="inline-block text-xs px-2 py-1 rounded-md border border-gray-200 mr-1 whitespace-nowrap">
+              <span class="inline-flex items-center text-xs px-2 py-1 rounded-md border border-gray-200 mr-1 mb-1 whitespace-nowrap bg-gray-50">
                 {{ lect.get_full_name }}
+                <button onclick="unassignBaseLecturer('{{ c.id }}', '{{ lect.id }}', '{{ lect.get_full_name|escapejs }}')" 
+                  class="ml-1 text-gray-400 hover:text-red-600 transition-colors cursor-pointer" title="Unassign lecturer">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                  </svg>
+                </button>
               </span>
-              {% endfor %} {% else %}
+              {% endfor %} 
+              {% else %}
               <span class="text-gray-500 text-sm">None</span>
               {% endif %}
             </td>
@@ -147,12 +154,25 @@
       </div>
 
       <!-- Lecturers -->
-      <label class="block mb-1 text-gray-700">Assign Lecturers</label>
-      <select name="lecturer_ids" multiple class="w-full border border-gray-200 rounded-md px-3 py-2 mb-3 h-24">
-        {% for l in lecturers %}
-        <option value="{{ l.id }}">{{ l.get_full_name }}</option>
-        {% endfor %}
-      </select>
+      <div class="w-full">
+        <div class="flex justify-between items-center mb-1">
+          <label class="text-sm text-gray-700">Assign Lecturers</label>
+          <div class="space-x-2">
+            <button type="button" onclick="selectAllLecturers(true, 'createLecturerCheckboxes')" class="text-xs text-blue-600 hover:underline cursor-pointer">Select All</button>
+            <button type="button" onclick="selectAllLecturers(false, 'createLecturerCheckboxes')" class="text-xs text-gray-500 hover:underline cursor-pointer">Clear All</button>
+          </div>
+        </div>
+        <div id="createLecturerCheckboxes" class="border rounded-md p-3 max-h-40 overflow-y-auto bg-gray-50 mb-4">
+          <div class="grid grid-cols-1 gap-2">
+            {% for l in lecturers %}
+            <label class="flex items-center space-x-3 p-2 hover:bg-white rounded transition-colors cursor-pointer border border-transparent hover:border-gray-200">
+              <input type="checkbox" name="lecturer_ids" value="{{ l.id }}" class="create-lecturer-checkbox h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+              <span class="text-sm text-gray-700">{{ l.get_full_name }}</span>
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
 
       <!-- Buttons -->
       <div class="flex justify-end space-x-2">
@@ -218,13 +238,25 @@
       </div>
 
       <!-- Lecturers -->
-      <label class="block mb-1">Lecturers</label>
-      <select name="lecturer_ids" id="editLecturers" multiple
-        class="w-full border border-gray-200 rounded-md px-3 py-2 mb-3 h-24">
-        {% for l in lecturers %}
-        <option value="{{ l.id }}">{{ l.get_full_name }}</option>
-        {% endfor %}
-      </select>
+      <div class="w-full">
+        <div class="flex justify-between items-center mb-1">
+          <label class="text-sm text-gray-700 font-medium">Lecturers</label>
+          <div class="space-x-2">
+            <button type="button" onclick="selectAllLecturers(true, 'editLecturerCheckboxes')" class="text-xs text-blue-600 hover:underline cursor-pointer">Select All</button>
+            <button type="button" onclick="selectAllLecturers(false, 'editLecturerCheckboxes')" class="text-xs text-gray-500 hover:underline cursor-pointer">Clear All</button>
+          </div>
+        </div>
+        <div id="editLecturerCheckboxes" class="border rounded-md p-3 max-h-40 overflow-y-auto bg-gray-50 mb-4">
+          <div class="grid grid-cols-1 gap-2">
+            {% for l in lecturers %}
+            <label class="flex items-center space-x-3 p-2 hover:bg-white rounded transition-colors cursor-pointer border border-transparent hover:border-gray-200">
+              <input type="checkbox" name="lecturer_ids" value="{{ l.id }}" class="edit-lecturer-checkbox h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+              <span class="text-sm text-gray-700">{{ l.get_full_name }}</span>
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
 
       <!-- Buttons -->
       <div class="flex justify-end space-x-2">
@@ -325,11 +357,11 @@
       document.getElementById("editProgram").value = d.program;
 
       const lectArr = d.lecturers ? d.lecturers.split(",") : [];
-      const lectSelect = document.getElementById("editLecturers");
+      const checkboxes = document.querySelectorAll(".edit-lecturer-checkbox");
 
-      for (let opt of lectSelect.options) {
-        opt.selected = lectArr.includes(opt.value);
-      }
+      checkboxes.forEach(cb => {
+        cb.checked = lectArr.includes(cb.value);
+      });
 
       document.getElementById("editCourseModal").classList.remove("hidden");
     });
@@ -347,6 +379,37 @@
 
   function closeDeleteCourse() {
     document.getElementById("deleteCourseModal").classList.add("hidden");
+  }
+
+  function selectAllLecturers(checked, containerId) {
+    const container = document.getElementById(containerId);
+    const checkboxes = container.querySelectorAll('input[type="checkbox"]');
+    checkboxes.forEach(cb => cb.checked = checked);
+  }
+
+  function unassignBaseLecturer(courseId, lecturerId, name) {
+    if (!confirm(`Are you sure you want to unassign ${name} from this base course?`)) return;
+
+    fetch(`/users/dean/base-course/unassign-lecturer/`, {
+      method: "POST",
+      headers: {
+        "X-CSRFToken": document.querySelector('[name=csrfmiddlewaretoken]').value,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ course_id: courseId, lecturer_id: lecturerId })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          location.reload();
+        } else {
+          alert(data.error || "Unassign failed");
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        alert("An error occurred while unassigning.");
+      });
   }
 </script>
 

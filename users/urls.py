@@ -63,6 +63,8 @@ urlpatterns = [
     path("dean/ajax/level-semesters/<int:level_id>/", views.ajax_level_semesters),
     path("dean/program-course/duplicate/", views.ajax_duplicate_program_course),
     path("dean/program-course/delete/", views.ajax_delete_program_course, name="ajax_delete_program_course"),
+    path("dean/program-course/unassign-lecturer/", views.ajax_unassign_lecturer, name="ajax_unassign_lecturer"),
+    path("dean/base-course/unassign-lecturer/", views.ajax_unassign_base_lecturer, name="ajax_unassign_base_lecturer"),
     
     
     path("admin/transcripts/", views.admin_transcript_requests, name="admin_transcript_requests"),
