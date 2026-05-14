@@ -42,6 +42,7 @@ from finance.models import ProgramFee, StudentOverpayment
 from academics.models import CourseAnnouncement
 from portal.models import SupportTicket
 from django.db import models
+from django.templatetags.static import static
 
 
 
@@ -1715,9 +1716,13 @@ def manage_courses(request):
         program_id = request.POST.get("program_id")
         lecturer_ids = request.POST.getlist("lecturer_ids")
 
-        if not title or not code or not program_id:
-            messages.error(request, "Program,  course code, and title are required.")
+        if not title or not program_id:
+            messages.error(request, "Program and course title are required.")
             return redirect("manage_courses")
+
+        # Fallback if code is missing from POST (should be readonly but safety first)
+        if not code:
+            code = course.code
 
         program = Program.objects.filter(id=program_id).first()
         if not program or program not in programs:
