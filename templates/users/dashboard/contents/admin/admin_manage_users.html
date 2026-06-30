@@ -6,8 +6,6 @@
 <div class="max-w-6xl mx-auto px-4">
   <h2 class="text-2xl font-semibold mb-6 text-gray-800">Manage Users</h2>
 
-
-
   <div class="border border-slate-100 rounded-2xl bg-white mb-10 overflow-hidden">
     <div class="border-b border-slate-100 px-6 py-4 bg-slate-50/50 text-xs font-black uppercase tracking-widest text-slate-400">
       Add New User
@@ -73,8 +71,14 @@
   </div>
 
   <div class="border border-slate-100 mb-12 rounded-2xl bg-white overflow-hidden">
-    <div class="border-b border-slate-100 px-6 py-4 bg-slate-50/50 text-xs font-black uppercase tracking-widest text-slate-400">
-      All Users
+    <div class="border-b border-slate-100 px-6 py-4 bg-slate-50/50 text-xs uppercase tracking-widest text-slate-400 flex flex-wrap items-center gap-4">
+      <span class="font-black">ALL USERS ({{ total_users_count }})</span>
+      <span class="text-slate-200 font-normal">|</span>
+      <span class="font-semibold">STUDENTS ({{ students_count }})</span>
+      <span class="text-slate-200 font-normal">|</span>
+      <span class="font-semibold">DEANS ({{ deans_count }})</span>
+      <span class="text-slate-200 font-normal">|</span>
+      <span class="font-semibold">LECTURERS ({{ lecturers_count }})</span>
     </div>
 
     <div class="overflow-x-auto p-6">
@@ -106,6 +110,10 @@
         </form>
 
         <div class="flex items-center gap-3">
+          <button type="submit" form="bulk-delete-form" id="bulk-delete-btn" disabled
+            class="px-5 py-2 bg-gray-100 text-gray-400 border border-gray-200 font-bold text-sm rounded-xl hover:bg-red-200 disabled:opacity-55 disabled:cursor-not-allowed transition-colors cursor-pointer">
+            Delete Selected (<span id="selected-count">0</span>)
+          </button>
           <a href="{% url 'upload_users' %}" class="px-5 py-2 bg-slate-900 text-white font-bold text-sm rounded-xl hover:bg-slate-800 transition-colors cursor-pointer">
               Upload Users
           </a>
@@ -116,46 +124,62 @@
       </div>
 
 
-      <table class="w-full text-left text-slate-700 mt-3">
-        <thead class="bg-slate-50/50">
-          <tr class="text-xs font-black uppercase tracking-widest text-slate-400">
-            <th class="py-4 px-6">Name</th>
-            <th class="py-4 px-6">Email</th>
-            <th class="py-4 px-6">Role</th>
-            <th class="py-4 px-6">Date Joined</th>
-            <th class="py-4 px-6">Actions</th>
-          </tr>
-        </thead>
+      <form method="POST" id="bulk-delete-form" action="{% url 'admin_manage_users' %}">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="bulk_delete" />
+        <table class="w-full text-left text-slate-700 mt-3">
+          <thead class="bg-slate-50/50">
+            <tr class="text-xs font-black uppercase tracking-widest text-slate-400">
+              <th class="py-4 px-6 w-12">
+                <input type="checkbox" id="select-all" class="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500 cursor-pointer" />
+              </th>
+              <th class="py-4 px-6">Name</th>
+              <th class="py-4 px-6">Email</th>
+              <th class="py-4 px-6">Role</th>
+              <th class="py-4 px-6">Date Joined</th>
+              <th class="py-4 px-6">Actions</th>
+            </tr>
+          </thead>
 
-        <tbody>
-          {% for user in page_obj %}
-          <tr class="border-b border-gray-200">
-            <td class="py-3 px-4">
-              {{ user.first_name }} {{ user.last_name }}
-            </td>
-            <td class="py-3 px-4">{{ user.email }}</td>
-            <td class="py-3 px-4 capitalize">{{ user.role }}</td>
-            <td class="py-3 px-4">{{ user.date_joined|date:"M d, Y" }}</td>
+          <tbody>
+            {% for user in page_obj %}
+            <tr class="border-b border-gray-200 text-sm">
+              <td class="py-3 px-6">
+                {% if user.id != request.user.id and user.role != "admin" %}
+                <input type="checkbox" name="user_ids" value="{{ user.id }}" class="user-checkbox w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500 cursor-pointer" />
+                {% elif user.id == request.user.id %}
+                <span class="text-slate-300 text-xs font-semibold">Self</span>
+                {% else %}
+                <span class="text-slate-300 text-xs font-semibold">Admin</span>
+                {% endif %}
+              </td>
+              <td class="py-3 px-4">
+                {{ user.first_name }} {{ user.last_name }}
+              </td>
+              <td class="py-3 px-4">{{ user.email }}</td>
+              <td class="py-3 px-4 capitalize">{{ user.role }}</td>
+              <td class="py-3 px-4">{{ user.date_joined|date:"M d, Y" }}</td>
 
-            <td class="py-3 px-4 space-x-3">
-              <a href="{% url 'edit_user' user.id %}" class="text-blue-600 hover:underline">
-                Edit
-              </a>
-              <a href="{% url 'delete_user' user.id %}" class="text-red-600 hover:underline">
-                Delete
-              </a>
-            </td>
-          </tr>
+              <td class="py-3 px-4 space-x-3">
+                <a href="{% url 'edit_user' user.id %}" class="text-blue-600 hover:underline">
+                  Edit
+                </a>
+                <a href="{% url 'delete_user' user.id %}" class="text-red-600 hover:underline">
+                  Delete
+                </a>
+              </td>
+            </tr>
 
-          {% empty %}
-          <tr>
-            <td colspan="5" class="py-4 text-center text-gray-500">
-              No users found.
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+            {% empty %}
+            <tr>
+              <td colspan="6" class="py-4 text-center text-gray-500">
+                No users found.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </form>
       <div class="mt-6 mb-6 flex justify-end">
         <div class="flex">
           <div class="mr-auto p-2">
@@ -181,4 +205,61 @@
     </div>
   </div>
 </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const selectAll = document.getElementById("select-all");
+  const checkboxes = document.querySelectorAll(".user-checkbox");
+  const bulkDeleteBtn = document.getElementById("bulk-delete-btn");
+  const selectedCount = document.getElementById("selected-count");
+  const form = document.getElementById("bulk-delete-form");
+
+  function updateButtonState() {
+    const checkedCount = document.querySelectorAll(".user-checkbox:checked").length;
+    selectedCount.textContent = checkedCount;
+    if (checkedCount > 0) {
+      bulkDeleteBtn.removeAttribute("disabled");
+      bulkDeleteBtn.classList.remove("bg-gray-100", "text-gray-400", "border-gray-200", "hover:bg-red-200");
+      bulkDeleteBtn.classList.add("bg-red-600", "text-white", "hover:bg-red-700");
+    } else {
+      bulkDeleteBtn.setAttribute("disabled", "true");
+      bulkDeleteBtn.classList.remove("bg-red-600", "text-white", "hover:bg-red-700");
+      bulkDeleteBtn.classList.add("bg-gray-100", "text-gray-400", "border-gray-200", "hover:bg-red-200");
+    }
+  }
+
+  if (selectAll) {
+    selectAll.addEventListener("change", function () {
+      checkboxes.forEach(cb => {
+        cb.checked = selectAll.checked;
+      });
+      updateButtonState();
+    });
+  }
+
+  checkboxes.forEach(cb => {
+    cb.addEventListener("change", function () {
+      const allChecked = Array.from(checkboxes).every(c => c.checked);
+      if (selectAll) {
+        selectAll.checked = allChecked;
+      }
+      updateButtonState();
+    });
+  });
+
+  if (form) {
+    form.addEventListener("submit", function (e) {
+      const checkedCount = document.querySelectorAll(".user-checkbox:checked").length;
+      if (checkedCount === 0) {
+        e.preventDefault();
+        return;
+      }
+      const confirmDelete = confirm(`Are you sure you want to permanently delete ${checkedCount} selected user(s)? This action cannot be undone and will delete all their related records.`);
+      if (!confirmDelete) {
+        e.preventDefault();
+      }
+    });
+  }
+});
+</script>
 {% endblock %}

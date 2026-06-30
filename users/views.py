@@ -753,8 +753,51 @@ def ajax_get_program_levels(request, program_id):
 @login_required
 def admin_manage_users(request):
 
-    # ---------- CREATE USER ----------
+    # ---------- CREATE USER OR BULK DELETE ----------
     if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "bulk_delete":
+            if request.user.role not in ['admin', 'superadmin']:
+                messages.error(request, "Access denied.")
+                return redirect("admin_manage_users")
+
+            user_ids = request.POST.getlist("user_ids")
+            if not user_ids:
+                messages.error(request, "No users selected for deletion.")
+                return redirect("admin_manage_users")
+
+            try:
+                # Convert string IDs to integers
+                user_ids = [int(uid) for uid in user_ids]
+                # Filter out the current user to prevent self-deletion
+                if request.user.id in user_ids:
+                    user_ids.remove(request.user.id)
+                    messages.warning(request, "You cannot delete yourself.")
+
+                if not user_ids:
+                    return redirect("admin_manage_users")
+
+                # Perform bulk deletion, strictly excluding any admins, superadmins, or database superusers
+                to_delete = User.objects.filter(id__in=user_ids)
+                
+                # Check if there were any admins/superadmins/superusers in the selection
+                protected_users = to_delete.filter(Q(role__in=["admin", "superadmin"]) | Q(is_superuser=True))
+                if protected_users.exists():
+                    messages.warning(request, "Admin and Super Admin accounts cannot be deleted.")
+                
+                final_to_delete = to_delete.exclude(Q(role__in=["admin", "superadmin"]) | Q(is_superuser=True))
+                count = final_to_delete.count()
+                
+                if count > 0:
+                    final_to_delete.delete()
+                    messages.success(request, f"Successfully deleted {count} user(s).")
+                else:
+                    messages.error(request, "No eligible users were deleted.")
+            except Exception as e:
+                messages.error(request, f"Error deleting users: {str(e)}")
+
+            return redirect("admin_manage_users")
+
         first_name = request.POST.get("first_name", "").strip()
         last_name = request.POST.get("last_name", "").strip()
         email = request.POST.get("email", "").strip()
@@ -804,7 +847,13 @@ def admin_manage_users(request):
     # Retrieve any saved form data
     form_data = request.session.pop('add_user_form', {})
     
-    users = User.objects.all().order_by("first_name")
+    base_users = User.objects.exclude(Q(role="superadmin") | Q(is_superuser=True))
+    total_users_count = base_users.count()
+    students_count = base_users.filter(role="student").count()
+    deans_count = base_users.filter(role="dean").count()
+    lecturers_count = base_users.filter(role="lecturer").count()
+
+    users = base_users.order_by("first_name")
 
     # SEARCH
     search_query = request.GET.get("search", "")
@@ -821,7 +870,7 @@ def admin_manage_users(request):
         users = users.filter(role=role_filter)
 
     # PAGINATION
-    paginator = Paginator(users, 10)
+    paginator = Paginator(users, 15)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
 
@@ -830,6 +879,10 @@ def admin_manage_users(request):
         "search": search_query,
         "role_filter": role_filter,
         "form_data": form_data,
+        "total_users_count": total_users_count,
+        "students_count": students_count,
+        "deans_count": deans_count,
+        "lecturers_count": lecturers_count,
     })
 
 
