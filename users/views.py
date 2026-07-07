@@ -874,6 +874,8 @@ def admin_manage_users(request):
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
 
+    upload_errors = request.session.pop("upload_errors", [])
+
     return render(request, "users/dashboard/contents/admin/admin_manage_users.html", {
         "page_obj": page_obj,
         "search": search_query,
@@ -883,6 +885,7 @@ def admin_manage_users(request):
         "students_count": students_count,
         "deans_count": deans_count,
         "lecturers_count": lecturers_count,
+        "upload_errors": upload_errors,
     })
 
 
@@ -4014,15 +4017,48 @@ def save_uploaded_users(request):
 
     created = 0
     errors = []
+    processed_usernames = set()
+    processed_emails = set()
 
-    for row in preview_data:
+    for i, row in enumerate(preview_data, start=1):
+        if not any(row.values()):
+            continue
+
         try:
-            # Required fields
-            first_name = row.get("first_name", "").strip()
-            last_name = row.get("last_name", "").strip()
-            username = row.get("username", "").strip()
-            role = row.get("role", "").strip()
-            email = row.get("email", "").strip()
+            first_name = str(row.get("first_name", "")).strip()
+            last_name = str(row.get("last_name", "")).strip()
+            username = str(row.get("username", "")).strip()
+            role = str(row.get("role", "")).strip().lower()
+            email = str(row.get("email", "")).strip()
+
+            if not username:
+                errors.append(f"Row {i}: Username is required.")
+                continue
+
+            if not role:
+                errors.append(f"Row {i} ({username}): Role is required.")
+                continue
+
+            valid_roles = [choice[0] for choice in User.ROLE_CHOICES]
+            if role not in valid_roles:
+                errors.append(f"Row {i} ({username}): Invalid role '{role}'. Valid roles are: {', '.join(valid_roles)}")
+                continue
+
+            if username.lower() in processed_usernames:
+                errors.append(f"Row {i} ({username}): Duplicate username '{username}' in the uploaded file.")
+                continue
+
+            if email and email.lower() in processed_emails:
+                errors.append(f"Row {i} ({username}): Duplicate email '{email}' in the uploaded file.")
+                continue
+
+            if User.objects.filter(username__iexact=username).exists():
+                errors.append(f"Row {i} ({username}): Username already exists.")
+                continue
+
+            if email and User.objects.filter(email__iexact=email).exists():
+                errors.append(f"Row {i} ({username}): Email '{email}' is already in use.")
+                continue
 
             # Optional fields default to None
             student_id = None
@@ -4031,33 +4067,43 @@ def save_uploaded_users(request):
             program = None
             is_fee_paid = False
 
-            user = User.objects.create(
-                username=username,
-                first_name=first_name,
-                last_name=last_name,
-                role=role,
-                email=email,
-                student_id=student_id,
-                pin_code=pin_code,
-                department=department,
-                program=program,
-                is_fee_paid=is_fee_paid
-            )
+            with transaction.atomic():
+                user = User.objects.create(
+                    username=username,
+                    first_name=first_name,
+                    last_name=last_name,
+                    role=role,
+                    email=email,
+                    student_id=student_id,
+                    pin_code=pin_code,
+                    department=department,
+                    program=program,
+                    is_fee_paid=is_fee_paid
+                )
 
-            # Auto-generate password
-            password = generate_auto_password(first_name)
-            user.set_password(password)
-            user.save()
+                # Auto-generate password
+                password = generate_auto_password(first_name)
+                user.set_password(password)
+                user.save()
+
             created += 1
+            processed_usernames.add(username.lower())
+            if email:
+                processed_emails.add(email.lower())
 
         except Exception as e:
-            errors.append(str(e))
+            errors.append(f"Row {i} ({row.get('username', 'Unknown')}): {str(e)}")
 
     request.session["preview_users"] = None
 
-    messages.success(request, f"{created} users saved successfully.")
+    if created > 0:
+        messages.success(request, f"{created} users saved successfully.")
+
     if errors:
-        messages.error(request, f"Errors: {errors}")
+        messages.warning(request, f"{len(errors)} user(s) could not be imported due to errors. Check the error log below.")
+        request.session["upload_errors"] = errors
+    else:
+        request.session.pop("upload_errors", None)
 
     return redirect("admin_manage_users")
 
