@@ -18,6 +18,25 @@
     </a>
   </div>
 
+  {% if upload_errors %}
+  <div class="mb-8 border border-red-200 rounded-2xl bg-red-50/50 overflow-hidden shadow-sm animate-fade-in">
+    <div class="border-b border-red-100 px-6 py-4 bg-red-50 text-sm font-bold text-red-800 flex items-center gap-2">
+      <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+      </svg>
+      Import Errors - Entire Upload Rolled Back
+    </div>
+    <div class="px-6 py-4 max-h-60 overflow-y-auto text-sm text-red-700 font-medium">
+      <p class="font-semibold mb-2">The following issues were encountered during user upload. None of the records have been saved:</p>
+      <ul class="list-disc pl-5 space-y-1">
+        {% for err in upload_errors %}
+          <li>{{ err }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+  {% endif %}
+
   <!-- CSV Upload Form -->
   <form method="POST" enctype="multipart/form-data"
     class="mb-12 bg-white border border-slate-100 p-8 rounded-2xl shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
@@ -82,4 +101,40 @@
   </div>
 </div>
 
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex flex-col items-center justify-center z-[9999] hidden transition-all duration-300">
+  <div class="bg-white p-8 rounded-2xl shadow-xl flex flex-col items-center max-w-sm mx-auto text-center border border-slate-100 animate-scale-in">
+    <div class="custom-spinner mb-4"></div>
+    <h3 class="text-lg font-bold text-slate-800 mb-1">Processing Users</h3>
+    <p class="text-sm text-slate-500 font-medium">Please wait while we process the records. This may take a moment. Do not close this window.</p>
+  </div>
+</div>
+
+<style>
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  .custom-spinner {
+    border: 4px solid #f1f5f9;
+    border-top: 4px solid #0f172a;
+    border-radius: 50%;
+    width: 3rem;
+    height: 3rem;
+    animation: spin 1s linear infinite;
+  }
+</style>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const forms = document.querySelectorAll("form");
+    const overlay = document.getElementById("loadingOverlay");
+    
+    forms.forEach(form => {
+      form.addEventListener("submit", function() {
+        overlay.classList.remove("hidden");
+      });
+    });
+  });
+</script>
 {% endblock %}

@@ -320,3 +320,17 @@ class StudentOverpayment(models.Model):
 
     def __str__(self):
         return f"{self.student.get_full_name()} - GHS {self.amount}"
+
+
+class RateLimitRecord(models.Model):
+    key_prefix = models.CharField(max_length=50)
+    ip_address = models.CharField(max_length=45)  # supports IPv4 and IPv6
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["key_prefix", "ip_address", "timestamp"]),
+        ]
+
+    def __str__(self):
+        return f"{self.key_prefix} - {self.ip_address} @ {self.timestamp}"

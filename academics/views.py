@@ -210,56 +210,84 @@ def upload_scores_csv(request, course_id, semester_id):
     created, updated = 0, 0
 
     User = get_user_model()
+    errors = []
 
-    for _, row in df.iterrows():
-        student_id = row["student_id"]
-        score = row["score"]
+    import logging
+    import traceback
+    from portal.models import ErrorLog
+    from django.db import transaction
+    logger = logging.getLogger(__name__)
 
-        if score == "":
-            continue  # lecturer didn't fill it
+    try:
+        with transaction.atomic():
+            for _, row in df.iterrows():
+                try:
+                    with transaction.atomic():
+                        student_id = row["student_id"]
+                        score = row["score"]
 
+                        if score == "":
+                            continue  # lecturer didn't fill it
+
+                        try:
+                            score = float(score)
+                        except:
+                            raise ValueError(f"Score '{score}' is not a valid number.")
+
+                        # NEW VALIDATION
+                        if score < 0 or score > 100:
+                            raise ValueError(f"Invalid score '{score}'. Scores must be between 0 and 100.")
+                    
+                        student = User.objects.filter(student_id=student_id, role="student").first()
+                        if not student:
+                            raise ValueError(f"Student ID '{student_id}' does not exist.")
+
+                        grade = get_letter(score)
+
+                        # Insert or update
+                        assessment, created_flag = Assessment.objects.update_or_create(
+                            student=student,
+                            course=course,
+                            semester=semester,
+                            defaults={
+                                "program": course.program,
+                                "score": score,
+                                "grade": grade,
+                                "recorded_by": user
+                            }
+                        )
+
+                        if created_flag:
+                            created += 1
+                        else:
+                            updated += 1
+                except Exception as row_error:
+                    errors.append(f"Student ID {row.get('student_id', 'Unknown')}: {str(row_error)}")
+
+            if errors:
+                raise ValueError("Scores upload aborted due to validation/database errors.")
+
+        messages.success(
+            request,
+            f"Scores uploaded successfully. Created: {created}, Updated: {updated}"
+        )
+
+    except Exception as e:
+        tb = traceback.format_exc()
+        logger.error(f"Scores upload aborted: {str(e)}", exc_info=True)
         try:
-            score = float(score)
-        except:
-            continue
-
-        # NEW VALIDATION
-        if score < 0 or score > 100:
-            messages.error(
-                request,
-                f"Invalid score '{score}' for student ID {student_id}. Scores must be between 0 and 100."
+            ErrorLog.objects.create(
+                user=request.user if request.user.is_authenticated else None,
+                path=request.build_absolute_uri(),
+                method=request.method,
+                error_message=f"Scores upload aborted: {str(e)}",
+                stack_trace=tb
             )
-            return redirect("lecturer_enter_assessments", course_id, semester_id)
-    
-        student = get_object_or_404(
-        User,
-        student_id=student_id,
-        role="student"
-        )
-        grade = get_letter(score)
+        except Exception as log_error:
+            logger.error(f"Failed to save ErrorLog: {str(log_error)}", exc_info=True)
 
-        # Insert or update
-        assessment, created_flag = Assessment.objects.update_or_create(
-            student=student,
-            course=course,
-            semester=semester,
-            defaults={
-                "program": course.program,
-                "score": score,
-                "grade": grade,
-                "recorded_by": user
-            }
-        )
+        messages.error(request, f"Upload failed and was rolled back: {', '.join(errors) if errors else str(e)}")
 
-        if created_flag:
-            created += 1
-        else:
-            updated += 1
-
-    messages.success(
-        request,
-        f"Scores uploaded successfully. Created: {created}, Updated: {updated}"
-    )
     return redirect("lecturer_enter_assessments", course_id, semester_id)
 
 

@@ -3759,34 +3759,58 @@ def upload_task_scores_csv(request, task_id):
 
     errors = []
 
-    for row in reader:
-        try:
-            student_id = int(row["student_id"])
-            raw_score = row["marks_obtained"].strip()
+    import logging
+    import traceback
+    from portal.models import ErrorLog
+    logger = logging.getLogger(__name__)
 
-            if raw_score == "":
-                continue
+    try:
+        with transaction.atomic():
+            for row in reader:
+                try:
+                    with transaction.atomic():
+                        student_id = int(row["student_id"])
+                        raw_score = row["marks_obtained"].strip()
 
-            score = float(raw_score)
+                        if raw_score == "":
+                            continue
 
-            if score < 0 or score > float(task.total_marks):
-                raise ValueError("Score out of range")
+                        score = float(raw_score)
 
-            score_obj = score_map.get(student_id)
-            if not score_obj:
-                raise ValueError("Student not part of task")
+                        if score < 0 or score > float(task.total_marks):
+                            raise ValueError("Score out of range")
 
-            score_obj.marks_obtained = score
-            score_obj.recorded_by = user
-            score_obj.save()
+                        score_obj = score_map.get(student_id)
+                        if not score_obj:
+                            raise ValueError("Student not part of task")
 
-        except Exception as e:
-            errors.append(str(e))
+                        score_obj.marks_obtained = score
+                        score_obj.recorded_by = user
+                        score_obj.save()
 
-    if errors:
-        messages.warning(request, "Some rows failed validation.")
-    else:
+                except Exception as row_error:
+                    errors.append(f"Student ID {row.get('student_id', 'Unknown')}: {str(row_error)}")
+
+            if errors:
+                raise ValueError("Task scores upload aborted due to validation/database errors.")
+
         messages.success(request, "Scores uploaded successfully.")
+
+    except Exception as e:
+        tb = traceback.format_exc()
+        logger.error(f"Task scores upload aborted: {str(e)}", exc_info=True)
+        try:
+            ErrorLog.objects.create(
+                user=request.user if request.user.is_authenticated else None,
+                path=request.build_absolute_uri(),
+                method=request.method,
+                error_message=f"Task scores upload aborted: {str(e)}",
+                stack_trace=tb
+            )
+        except Exception as log_error:
+            logger.error(f"Failed to save ErrorLog: {str(log_error)}", exc_info=True)
+
+        messages.error(request, f"Upload failed and was rolled back: {', '.join(errors) if errors else str(e)}")
 
     return redirect("lecturer_assessment_detail", task_id=task.id)
 
@@ -3978,6 +4002,7 @@ def generate_auto_password(first_name: str):
 
 def upload_users(request):
     preview_data = request.session.get("preview_users")
+    upload_errors = request.session.pop("upload_errors", [])
 
     if request.method == "POST" and "file" in request.FILES:
         file = request.FILES["file"]
@@ -3991,8 +4016,24 @@ def upload_users(request):
             else:
                 messages.error(request, "Please upload CSV or Excel file only.")
                 return redirect("upload_users")
-        except Exception:
-            messages.error(request, "Invalid file format.")
+        except Exception as e:
+            import logging
+            from portal.models import ErrorLog
+            import traceback
+            tb = traceback.format_exc()
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed parsing upload users file: {str(e)}", exc_info=True)
+            try:
+                ErrorLog.objects.create(
+                    user=request.user if request.user.is_authenticated else None,
+                    path=request.build_absolute_uri(),
+                    method=request.method,
+                    error_message=f"Failed parsing upload users file: {str(e)}",
+                    stack_trace=tb
+                )
+            except Exception as log_error:
+                logger.error(f"Failed to save ErrorLog: {str(log_error)}", exc_info=True)
+            messages.error(request, f"Invalid file format: {str(e)}")
             return redirect("upload_users")
 
         # Convert DataFrame to list of dicts
@@ -4004,7 +4045,8 @@ def upload_users(request):
         return redirect("upload_users")
 
     return render(request, "users/dashboard/contents/admin/upload_users.html", {
-        "preview": preview_data
+        "preview": preview_data,
+        "upload_errors": upload_errors
     })
 
 
@@ -4020,92 +4062,105 @@ def save_uploaded_users(request):
     processed_usernames = set()
     processed_emails = set()
 
-    for i, row in enumerate(preview_data, start=1):
-        if not any(row.values()):
-            continue
+    import logging
+    import traceback
+    from portal.models import ErrorLog
+    logger = logging.getLogger(__name__)
 
-        try:
-            first_name = str(row.get("first_name", "")).strip()
-            last_name = str(row.get("last_name", "")).strip()
-            username = str(row.get("username", "")).strip()
-            role = str(row.get("role", "")).strip().lower()
-            email = str(row.get("email", "")).strip()
+    try:
+        with transaction.atomic():
+            for i, row in enumerate(preview_data, start=1):
+                if not any(row.values()):
+                    continue
 
-            if not username:
-                errors.append(f"Row {i}: Username is required.")
-                continue
+                try:
+                    with transaction.atomic():
+                        first_name = str(row.get("first_name", "")).strip()
+                        last_name = str(row.get("last_name", "")).strip()
+                        username = str(row.get("username", "")).strip()
+                        role = str(row.get("role", "")).strip().lower()
+                        email = str(row.get("email", "")).strip()
 
-            if not role:
-                errors.append(f"Row {i} ({username}): Role is required.")
-                continue
+                        if not username:
+                            raise ValueError("Username is required.")
 
-            valid_roles = [choice[0] for choice in User.ROLE_CHOICES]
-            if role not in valid_roles:
-                errors.append(f"Row {i} ({username}): Invalid role '{role}'. Valid roles are: {', '.join(valid_roles)}")
-                continue
+                        if not role:
+                            raise ValueError("Role is required.")
 
-            if username.lower() in processed_usernames:
-                errors.append(f"Row {i} ({username}): Duplicate username '{username}' in the uploaded file.")
-                continue
+                        valid_roles = [choice[0] for choice in User.ROLE_CHOICES]
+                        if role not in valid_roles:
+                            raise ValueError(f"Invalid role '{role}'. Valid roles are: {', '.join(valid_roles)}")
 
-            if email and email.lower() in processed_emails:
-                errors.append(f"Row {i} ({username}): Duplicate email '{email}' in the uploaded file.")
-                continue
+                        if username.lower() in processed_usernames:
+                            raise ValueError(f"Duplicate username '{username}' in the uploaded file.")
 
-            if User.objects.filter(username__iexact=username).exists():
-                errors.append(f"Row {i} ({username}): Username already exists.")
-                continue
+                        if email and email.lower() in processed_emails:
+                            raise ValueError(f"Duplicate email '{email}' in the uploaded file.")
 
-            if email and User.objects.filter(email__iexact=email).exists():
-                errors.append(f"Row {i} ({username}): Email '{email}' is already in use.")
-                continue
+                        if User.objects.filter(username__iexact=username).exists():
+                            raise ValueError("Username already exists in the database.")
 
-            # Optional fields default to None
-            student_id = None
-            pin_code = None
-            department = None
-            program = None
-            is_fee_paid = False
+                        if email and User.objects.filter(email__iexact=email).exists():
+                            raise ValueError(f"Email '{email}' is already in use.")
 
-            with transaction.atomic():
-                user = User.objects.create(
-                    username=username,
-                    first_name=first_name,
-                    last_name=last_name,
-                    role=role,
-                    email=email,
-                    student_id=student_id,
-                    pin_code=pin_code,
-                    department=department,
-                    program=program,
-                    is_fee_paid=is_fee_paid
-                )
+                        # Optional fields default to None
+                        student_id = None
+                        pin_code = None
+                        department = None
+                        program = None
+                        is_fee_paid = False
 
-                # Auto-generate password
-                password = generate_auto_password(first_name)
-                user.set_password(password)
-                user.save()
+                        user = User.objects.create(
+                            username=username,
+                            first_name=first_name,
+                            last_name=last_name,
+                            role=role,
+                            email=email,
+                            student_id=student_id,
+                            pin_code=pin_code,
+                            department=department,
+                            program=program,
+                            is_fee_paid=is_fee_paid
+                        )
 
-            created += 1
-            processed_usernames.add(username.lower())
-            if email:
-                processed_emails.add(email.lower())
+                        # Auto-generate password
+                        password = generate_auto_password(first_name)
+                        user.set_password(password)
+                        user.save()
 
-        except Exception as e:
-            errors.append(f"Row {i} ({row.get('username', 'Unknown')}): {str(e)}")
+                        created += 1
+                        processed_usernames.add(username.lower())
+                        if email:
+                            processed_emails.add(email.lower())
+                except Exception as row_error:
+                    errors.append(f"Row {i} ({row.get('username', 'Unknown')}): {str(row_error)}")
 
-    request.session["preview_users"] = None
+            if errors:
+                raise ValueError("Bulk user upload aborted due to validation/database errors.")
 
-    if created > 0:
-        messages.success(request, f"{created} users saved successfully.")
-
-    if errors:
-        messages.warning(request, f"{len(errors)} user(s) could not be imported due to errors. Check the error log below.")
-        request.session["upload_errors"] = errors
-    else:
+        # If success, clear preview session data
+        request.session["preview_users"] = None
         request.session.pop("upload_errors", None)
+        messages.success(request, f"{created} users saved successfully.")
+        return redirect("admin_manage_users")
 
-    return redirect("admin_manage_users")
+    except Exception as e:
+        tb = traceback.format_exc()
+        logger.error(f"User upload aborted: {str(e)}", exc_info=True)
+        try:
+            ErrorLog.objects.create(
+                user=request.user if request.user.is_authenticated else None,
+                path=request.build_absolute_uri(),
+                method=request.method,
+                error_message=f"Bulk user upload aborted: {str(e)}",
+                stack_trace=tb
+            )
+        except Exception as log_error:
+            logger.error(f"Failed to save ErrorLog: {str(log_error)}", exc_info=True)
+
+        messages.error(request, "Upload aborted. No users were imported. Please check the error list below.")
+        request.session["upload_errors"] = errors if errors else [str(e)]
+        return redirect("upload_users")
 
 
 # TRANSCRIPT SYSTEM

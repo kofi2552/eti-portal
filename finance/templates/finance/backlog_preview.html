@@ -15,7 +15,7 @@
         class="px-6 py-2.5 border border-gray-300 rounded-xl text-gray-600 font-semibold hover:bg-gray-50 transition-all">
         Cancel
       </a>
-      <form method="POST" action="{% url 'finance_save_backlog' %}">
+      <form id="finalizeBacklogForm" method="POST" action="{% url 'finance_save_backlog' %}">
         {% csrf_token %}
         <button type="submit" {% if any_errors %}disabled{% endif %}
           class="px-8 py-2.5 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition-all shadow-sm shadow-emerald-200 disabled:opacity-50 disabled:cursor-not-allowed">
@@ -100,4 +100,40 @@
   </div>
   {% endif %}
 </div>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex flex-col items-center justify-center z-[9999] hidden transition-all duration-300">
+  <div class="bg-white p-8 rounded-2xl shadow-xl flex flex-col items-center max-w-sm mx-auto text-center border border-slate-100 animate-scale-in">
+    <div class="custom-spinner mb-4"></div>
+    <h3 class="text-lg font-bold text-slate-800 mb-1">Finalizing Backlog</h3>
+    <p class="text-sm text-slate-500 font-medium">Please wait while we register the students, assign IDs/passwords, and allocate backlog payments. Do not close this window.</p>
+  </div>
+</div>
+
+<style>
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  .custom-spinner {
+    border: 4px solid #f1f5f9;
+    border-top: 4px solid #059669; /* Emerald green theme */
+    border-radius: 50%;
+    width: 3rem;
+    height: 3rem;
+    animation: spin 1s linear infinite;
+  }
+</style>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const finalizeForm = document.getElementById("finalizeBacklogForm");
+    const overlay = document.getElementById("loadingOverlay");
+    if (finalizeForm && overlay) {
+      finalizeForm.addEventListener("submit", function() {
+        overlay.classList.remove("hidden");
+      });
+    }
+  });
+</script>
 {% endblock %}

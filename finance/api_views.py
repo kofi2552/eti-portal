@@ -8,7 +8,7 @@ from django.db import transaction
 from django.utils import timezone
 from users.models import CustomUser as User, Payment
 from academics.models import AcademicYear, Semester
-from finance.models import BankTransaction, ProgramFee, ProgramFeeComponent, PaymentBreakdown
+from finance.models import BankTransaction, ProgramFee, ProgramFeeComponent, PaymentBreakdown, RateLimitRecord
 from portal.utils import log_event
 
 def require_bank_api_key(func):
@@ -24,9 +24,51 @@ def require_bank_api_key(func):
         return func(request, *args, **kwargs)
     return wrapper
 
+from datetime import timedelta
+import random
+
+def rate_limit(key_prefix, limit=10, period=60):
+    """Decorator to rate limit API requests by IP using Database (RateLimitRecord)."""
+    def decorator(func):
+        def wrapper(request, *args, **kwargs):
+            # Secure IP resolution: prioritize headers set by trusted proxies
+            # (X-Real-IP is overwritten by Render/reverse proxy, preventing spoofing)
+            ip = request.META.get("HTTP_X_REAL_IP") or request.META.get("HTTP_CF_CONNECTING_IP") or request.META.get("REMOTE_ADDR")
+            if not ip:
+                ip = "unknown"
+            
+            now = timezone.now()
+            window_start = now - timedelta(seconds=period)
+            
+            # Count requests from this IP in the window
+            request_count = RateLimitRecord.objects.filter(
+                key_prefix=key_prefix,
+                ip_address=ip,
+                timestamp__gte=window_start
+            ).count()
+            
+            if request_count >= limit:
+                return JsonResponse(
+                    {"status": "error", "message": "Rate limit exceeded. Too many requests. Please try again later."},
+                    status=429
+                )
+            
+            # Create a rate limit entry
+            RateLimitRecord.objects.create(key_prefix=key_prefix, ip_address=ip)
+            
+            # Clean up old records (5% chance to minimize database write operations)
+            if random.random() < 0.05:
+                cutoff = now - timedelta(hours=24)
+                RateLimitRecord.objects.filter(timestamp__lt=cutoff).delete()
+            
+            return func(request, *args, **kwargs)
+        return wrapper
+    return decorator
+
 @csrf_exempt
 @require_http_methods(["POST", "GET"])
 @require_bank_api_key
+@rate_limit(key_prefix="bank_validate", limit=10, period=60)
 def bank_validate_student(request):
     """Validates if a student ID exists and returns basic details."""
     if request.method == "POST":
@@ -78,6 +120,7 @@ def bank_validate_student(request):
 @csrf_exempt
 @require_http_methods(["POST"])
 @require_bank_api_key
+@rate_limit(key_prefix="bank_payment", limit=5, period=60)
 def bank_notify_payment(request):
     """Processes payment webhook from the bank."""
     try:
@@ -149,6 +192,9 @@ def bank_notify_payment(request):
             student = User.objects.get(student_id=student_id, role="student")
     except (User.DoesNotExist, ApplicationForm.DoesNotExist):
         return JsonResponse({"status": "error", "message": "Student ID or Application ID not found"}, status=404)
+
+    if not student:
+        return JsonResponse({"status": "error", "message": "Student record is unknown or not linked"}, status=400)
 
     # ---------------------------------------------------------------
     # Validate fee_breakdown amounts against system records

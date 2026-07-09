@@ -1824,6 +1824,25 @@ def finance_save_backlog(request):
         messages.success(request, f"Backlog processing complete: {success_count} successful records saved.")
         
     except Exception as e:
+        import traceback
+        import logging
+        from portal.models import ErrorLog
+        
+        tb = traceback.format_exc()
+        logger = logging.getLogger(__name__)
+        logger.error(f"Backlog upload failed and was rolled back: {str(e)}", exc_info=True)
+        
+        try:
+            ErrorLog.objects.create(
+                user=request.user if request.user.is_authenticated else None,
+                path=request.build_absolute_uri(),
+                method=request.method,
+                error_message=f"Backlog upload failed and was rolled back: {str(e)}",
+                stack_trace=tb
+            )
+        except Exception as log_error:
+            logger.error(f"Failed to save ErrorLog: {str(log_error)}", exc_info=True)
+
         messages.error(request, f"Backlog upload failed and was rolled back: {str(e)}")
         
     return redirect("finance_create_student_payment")
