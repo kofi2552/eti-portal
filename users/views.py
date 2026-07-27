@@ -2699,14 +2699,23 @@ def admin_school(request):
 
 
 
-def registration_error(request, message, back_url_name=None, back_url_kwargs=None, status=400):
+def registration_error(request, message, title=None, back_url_name=None, back_url_kwargs=None, status=400):
     """
-    Render a clean, dedicated registration error UI with an optional back link.
-    - message: error text to display to the student
+    Render a clean, dedicated registration notice UI with an optional back link.
+    - message: notice/error text to display to the student
+    - title: custom header title (defaults to "Registration Closed" or "Registration Notice")
     - back_url_name: optional named url to link back to (e.g. 'registration_step_3')
     - back_url_kwargs: optional dict of kwargs for reverse()
     - status: HTTP status code (defaults 400)
     """
+    if not title:
+        if "closed" in message.lower():
+            title = "Registration Closed"
+        elif "denied" in message.lower() or "expired" in message.lower():
+            title = "Access Notice"
+        else:
+            title = "Registration Notice"
+
     back_url = None
     try:
         if back_url_name:
@@ -2715,6 +2724,7 @@ def registration_error(request, message, back_url_name=None, back_url_kwargs=Non
         back_url = None
 
     context = {
+        "title": title,
         "message": message,
         "back_url": back_url,
         "back_label": "Go back" if back_url else None,
