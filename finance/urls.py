@@ -13,6 +13,7 @@ urlpatterns = [
     path("students/export-template/csv/", views.finance_export_student_template_csv, name="finance_export_student_template_csv"),
     path("payments/upload-backlog/csv/", views.finance_upload_backlog_csv, name="finance_upload_backlog_csv"),
     path("payments/save-backlog/", views.finance_save_backlog, name="finance_save_backlog"),
+    path("payments/backlog-management/", views.finance_backlog_management, name="finance_backlog_management"),
     path("ajax/program-fee/<int:fee_id>/detail/",views.finance_program_fee_detail,name="finance_program_fee_detail"),
     path("students/<int:student_id>/finance/",views.finance_payment_detail,name="finance_payment_detail",),
     

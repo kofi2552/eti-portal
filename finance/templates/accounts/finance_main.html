@@ -1,85 +1,150 @@
-{% extends "finance_dashboard_layout.html" %} {% block title %}Finance
-Dashboard{% endblock %} {% block content %}
-<div class="space-y-8">
-  <!-- STATS -->
+{% extends "finance_dashboard_layout.html" %}
+{% block title %}Finance Dashboard{% endblock %}
+
+{% block content %}
+<div class="space-y-8 max-w-7xl mx-auto px-4 py-6">
+  <!-- STATS CARDS -->
   <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-    <div class="bg-white border rounded-xl p-5">
-      <div class="text-sm text-gray-400">Total Payments</div>
-      <div class="text-2xl font-bold">{{ stats.total_payments }}</div>
+    <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-2xs">
+      <div class="text-xs font-bold uppercase tracking-wider text-slate-400">Total Payments</div>
+      <div class="text-2xl font-bold text-slate-800 mt-1">{{ stats.total_payments }}</div>
     </div>
-    <div class="bg-white border rounded-xl p-5">
-      <div class="text-sm text-gray-400">Verified</div>
-      <div class="text-2xl font-bold text-green-600">
-        {{ stats.verified_payments }}
-      </div>
+
+    <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-2xs">
+      <div class="text-xs font-bold uppercase tracking-wider text-slate-400">Verified</div>
+      <div class="text-2xl font-bold text-emerald-600 mt-1">{{ stats.verified_payments }}</div>
     </div>
-    <div class="bg-white border rounded-xl p-5">
-      <div class="text-sm text-gray-400">Pending</div>
-      <div class="text-2xl font-bold text-yellow-600">
-        {{ stats.pending_payments }}
-      </div>
+
+    <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-2xs">
+      <div class="text-xs font-bold uppercase tracking-wider text-slate-400">Pending</div>
+      <div class="text-2xl font-bold text-amber-600 mt-1">{{ stats.pending_payments }}</div>
     </div>
-    <div class="bg-white border rounded-xl p-5">
-      <div class="text-sm text-gray-400">Semester Fees</div>
-      <div class="text-2xl font-bold">{{ stats.declared_fees }}</div>
+
+    <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-2xs">
+      <div class="text-xs font-bold uppercase tracking-wider text-slate-400">Semester Fees</div>
+      <div class="text-2xl font-bold text-slate-800 mt-1">{{ stats.declared_fees }}</div>
     </div>
   </div>
 
-  <!-- RECENT PAYMENTS -->
-  <div class="bg-white border rounded-xl">
-    <div class="w-full p-5 border-b flex items-center justify-between">
-      <h2 class="font-semibold">Recent Payments</h2>
-      <a
-        href="{% url 'finance_export_summary_payments_csv' %}"
-        class="px-4 py-2 border rounded text-sm hover:bg-gray-100"
-      >
-        Download Summary (CSV)
-      </a>
+  <!-- RECENT PAYMENTS CARD WITH PROGRAM & LEVEL FILTERS -->
+  <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-2xs space-y-4 p-5">
+    <!-- CARD HEADER & FILTERS -->
+    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+      <div>
+        <h2 class="text-lg font-bold text-slate-800">Recent Fee Payments</h2>
+        <p class="text-xs text-slate-500 mt-0.5">Filter and review recent student payments and fee statuses.</p>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <a href="{% url 'finance_export_summary_payments_csv' %}"
+          class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-xs font-bold rounded-xl transition-all shadow-2xs flex items-center gap-1.5 whitespace-nowrap">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+          <span>Download Summary (CSV)</span>
+        </a>
+      </div>
     </div>
-    <table class="w-full text-sm">
-      <thead class="bg-gray-50 text-gray-500">
-        <tr class="text-left">
-          <th class="p-3">Student</th>
-          <th class="p-3">Program</th>
-          <th class="p-3">Semester</th>
-          <th class="p-3">Payments Made</th>
-          <th class="p-3">Full Fees Required</th>
-          <th class="p-3">Status</th>
-        </tr>
-      </thead>
-      <tbody class="divide-y">
-        {% for p in recent_payments %}
-        <tr
-          class="text-left cursor-pointer hover:bg-gray-50"
-          data-student-id="{{ p.student.id }}"
-        >
-          <td class="p-3">{{ p.student.get_full_name }}</td>
-          <td class="p-3">{{ p.program.name }}</td>
-          <td class="p-3">{{ p.semester.name }}</td>
-          <td class="p-3">GHS {{ p.amount_paid }}</td>
-          {% if p.program_fee %}
-          <td class="p-3">GHS {{ p.program_fee.total_amount }}</td>
-          {% else %}
-          <td class="text-gray-400 p-3">Fee not declared</td>
-          {% endif %}
-          <!-- <td class="p-3">GHS {{ p.amount_paid }}</td> -->
-          <td class="p-3">
-            {% if p.is_verified %}
-            <span class="text-green-600 font-semibold">Verified</span>
-            {% else %}
-            <span class="text-yellow-600 font-semibold">Pending</span>
-            {% endif %}
-          </td>
-        </tr>
-        {% empty %}
-        <tr>
-          <td colspan="5" class="p-5 text-left text-gray-400">
-            No payments yet.
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+
+    <!-- PROGRAM & LEVEL FILTER FORM -->
+    <form method="GET" action="{% url 'finance_main' %}" class="flex flex-wrap items-center justify-between gap-3 bg-slate-50/50 p-4 rounded-xl border border-slate-100">
+      <!-- Search Input -->
+      <div class="flex items-center gap-2">
+        <input type="text" name="q" value="{{ search_query }}" placeholder="Search student name, ID..."
+          class="border border-slate-200 rounded-xl px-3.5 py-2 text-xs bg-white text-slate-800 font-semibold outline-none focus:ring-1 focus:ring-blue-500 shadow-2xs w-60" />
+      </div>
+
+      <!-- PROGRAM & LEVEL FILTER DROPDOWNS -->
+      <div class="flex flex-row flex-wrap sm:flex-nowrap items-center gap-3">
+        <div class="flex items-center gap-2">
+          <label class="text-xs font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap">Program:</label>
+          <select name="program_id" onchange="this.form.submit()"
+            class="w-[180px] sm:w-[220px] border border-slate-200 rounded-xl px-3 py-2 text-xs bg-white text-slate-800 font-semibold outline-none focus:ring-1 focus:ring-blue-500 shadow-2xs truncate">
+            <option value="all">-- All Programs --</option>
+            {% for prog in programs %}
+            <option value="{{ prog.id }}" {% if selected_program_id == prog.id|stringformat:"s" %}selected{% endif %}>{{ prog.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <label class="text-xs font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap">Level:</label>
+          <select name="level_id" onchange="this.form.submit()"
+            class="w-[140px] sm:w-[170px] border border-slate-200 rounded-xl px-3 py-2 text-xs bg-white text-slate-800 font-semibold outline-none focus:ring-1 focus:ring-blue-500 shadow-2xs truncate">
+            <option value="all">-- All Levels --</option>
+            {% for lvl in levels %}
+            <option value="{{ lvl.id }}" {% if selected_level_id == lvl.id|stringformat:"s" %}selected{% endif %}>{{ lvl.level_name }} {% if lvl.program %}({{ lvl.program.name }}){% endif %}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <button type="submit"
+          class="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white font-semibold rounded-xl text-xs transition-colors shadow-2xs">
+          Filter
+        </button>
+
+        {% if search_query or selected_program_id and selected_program_id != 'all' or selected_level_id and selected_level_id != 'all' %}
+        <a href="{% url 'finance_main' %}" class="text-xs text-slate-500 hover:text-slate-700 underline font-medium">Clear</a>
+        {% endif %}
+      </div>
+    </form>
+
+    <!-- VERTICALLY SCROLLABLE RECENT PAYMENTS TABLE -->
+    <div class="border border-slate-200 rounded-xl overflow-y-auto max-h-[450px] shadow-2xs">
+      <table class="min-w-full text-sm divide-y divide-gray-200">
+        <thead class="bg-slate-50/95 sticky top-0 z-10 border-b border-slate-200">
+          <tr class="text-xs font-black uppercase tracking-widest text-slate-400 text-left">
+            <th class="p-3">Student</th>
+            <th class="p-3">Program & Level</th>
+            <th class="p-3">Semester</th>
+            <th class="p-3">Payments Made</th>
+            <th class="p-3">Full Fees Required</th>
+            <th class="p-3">Status</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 bg-white">
+          {% for p in recent_payments %}
+          <tr class="text-left cursor-pointer hover:bg-slate-50 transition-colors" data-student-id="{{ p.student.id }}">
+            <td class="p-3">
+              <div class="font-semibold text-slate-900">{{ p.student.get_full_name }}</div>
+              <div class="text-xs text-slate-500">ID: {{ p.generated_student_id|default:p.student.student_id|default:"N/A" }}</div>
+            </td>
+            <td class="p-3">
+              <div class="font-medium text-slate-800">{{ p.program.name|default:"N/A" }}</div>
+              {% if p.level %}
+              <div class="text-xs text-slate-400">Level: {{ p.level.level_name }}</div>
+              {% endif %}
+            </td>
+            <td class="p-3">
+              <div class="font-medium text-slate-800">{{ p.semester.name }}</div>
+              <div class="text-xs text-slate-400">({{ p.academic_year.name }})</div>
+            </td>
+            <td class="p-3 font-bold text-emerald-700">GHS {{ p.amount_paid }}</td>
+            <td class="p-3 font-semibold text-slate-800">
+              {% if p.program_fee %}
+              GHS {{ p.program_fee.total_amount }}
+              {% else %}
+              <span class="text-slate-400 italic">Fee not declared</span>
+              {% endif %}
+            </td>
+            <td class="p-3">
+              {% if p.is_verified %}
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">Verified</span>
+              {% else %}
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800">Pending</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6" class="p-8 text-center text-slate-400 text-xs italic">
+              No recent payments found matching your query.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </div>
 </div>
 

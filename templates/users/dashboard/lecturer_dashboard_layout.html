@@ -93,22 +93,26 @@
         <span class="brand-text">Lecturer Panel</span>
       </div>
 
-      <nav class="p-4 space-y-2 text-sm">
-        <a href="{% url 'lecturer_main' %}" class="flex items-center gap-3 p-2 rounded hover:bg-gray-100">
+      <nav class="p-4 space-y-2 text-sm font-medium">
+        <a href="{% url 'lecturer_main' %}"
+          class="flex items-center gap-3 p-2 rounded-xl transition-colors {% if request.resolver_match.url_name == 'lecturer_main' %}bg-slate-100 text-slate-900 font-bold shadow-2xs{% else %}hover:bg-slate-50 text-slate-600{% endif %}">
           <i data-lucide="layout-dashboard" class="w-5 h-5 flex-shrink-0"></i>
           <span class="nav-text">Overview</span>
         </a>
 
-        <a href="{% url 'lecturer_assessments' %}" class="flex items-center gap-3 p-2 rounded hover:bg-gray-100">
+        <a href="{% url 'lecturer_assessments' %}"
+          class="flex items-center gap-3 p-2 rounded-xl transition-colors {% if request.resolver_match.url_name == 'lecturer_assessments' %}bg-slate-100 text-slate-900 font-bold shadow-2xs{% else %}hover:bg-slate-50 text-slate-600{% endif %}">
           <i data-lucide="check-square" class="w-5 h-5 flex-shrink-0"></i>
           <span class="nav-text">Assessments</span>
         </a>
-        <a href="{% url 'lecturer_courses' %}" class="flex items-center gap-3 p-2 rounded hover:bg-gray-100">
+
+        <a href="{% url 'lecturer_courses' %}"
+          class="flex items-center gap-3 p-2 rounded-xl transition-colors {% if request.resolver_match.url_name == 'lecturer_courses' %}bg-slate-100 text-slate-900 font-bold shadow-2xs{% else %}hover:bg-slate-50 text-slate-600{% endif %}">
           <i data-lucide="book-open" class="w-5 h-5 flex-shrink-0"></i>
           <span class="nav-text">My Courses</span>
         </a>
 
-        <a href="{% url 'logout' %}" class="flex items-center gap-3 p-2 rounded hover:bg-red-50 text-red-600">
+        <a href="{% url 'logout' %}" class="flex items-center gap-3 p-2 rounded-xl hover:bg-red-50 text-red-600 transition-colors">
           <i data-lucide="log-out" class="w-5 h-5 flex-shrink-0"></i>
           <span class="nav-text">Logout</span>
         </a>

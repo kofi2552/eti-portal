@@ -88,37 +88,48 @@
   <div class="flex w-screen h-screen overflow-hidden">
     <!-- LEFT SIDEBAR -->
     <aside id="sidebar" class="sidebar-expanded bg-white border-r border-gray-200 transition-all duration-300 flex-shrink-0">
-      <div class="py-4 pl-6 border-b border-gray-200 font-semibold text-lg tracking-wide">
-        <span class="brand-text">Finance Panel</span>
+      <div class="flex items-center gap-2 py-4 pl-6 border-b border-gray-200 font-semibold text-lg tracking-wide">
+        <img src="{% static 'images/eti_favicon.png' %}" alt="ETI Logo" class="w-7 h-8 mr-2"> <span class="brand-text">Finance</span>
       </div>
 
-      <nav class="p-4 space-y-2 text-sm">
-        <a href="{% url 'finance_main' %}" class="flex items-center gap-3 p-2 rounded hover:bg-gray-100">
+      <nav class="p-4 space-y-2 text-sm font-medium">
+        <a href="{% url 'finance_main' %}"
+          class="flex items-center gap-3 p-2 rounded-xl transition-colors {% if request.resolver_match.url_name == 'finance_main' %}bg-slate-100 text-slate-900 font-bold shadow-2xs{% else %}hover:bg-slate-50 text-slate-600{% endif %}">
           <i data-lucide="layout-dashboard" class="w-5 h-5 flex-shrink-0"></i>
           <span class="nav-text">Overview</span>
         </a>
 
-        <a href="{% url 'semester_fee_list' %}" class="flex items-center gap-3 p-2 rounded hover:bg-gray-100">
+        <a href="{% url 'semester_fee_list' %}"
+          class="flex items-center gap-3 p-2 rounded-xl transition-colors {% if request.resolver_match.url_name == 'semester_fee_list' %}bg-slate-100 text-slate-900 font-bold shadow-2xs{% else %}hover:bg-slate-50 text-slate-600{% endif %}">
           <i data-lucide="landmark" class="w-5 h-5 flex-shrink-0"></i>
           <span class="nav-text">Semester Fees</span>
         </a>
+
         <a href="{% url 'finance_create_student_payment' %}"
-          class="flex items-center gap-3 p-2 rounded hover:bg-gray-100">
+          class="flex items-center gap-3 p-2 rounded-xl transition-colors {% if request.resolver_match.url_name == 'finance_create_student_payment' or request.resolver_match.url_name == 'finance_upload_backlog_csv' or request.resolver_match.url_name == 'finance_save_backlog' %}bg-slate-100 text-slate-900 font-bold shadow-2xs{% else %}hover:bg-slate-50 text-slate-600{% endif %}">
           <i data-lucide="credit-card" class="w-5 h-5 flex-shrink-0"></i>
           <span class="nav-text">Fee Payment</span>
         </a>
 
-        <a href="{% url 'finance_applications' %}" class="flex items-center gap-3 p-2 rounded hover:bg-gray-100">
+        <a href="{% url 'finance_backlog_management' %}"
+          class="flex items-center gap-3 p-2 rounded-xl transition-colors {% if request.resolver_match.url_name == 'finance_backlog_management' %}bg-slate-100 text-slate-900 font-bold shadow-2xs{% else %}hover:bg-slate-50 text-slate-600{% endif %}">
+          <i data-lucide="folder-archive" class="w-5 h-5 flex-shrink-0"></i>
+          <span class="nav-text">Backlog Data</span>
+        </a>
+
+        <a href="{% url 'finance_applications' %}"
+          class="flex items-center gap-3 p-2 rounded-xl transition-colors {% if request.resolver_match.url_name == 'finance_applications' %}bg-slate-100 text-slate-900 font-bold shadow-2xs{% else %}hover:bg-slate-50 text-slate-600{% endif %}">
           <i data-lucide="file-text" class="w-5 h-5 flex-shrink-0"></i>
           <span class="nav-text">Applications</span>
         </a>
 
-        <a href="{% url 'finance_bank_transactions' %}" class="flex items-center gap-3 p-2 rounded hover:bg-gray-100">
+        <a href="{% url 'finance_bank_transactions' %}"
+          class="flex items-center gap-3 p-2 rounded-xl transition-colors {% if request.resolver_match.url_name == 'finance_bank_transactions' %}bg-slate-100 text-slate-900 font-bold shadow-2xs{% else %}hover:bg-slate-50 text-slate-600{% endif %}">
           <i data-lucide="building-2" class="w-5 h-5 flex-shrink-0"></i>
           <span class="nav-text">Bank Fees</span>
         </a>
 
-        <a href="{% url 'logout' %}" class="flex items-center gap-3 p-2 rounded hover:bg-red-50 text-red-600">
+        <a href="{% url 'logout' %}" class="flex items-center gap-3 p-2 rounded-xl hover:bg-red-50 text-red-600 transition-colors">
           <i data-lucide="log-out" class="w-5 h-5 flex-shrink-0"></i>
           <span class="nav-text">Logout</span>
         </a>

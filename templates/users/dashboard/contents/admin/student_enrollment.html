@@ -1,214 +1,426 @@
 {% extends "users/dashboard/admin_dashboard_layout.html" %} {% block title %}
 Fee Payments {% endblock %} {% block content %}
 
-<div class="max-w-5xl mx-auto px-4 pt-6 pb-8">
-  <div class="w-full flex items-center justify-between">
-    <h2 class="text-xl font-semibold mb-3">Enrollment and Fee Payment</h2>
-    <form method="GET" class="flex gap-3 mb-4">
-      <input type="text" name="q" value="{{ search_query }}" placeholder="Search student name..."
-        class="border rounded px-3 py-2 w-64" />
-      <button
-        class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold rounded-xl text-sm transition-colors">Search</button>
-    </form>
+<div class="max-w-6xl mx-auto px-2 pt-6 pb-8">
+  <div class="w-full flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-4">
+    <div>
+      <h2 class="text-xl font-semibold">Enrollment and Fee Payment</h2>
+      <p class="text-xs text-slate-500 mt-0.5">Manage and verify student payment records.</p>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-3">
+      <!-- Bulk Delete Button -->
+      <button type="button" onclick="submitBulkDeletePayments()"
+        class="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer whitespace-nowrap">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+        </svg>
+        <span>Bulk Delete Selected</span>
+      </button>
+
+      <form method="GET" class="flex flex-wrap items-center gap-3">
+        <!-- Search Input -->
+        <input type="text" name="q" value="{{ search_query }}" placeholder="Search student name or ID..."
+          class="border border-slate-200 rounded-xl px-3 py-1.5 text-xs bg-white text-slate-800 font-semibold outline-none focus:ring-1 focus:ring-blue-500 shadow-2xs w-48 sm:w-60" />
+
+        <!-- Program Filter -->
+        <div class="flex items-center gap-2">
+          <label class="text-xs font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap">Program:</label>
+          <select name="program_id" onchange="this.form.submit()"
+            class="w-[180px] sm:w-[220px] border border-slate-200 rounded-xl px-3 py-1.5 text-xs bg-white text-slate-800 font-semibold outline-none focus:ring-1 focus:ring-blue-500 shadow-2xs truncate">
+            <option value="all">-- All Programs --</option>
+            {% for prog in programs %}
+            <option value="{{ prog.id }}" {% if selected_program_id == prog.id|stringformat:"s" %}selected{% endif %}>{{ prog.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <button type="submit"
+          class="px-4 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold rounded-xl text-xs transition-colors shadow-2xs">
+          Filter
+        </button>
+
+        {% if search_query or selected_program_id and selected_program_id != 'all' %}
+        <a href="{% url 'student_enrollment' %}" class="text-xs text-slate-500 hover:text-slate-700 underline font-medium">Clear</a>
+        {% endif %}
+      </form>
+    </div>
   </div>
-  <div class="w-full mx-auto bg-white p-6 rounded-2xl border border-slate-100 space-y-8">
 
-    <!-- PAYMENT TABLE -->
-    <div class="bg-white">
-      <table class="min-w-full text-sm divide-y divide-gray-200">
-        <thead class="bg-slate-50/50">
-          <tr class="text-xs font-black uppercase tracking-widest text-slate-400">
-            <th class="px-4 py-2 text-left">Student</th>
-            <!-- <th class=" px-4 py-2">Year</th> -->
-            <th class="px-4 py-2 text-left">Semester</th>
-            <th class="px-4 py-2 text-left">Initial Amt</th>
-            <th class="px-4 py-2 text-left">Paid</th>
-            <th class="px-4 py-2 text-left">Verified</th>
-            <th class="px-4 py-2">Actions</th>
-          </tr>
-        </thead>
+  <div class="w-full mx-auto bg-white p-6 rounded-2xl border border-slate-100 space-y-4">
+    <!-- BULK PAYMENT DELETE FORM WRAPPER -->
+    <form method="POST" id="bulkPaymentForm">
+      {% csrf_token %}
+      <input type="hidden" name="bulk_delete_payments" value="1" />
 
-        <tbody class="divide-y divide-gray-100">
-          {% for p in payments %}
-          <tr>
-            <td class="px-4 py-2">
-              {{ p.student.get_full_name }}
-              <div class="text-left text-xs">
-                <span>ID: {{ p.generated_student_id }}</span>
-                <!-- <span>PIN: {{ p.generated_pin }}</span> -->
-              </div>
-            </td>
-            <!-- <td class="px-4 py-2"></td> -->
-            <td class="flex flex-col text-left px-4 py-2">
-              <span>{{ p.semester.name }}</span>
-              <span class="text-xs text-gray-400">({{ p.academic_year.name }})</span>
-            </td>
-            <td class="px-4 py-2">{{ p.amount_expected }}</td>
-            <td class="px-4 py-2">{{ p.amount_paid }}</td>
-            <td class="px-4 py-2">
-              {% if p.is_verified %}
-              <span class="text-green-600 font-semibold">Verified</span>
-              {% else %}
-              <span class="text-red-600 font-semibold">Pending</span>
-              {% endif %}
-            </td>
-            <td class="px-4 py-2 space-x-3 space-y-1">
-              {% if not p.is_verified %}
-              <form method="POST" style="display: inline">
-                {% csrf_token %}
-                <input type="hidden" name="verify_payment" value="1" />
-                <input type="hidden" name="payment_id" value="{{ p.id }}" />
-                <button class="text-xs text-blue-600 hover:underline cursor-pointer mr-4 border px-4 py-1">
+      <!-- PAYMENT TABLE -->
+      <div class="bg-white overflow-x-auto">
+        <table class="min-w-full text-sm divide-y divide-gray-200">
+          <thead class="bg-slate-50/50">
+            <tr class="text-xs font-black uppercase tracking-widest text-slate-400">
+              <th class="px-3 py-2 text-center w-10">
+                <input type="checkbox" id="selectAllPayments" onclick="toggleSelectAllPayments(this)" class="rounded text-blue-600 focus:ring-blue-500 cursor-pointer">
+              </th>
+              <th class="px-4 py-2 text-left">Student</th>
+              <th class="px-4 py-2 text-left">Semester</th>
+              <th class="px-4 py-2 text-left">Initial Amt</th>
+              <th class="px-4 py-2 text-left">Paid</th>
+              <th class="px-4 py-2 text-left">Verified</th>
+              <th class="px-4 py-2 text-center">Actions</th>
+            </tr>
+          </thead>
+
+          <tbody class="divide-y divide-gray-100">
+            {% for p in payments %}
+            <tr>
+              <td class="px-3 py-2 text-center">
+                <input type="checkbox" name="selected_payment_ids" value="{{ p.id }}" class="payment-checkbox rounded text-blue-600 focus:ring-blue-500 cursor-pointer">
+              </td>
+              <td class="px-4 py-2">
+                <div class="font-semibold text-slate-900">{{ p.student.get_full_name }}</div>
+                <div class="text-left text-xs text-slate-500">
+                  <span>ID: {{ p.generated_student_id }}</span>
+                </div>
+              </td>
+              <td class="flex flex-col text-left px-4 py-2">
+                <span class="font-medium text-slate-800">{{ p.semester.name }}</span>
+                <span class="text-xs text-gray-400">({{ p.academic_year.name }})</span>
+              </td>
+              <td class="px-4 py-2 font-medium text-slate-700">GHS {{ p.amount_expected }}</td>
+              <td class="px-4 py-2 font-semibold text-slate-900">
+                <div>GHS {{ p.amount_paid }}</div>
+                {% if p.is_backlog and p.backlog_arrears is not None %}
+                <div class="text-[10px] text-amber-700 font-bold mt-0.5">Arrears: GHS {{ p.backlog_arrears }}</div>
+                {% endif %}
+              </td>
+              <td class="px-4 py-2">
+                {% if p.is_verified %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">Verified</span>
+                {% else %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-800">Pending</span>
+                {% endif %}
+              </td>
+              <td class="px-4 py-2 text-center space-x-2 space-y-1">
+                {% if not p.is_verified %}
+                <button type="button" onclick="singleVerifyPayment('{{ p.id }}')"
+                  class="text-xs text-blue-600 hover:bg-blue-50 border border-blue-200 px-3 py-1 font-semibold rounded-lg transition-colors cursor-pointer">
                   Verify
                 </button>
-              </form>
-              {% endif %}
+                {% endif %}
 
-              <form method="POST" style="display: inline">
-                {% csrf_token %}
-                <input type="hidden" name="delete_payment" value="1" />
-                <input type="hidden" name="payment_id" value="{{ p.id }}" />
-                <button class="text-xs text-red-600 hover:underline cursor-pointer border px-4 py-1">
+                <button type="button" onclick="singleDeletePayment('{{ p.id }}')"
+                  class="text-xs text-red-600 hover:bg-red-50 border border-red-200 px-3 py-1 font-semibold rounded-lg transition-colors cursor-pointer">
                   Delete
                 </button>
-              </form>
-              <form method="GET" action="{% url 'payment_pdf' p.id %}" style="display: inline" class="">
-                <button class="text-xs text-gray-700 hover:underline cursor-pointer border px-4 py-1">
+
+                <a href="{% url 'payment_pdf' p.id %}" target="_blank"
+                  class="inline-block text-xs text-gray-700 hover:bg-gray-50 border border-gray-200 px-3 py-1 font-semibold rounded-lg transition-colors cursor-pointer">
                   Save PDF
-                </button>
-              </form>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+                </a>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="7" class="p-6 text-center text-slate-400 text-xs italic">
+                No enrollment payment records found.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </form>
+
+    <!-- HIDDEN SINGLE ACTION FORMS FOR PAYMENTS -->
+    <form id="singleVerifyPaymentForm" method="POST" style="display:none;">
+      {% csrf_token %}
+      <input type="hidden" name="verify_payment" value="1" />
+      <input type="hidden" name="payment_id" id="singleVerifyPaymentId" />
+    </form>
+
+    <form id="singleDeletePaymentForm" method="POST" style="display:none;">
+      {% csrf_token %}
+      <input type="hidden" name="delete_payment" value="1" />
+      <input type="hidden" name="payment_id" id="singleDeletePaymentId" />
+    </form>
+
+    <!-- PAGINATION CONTROLS -->
+    {% if payments.has_other_pages %}
+    <div class="flex flex-col sm:flex-row items-center justify-between gap-3 px-2 pt-4 border-t border-slate-100">
+      <div class="text-xs text-slate-500 font-medium">
+        Showing <span class="font-bold text-slate-800">{{ payments.start_index }}</span> to <span class="font-bold text-slate-800">{{ payments.end_index }}</span> of <span class="font-bold text-slate-800">{{ payments.paginator.count }}</span> payment records
+      </div>
+      <div class="flex items-center gap-2">
+        {% if payments.has_previous %}
+        <a href="?page={{ payments.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_program_id %}&program_id={{ selected_program_id }}{% endif %}"
+          class="px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors shadow-2xs">
+          Previous
+        </a>
+        {% else %}
+        <span class="px-3 py-1.5 rounded-xl border border-slate-100 bg-slate-50 text-xs font-medium text-slate-300 cursor-not-allowed">
+          Previous
+        </span>
+        {% endif %}
+
+        <span class="text-xs font-bold text-slate-700 px-2">
+          Page {{ payments.number }} of {{ payments.paginator.num_pages }}
+        </span>
+
+        {% if payments.has_next %}
+        <a href="?page={{ payments.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_program_id %}&program_id={{ selected_program_id }}{% endif %}"
+          class="px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors shadow-2xs">
+          Next
+        </a>
+        {% else %}
+        <span class="px-3 py-1.5 rounded-xl border border-slate-100 bg-slate-50 text-xs font-medium text-slate-300 cursor-not-allowed">
+          Next
+        </span>
+        {% endif %}
+      </div>
     </div>
+    {% endif %}
   </div>
 
   <div class="bg-white border border-slate-100 rounded-2xl p-6 mb-8 mt-8">
-    <h3 class="text-md font-semibold mb-4">Program Fee Control</h3>
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+      <div>
+        <h3 class="text-md font-semibold text-slate-800">Program Fee Control</h3>
+        <p class="text-xs text-slate-500 mt-0.5">Manage fee editing access and archive statuses for program fee structures.</p>
+      </div>
 
-    <table class="min-w-full text-sm divide-y divide-gray-200">
-      <thead class="bg-slate-50/50">
-        <tr class="text-xs font-black uppercase tracking-widest text-slate-400">
-          <th class="px-4 py-2 text-left w-28">Year</th>
-          <th class="px-4 py-2 text-left">Semester</th>
-          <th class="px-4 py-2 text-left">Total Program Cost</th>
-          <th class="px-4 py-2 text-left">Status</th>
-          <th class="px-4 py-2 text-left">Action</th>
-        </tr>
-      </thead>
+      <!-- PROGRAM & LEVEL FILTER DROPDOWNS -->
+      <div class="flex flex-row flex-wrap sm:flex-nowrap items-center gap-3">
+        <div class="flex items-center gap-2">
+          <label class="text-xs font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap">Program:</label>
+          <select id="adminFeeProgramFilter" onchange="filterAdminProgramFees()"
+            class="w-[180px] lg:w-[220px] border border-slate-200 rounded-xl px-3 py-1.5 text-xs bg-white text-slate-800 font-semibold outline-none focus:ring-1 focus:ring-blue-500 shadow-2xs truncate">
+            <option value="all">-- All Programs --</option>
+            {% for prog in programs %}
+            <option value="{{ prog.id }}">{{ prog.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
 
-      <tbody class="divide-y divide-gray-100">
-        {% for fee in fees %}
-        <tr class="text-left">
-          <td class="p-3 text-xs text-slate-500 font-medium">{{ fee.academic_year.name }}</td>
-          <td class="p-3">{{ fee.semester.name }}</td>
-          <td class="p-3">
-            <div class="font-semibold">GHS {{ fee.total_amount }}</div>
-            {% if fee.program %}
-            <div class="text-[10px] text-slate-500 font-medium leading-tight mt-0.5">
-              {{ fee.program.name }} {% if fee.level %}({{ fee.level.level_name }}){% endif %}
-            </div>
-            {% endif %}
-          </td>
+        <div class="flex items-center gap-2">
+          <label class="text-xs font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap">Level:</label>
+          <select id="adminFeeLevelFilter" onchange="filterAdminProgramFees()"
+            class="w-[140px] lg:w-[170px] border border-slate-200 rounded-xl px-3 py-1.5 text-xs bg-white text-slate-800 font-semibold outline-none focus:ring-1 focus:ring-blue-500 shadow-2xs truncate">
+            <option value="all">-- All Levels --</option>
+            {% for lvl in levels %}
+            <option value="{{ lvl.id }}">{{ lvl.level_name }} {% if lvl.program %}({{ lvl.program.name }}){% endif %}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </div>
 
-          <!-- STATUS -->
-          <td class="p-3">
-            {% if fee.is_allowed %}
-            <span class="text-green-600 font-semibold">Allowed</span>
-            {% else %}
-            <span class="text-red-600 font-semibold">Locked</span>
-            {% endif %}
-          </td>
-
-          <!-- ACTION -->
-          <td class="p-3 flex items-center gap-4">
-            <form method="POST">
-              {% csrf_token %}
-
-              <input type="hidden" name="fee_id" value="{{ fee.id }}" />
-
-              <button
-                class="px-3 py-1 rounded text-xs font-semibold {% if fee.is_allowed %} bg-red-100 text-red-700 {% else %} bg-green-100 text-green-700 {% endif %}">
-                {% if fee.is_allowed %} Disable Editing {% else %} Allow Editing
-                {% endif %}
-              </button>
-            </form>
-            <form method="POST">
-              {% csrf_token %}
-
-              <input type="hidden" name="delete_fee" value="1" />
-              <input type="hidden" name="del_fee_id" value="{{ fee.id }}" />
-
-              <button
-                class="px-3 py-1 rounded text-sm font-semibold {% if fee.is_archived %} border border-green-500 text-green-700 {% else %} border border-red-500 text-red-700 {% endif %}">
-                {% if fee.is_archived %} Recover {% else %} Archive {% endif %}
-              </button>
-            </form>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-
-  <div class="bg-white border border-slate-100 rounded-2xl p-6 mb-0 mt-8">
-    <h3 class="text-md font-semibold mb-4">Semester Enrollment Control For Programs</h3>
-
-    <div class="overflow-y-auto max-h-[500px]">
+    <!-- TABLE CONTAINER WITH VERTICAL SCROLLBAR -->
+    <div class="overflow-y-auto max-h-[450px] border border-slate-100 rounded-xl">
       <table class="min-w-full text-sm divide-y divide-gray-200">
-        <thead class="bg-slate-50/50 sticky top-0 z-10">
+        <thead class="bg-white sticky top-0 z-10 border-b border-slate-200">
           <tr class="text-xs font-black uppercase tracking-widest text-slate-400">
-            <th class="px-4 py-2 text-left">Semester</th>
-            <th class="px-4 py-2 text-left">Academic Year</th>
-            <th class="px-4 py-2 text-left">Program</th>
-            <th class="px-4 py-2 text-left">Level</th>
-            <th class="px-4 py-2 text-left">Reg Status</th>
-            <th class="px-4 py-2 text-left w-32">Action</th>
+            <th class="px-4 py-3 text-left w-28">Year</th>
+            <th class="px-4 py-3 text-left">Semester</th>
+            <th class="px-4 py-3 text-left">Total Program Cost</th>
+            <th class="px-4 py-3 text-left">Status</th>
+            <th class="px-4 py-3 text-left">Action</th>
           </tr>
         </thead>
 
-        <tbody class="divide-y divide-gray-100">
-          {% for s in semesters %}
-          <tr>
-            <td class="px-4 py-2">{{ s.name }}</td>
-            <td class="px-4 py-2">{{ s.academic_year.name }}</td>
-            <td class="px-4 py-2">{{ s.level.program.name|default:"N/A" }}</td>
-            <td class="px-4 py-2">{{ s.level.level_name|default:"N/A" }}</td>
-
-            <td class="px-4 py-2">
-              {% if s.sem_reg_is_active %}
-              <span class="text-green-600 font-semibold">Active</span>
-              {% else %}
-              <span class="text-red-600 font-semibold">Inactive</span>
+        <tbody class="divide-y divide-gray-100" id="adminProgramFeeTableBody">
+          {% for fee in fees %}
+          <tr class="text-left admin-fee-row hover:bg-slate-50/60 transition-colors" data-program-id="{{ fee.program.id }}" data-level-id="{{ fee.level.id|default:'' }}">
+            <td class="p-3 text-xs text-slate-500 font-medium">{{ fee.academic_year.name }}</td>
+            <td class="p-3 font-medium text-slate-800">{{ fee.semester.name }}</td>
+            <td class="p-3">
+              <div class="font-semibold text-slate-900">GHS {{ fee.total_amount }}</div>
+              {% if fee.program %}
+              <div class="text-[10px] text-slate-500 font-medium leading-tight mt-0.5">
+                {{ fee.program.name }} {% if fee.level %}({{ fee.level.level_name }}){% endif %}
+              </div>
               {% endif %}
             </td>
 
-            <td class="px-4 py-2 w-32">
+            <!-- STATUS -->
+            <td class="p-3">
+              {% if fee.is_archived %}
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-gray-200 text-gray-700">Archived</span>
+              {% elif fee.is_allowed %}
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">Allowed</span>
+              {% else %}
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800">Locked</span>
+              {% endif %}
+            </td>
+
+            <!-- ACTION -->
+            <td class="p-3 flex items-center gap-4">
               <form method="POST">
                 {% csrf_token %}
-                <input type="hidden" name="toggle_sem_reg" value="1" />
-                <input type="hidden" name="semester_id" value="{{ s.id }}" />
-
-                {% if s.sem_reg_is_active %}
-                <button class="w-full px-3 py-1 bg-red-600 text-xs text-white hover:bg-red-700 cursor-pointer rounded">
-                  Deactivate
-                </button>
-                {% else %}
+                <input type="hidden" name="fee_id" value="{{ fee.id }}" />
                 <button
-                  class="w-full px-3 py-1 bg-green-600 text-xs text-white hover:bg-green-700 cursor-pointer rounded">
-                  Activate
+                  class="px-3 py-1 rounded text-xs font-semibold {% if fee.is_allowed %} bg-red-100 text-red-700 {% else %} bg-green-100 text-green-700 {% endif %}">
+                  {% if fee.is_allowed %} Disable Editing {% else %} Allow Editing {% endif %}
                 </button>
-                {% endif %}
+              </form>
+              <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="delete_fee" value="1" />
+                <input type="hidden" name="del_fee_id" value="{{ fee.id }}" />
+                <button
+                  class="px-3 py-1 rounded text-sm font-semibold {% if fee.is_archived %} border border-green-500 text-green-700 {% else %} border border-red-500 text-red-700 {% endif %}">
+                  {% if fee.is_archived %} Recover {% else %} Archive {% endif %}
+                </button>
               </form>
             </td>
           </tr>
+          {% empty %}
+          <tr>
+            <td colspan="5" class="p-6 text-center text-slate-400 text-xs italic">
+              No program fees found.
+            </td>
+          </tr>
           {% endfor %}
+          <tr id="noAdminFeeMatchRow" style="display: none;">
+            <td colspan="5" class="p-6 text-center text-slate-400 text-xs italic">
+              No program fee structures found for the selected program.
+            </td>
+          </tr>
         </tbody>
       </table>
     </div>
   </div>
+
+  <div class="bg-white border border-slate-100 rounded-2xl p-6 mb-0 mt-8">
+    <!-- BULK ACTIONS FORM WRAPPER -->
+    <form method="POST" id="bulkSemRegForm">
+      {% csrf_token %}
+      <input type="hidden" name="bulk_sem_reg_action" id="bulkSemRegActionInput" value="activate" />
+
+      <!-- TITLE & BULK ACTION BUTTONS TOP ROW -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+        <div>
+          <h3 class="text-md font-semibold text-slate-800">Semester Enrollment Control</h3>
+          <p class="text-xs text-slate-500 mt-0.5">Controls student registration for active programs.</p>
+        </div>
+
+        <!-- BULK ACTIONS BUTTONS -->
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="submitBulkSemReg('activate')"
+            class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer whitespace-nowrap">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+            </svg>
+            <span>Bulk Activate Registration</span>
+          </button>
+          <button type="button" onclick="submitBulkSemReg('deactivate')"
+            class="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all border border-slate-200 cursor-pointer whitespace-nowrap">
+            <span>Bulk Deactivate</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- PROGRAM & LEVEL FILTER DROPDOWNS (BELOW TOP ROW) -->
+      <div class="flex flex-row flex-wrap sm:flex-nowrap items-center justify-end gap-3 mb-4 pt-3 border-t border-slate-100">
+        <div class="flex items-center gap-2">
+          <label class="text-xs font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap">Program:</label>
+          <select id="semRegProgramFilter" onchange="filterSemRegByProgram()"
+            class="w-[180px] sm:w-[240px] border border-slate-200 rounded-xl px-3 py-1.5 text-xs bg-white text-slate-800 font-semibold outline-none focus:ring-1 focus:ring-blue-500 shadow-2xs truncate">
+            <option value="all">-- All Programs --</option>
+            {% for prog in programs %}
+            <option value="{{ prog.id }}">{{ prog.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <label class="text-xs font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap">Level:</label>
+          <select id="semRegLevelFilter" onchange="filterSemRegByProgram()"
+            class="w-[140px] sm:w-[180px] border border-slate-200 rounded-xl px-3 py-1.5 text-xs bg-white text-slate-800 font-semibold outline-none focus:ring-1 focus:ring-blue-500 shadow-2xs truncate">
+            <option value="all">-- All Levels --</option>
+            {% for lvl in levels %}
+            <option value="{{ lvl.id }}">{{ lvl.level_name }} {% if lvl.program %}({{ lvl.program.name }}){% endif %}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="overflow-y-auto max-h-[500px] border border-slate-100 rounded-xl">
+        <table class="min-w-full text-sm divide-y divide-gray-200">
+          <thead class="bg-white sticky top-0 z-10 border-b border-slate-200">
+            <tr class="text-xs font-black uppercase tracking-widest text-slate-400">
+              <th class="px-3 py-3 text-center w-10">
+                <input type="checkbox" id="selectAllSemReg" onclick="toggleSelectAllSemReg(this)" class="rounded text-blue-600 focus:ring-blue-500 cursor-pointer">
+              </th>
+              <th class="px-4 py-3 text-left">Semester</th>
+              <th class="px-4 py-3 text-left">Year</th>
+              <th class="px-4 py-3 text-left">Program</th>
+              <th class="px-4 py-3 text-left">Level</th>
+              <th class="px-4 py-3 text-left">Registration</th>
+              <th class="px-4 py-3 text-left w-32">Action</th>
+            </tr>
+          </thead>
+
+          <tbody class="divide-y divide-gray-100" id="semRegTableBody">
+            {% for s in semesters %}
+            <tr class="sem-reg-row hover:bg-slate-50/60 transition-colors" data-program-id="{{ s.level.program.id }}" data-level-id="{{ s.level.id|default:'' }}">
+              <td class="px-3 py-2.5 text-center">
+                <input type="checkbox" name="selected_semester_ids" value="{{ s.id }}" class="sem-reg-checkbox rounded text-blue-600 focus:ring-blue-500 cursor-pointer">
+              </td>
+              <td class="px-4 py-2.5 font-medium text-slate-900">{{ s.name }}</td>
+              <td class="px-4 py-2.5 text-slate-500">{{ s.academic_year.name }}</td>
+              <td class="px-4 py-2.5 font-semibold text-slate-800">{{ s.level.program.name|default:"N/A" }}</td>
+              <td class="px-4 py-2.5 text-slate-600">{{ s.level.level_name|default:"N/A" }}</td>
+
+              <td class="px-4 py-2.5">
+                {% if s.sem_reg_is_active %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">Active</span>
+                {% else %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-800">Inactive</span>
+                {% endif %}
+              </td>
+
+              <td class="px-4 py-2.5 flex items-center gap-2">
+                <button type="button" onclick="singleToggleSemReg('{{ s.id }}')"
+                  class="px-3 py-1 text-xs font-semibold rounded cursor-pointer transition-colors {% if s.sem_reg_is_active %} bg-red-600 text-white hover:bg-red-700 {% else %} bg-green-600 text-white hover:bg-green-700 {% endif %}">
+                  {% if s.sem_reg_is_active %} Deactivate {% else %} Activate {% endif %}
+                </button>
+
+                <button type="button" onclick="singleDeleteSemReg('{{ s.id }}')"
+                  class="px-3 py-1 border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 cursor-pointer rounded text-xs font-semibold transition-colors">
+                  Delete
+                </button>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="7" class="px-4 py-6 text-center text-slate-400 text-xs italic">
+                No active program fee structures found. Ensure fee items are created and unarchived in Program Fee Control above.
+              </td>
+            </tr>
+            {% endfor %}
+            <tr id="noSemRegMatchRow" style="display: none;">
+              <td colspan="7" class="px-4 py-6 text-center text-slate-400 text-xs italic">
+                No semester enrollment control items found for the selected program.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </form>
+  </div>
+
+  <!-- HIDDEN FORMS FOR SINGLE ROW ACTIONS -->
+  <form id="singleToggleSemRegForm" method="POST" class="hidden">
+    {% csrf_token %}
+    <input type="hidden" name="toggle_sem_reg" value="1" />
+    <input type="hidden" name="semester_id" id="singleToggleSemId" value="" />
+  </form>
+
+  <form id="singleDeleteSemRegForm" method="POST" class="hidden">
+    {% csrf_token %}
+    <input type="hidden" name="delete_semester" value="1" />
+    <input type="hidden" name="semester_id" id="singleDeleteSemId" value="" />
+  </form>
   {% if payments.has_other_pages %}
   <div class="flex justify-between items-center mt-2 mb-6 text-sm px-4">
     <div>Page {{ payments.number }} of {{ payments.paginator.num_pages }}</div>
@@ -227,7 +439,7 @@ Fee Payments {% endblock %} {% block content %}
   </div>
   {% endif %}
 
-  <div>
+  <div class="mt-4">
     <a href="{% url 'finance_export_payments_csv' %}"
       class="inline-flex items-center gap-2 px-5 py-2.5 text-blue-600 bg-blue-50/50 hover:bg-blue-50 border border-blue-100 rounded-xl text-sm font-bold transition-colors">
       <i data-lucide="download" class="w-4 h-4"></i>
@@ -347,6 +559,123 @@ Fee Payments {% endblock %} {% block content %}
 
   function closeCreatePayment() {
     document.getElementById("createPaymentModal").classList.add("hidden");
+  }
+
+  function filterAdminProgramFees() {
+    const selectedProgramId = document.getElementById("adminFeeProgramFilter") ? document.getElementById("adminFeeProgramFilter").value : "all";
+    const selectedLevelId = document.getElementById("adminFeeLevelFilter") ? document.getElementById("adminFeeLevelFilter").value : "all";
+
+    const rows = document.querySelectorAll(".admin-fee-row");
+    let visibleCount = 0;
+
+    rows.forEach(row => {
+      const rowProgramId = row.getAttribute("data-program-id");
+      const rowLevelId = row.getAttribute("data-level-id") || "";
+
+      const programMatch = (selectedProgramId === "all" || rowProgramId === selectedProgramId);
+      const levelMatch = (selectedLevelId === "all" || rowLevelId === selectedLevelId);
+
+      if (programMatch && levelMatch) {
+        row.style.display = "";
+        visibleCount++;
+      } else {
+        row.style.display = "none";
+      }
+    });
+
+    const noMatchRow = document.getElementById("noAdminFeeMatchRow");
+    if (noMatchRow) {
+      noMatchRow.style.display = (visibleCount === 0 && rows.length > 0) ? "" : "none";
+    }
+  }
+
+  function filterSemRegByProgram() {
+    const selectedProgramId = document.getElementById("semRegProgramFilter") ? document.getElementById("semRegProgramFilter").value : "all";
+    const selectedLevelId = document.getElementById("semRegLevelFilter") ? document.getElementById("semRegLevelFilter").value : "all";
+
+    const rows = document.querySelectorAll(".sem-reg-row");
+    let visibleCount = 0;
+
+    rows.forEach(row => {
+      const rowProgramId = row.getAttribute("data-program-id");
+      const rowLevelId = row.getAttribute("data-level-id") || "";
+
+      const programMatch = (selectedProgramId === "all" || rowProgramId === selectedProgramId);
+      const levelMatch = (selectedLevelId === "all" || rowLevelId === selectedLevelId);
+
+      if (programMatch && levelMatch) {
+        row.style.display = "";
+        visibleCount++;
+      } else {
+        row.style.display = "none";
+      }
+    });
+
+    const noMatchRow = document.getElementById("noSemRegMatchRow");
+    if (noMatchRow) {
+      noMatchRow.style.display = (visibleCount === 0 && rows.length > 0) ? "" : "none";
+    }
+  }
+
+  function toggleSelectAllSemReg(master) {
+    const visibleRows = Array.from(document.querySelectorAll('.sem-reg-row')).filter(r => r.style.display !== 'none');
+    visibleRows.forEach(row => {
+      const cb = row.querySelector('.sem-reg-checkbox');
+      if (cb) cb.checked = master.checked;
+    });
+  }
+
+  function submitBulkSemReg(action) {
+    const checked = document.querySelectorAll('.sem-reg-checkbox:checked');
+    if (checked.length === 0) {
+      alert("Please select at least one semester checkbox.");
+      return;
+    }
+    const actionLabel = action === 'activate' ? 'activate registration for' : 'deactivate registration for';
+    if (confirm(`Are you sure you want to ${actionLabel} ${checked.length} selected semester(s)?`)) {
+      document.getElementById('bulkSemRegActionInput').value = action;
+      document.getElementById('bulkSemRegForm').submit();
+    }
+  }
+
+  function singleToggleSemReg(semId) {
+    document.getElementById('singleToggleSemId').value = semId;
+    document.getElementById('singleToggleSemRegForm').submit();
+  }
+
+  function singleDeleteSemReg(semId) {
+    if (confirm('Are you sure you want to delete this semester control item? This action cannot be undone.')) {
+      document.getElementById('singleDeleteSemId').value = semId;
+      document.getElementById('singleDeleteSemRegForm').submit();
+    }
+  }
+
+  function toggleSelectAllPayments(master) {
+    const checkboxes = document.querySelectorAll('.payment-checkbox');
+    checkboxes.forEach(cb => cb.checked = master.checked);
+  }
+
+  function submitBulkDeletePayments() {
+    const checked = document.querySelectorAll('.payment-checkbox:checked');
+    if (checked.length === 0) {
+      alert("Please select at least one payment record checkbox to delete.");
+      return;
+    }
+    if (confirm(`Are you sure you want to delete ${checked.length} selected payment record(s)? This action cannot be undone.`)) {
+      document.getElementById('bulkPaymentForm').submit();
+    }
+  }
+
+  function singleVerifyPayment(paymentId) {
+    document.getElementById('singleVerifyPaymentId').value = paymentId;
+    document.getElementById('singleVerifyPaymentForm').submit();
+  }
+
+  function singleDeletePayment(paymentId) {
+    if (confirm('Are you sure you want to delete this payment record? This action cannot be undone.')) {
+      document.getElementById('singleDeletePaymentId').value = paymentId;
+      document.getElementById('singleDeletePaymentForm').submit();
+    }
   }
 </script>
 

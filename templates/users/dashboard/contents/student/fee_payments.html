@@ -52,6 +52,11 @@
               Payment — {{ p.date_paid|date:"M d, Y • H:i" }}
             </p>
             <p class="text-xs text-slate-500">Reference: {{ p.reference }}</p>
+            {% if p.is_backlog and p.backlog_arrears is not None %}
+            <div class="mt-1.5 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
+              <span>Arrears: GHS {{ p.backlog_arrears }}</span>
+            </div>
+            {% endif %}
           </div>
 
           <div class="text-right">

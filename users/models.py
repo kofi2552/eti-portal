@@ -85,6 +85,15 @@ class Payment(models.Model):
 
     is_verified = models.BooleanField(default=False)  # admin must verify
 
+    backlog_arrears = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True,
+        help_text="Temporal arrears amount for backlog student upload"
+    )
+    is_backlog = models.BooleanField(
+        default=False,
+        help_text="Designates if payment record originated from backlog upload"
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     # class Meta:

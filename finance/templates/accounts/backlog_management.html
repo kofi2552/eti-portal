@@ -1,0 +1,475 @@
+{% extends "finance_dashboard_layout.html" %}
+{% block title %} Backlog Management {% endblock %}
+{% block content %}
+
+<div class="max-w-7xl mx-auto px-4 py-8 space-y-6">
+  <!-- HEADER & TOP ACTION BUTTONS -->
+  <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div>
+      <h2 class="text-2xl font-bold text-slate-800">Backlog Data Management</h2>
+      <p class="text-xs text-slate-500 mt-1">View, filter, bulk edit, and manage uploaded student backlog payment records, arrears, and overpayments.</p>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-3">
+      <!-- Bulk Edit Button -->
+      <button type="button" onclick="openBulkEditModal()"
+        class="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer whitespace-nowrap">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+        </svg>
+        <span>Bulk Edit Selected</span>
+      </button>
+
+      <!-- Bulk Delete Button -->
+      <button type="button" onclick="submitBulkDeleteBacklog()"
+        class="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer whitespace-nowrap">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+        </svg>
+        <span>Bulk Delete Selected</span>
+      </button>
+
+      <a href="{% url 'finance_export_student_template_csv' %}"
+        class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all border border-slate-200 shadow-2xs flex items-center gap-1.5">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+        <span>Download CSV Template</span>
+      </a>
+
+      <a href="{% url 'finance_create_student_payment' %}"
+        class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-xs flex items-center gap-1.5">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+        </svg>
+        <span>Upload Backlog CSV</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- SEARCH & FILTER FORM -->
+  <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-2xs">
+    <form method="GET" class="flex flex-wrap items-center justify-between gap-4">
+      <!-- Search Input -->
+      <div class="flex items-center gap-2">
+        <input type="text" name="q" value="{{ search_query }}" placeholder="Search student name, ID, or ref..."
+          class="border border-slate-200 rounded-xl px-3.5 py-2 text-xs bg-white text-slate-800 font-semibold outline-none focus:ring-1 focus:ring-blue-500 shadow-2xs w-60 sm:w-72" />
+      </div>
+
+      <!-- PROGRAM & LEVEL FILTER DROPDOWNS -->
+      <div class="flex flex-row flex-wrap sm:flex-nowrap items-center gap-3">
+        <div class="flex items-center gap-2">
+          <label class="text-xs font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap">Program:</label>
+          <select name="program_id" onchange="this.form.submit()"
+            class="w-[180px] sm:w-[220px] border border-slate-200 rounded-xl px-3 py-2 text-xs bg-white text-slate-800 font-semibold outline-none focus:ring-1 focus:ring-blue-500 shadow-2xs truncate">
+            <option value="all">-- All Programs --</option>
+            {% for prog in programs %}
+            <option value="{{ prog.id }}" {% if selected_program_id == prog.id|stringformat:"s" %}selected{% endif %}>{{ prog.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <label class="text-xs font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap">Level:</label>
+          <select name="level_id" onchange="this.form.submit()"
+            class="w-[140px] sm:w-[180px] border border-slate-200 rounded-xl px-3 py-2 text-xs bg-white text-slate-800 font-semibold outline-none focus:ring-1 focus:ring-blue-500 shadow-2xs truncate">
+            <option value="all">-- All Levels --</option>
+            {% for lvl in levels %}
+            <option value="{{ lvl.id }}" {% if selected_level_id == lvl.id|stringformat:"s" %}selected{% endif %}>{{ lvl.level_name }} {% if lvl.program %}({{ lvl.program.name }}){% endif %}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <button type="submit"
+          class="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white font-semibold rounded-xl text-xs transition-colors shadow-2xs">
+          Filter
+        </button>
+
+        {% if search_query or selected_program_id and selected_program_id != 'all' or selected_level_id and selected_level_id != 'all' %}
+        <a href="{% url 'finance_backlog_management' %}" class="text-xs text-slate-500 hover:text-slate-700 underline font-medium">Clear</a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+
+  <!-- BULK ACTIONS FORM & VERTICAL SCROLLING TABLE CONTAINER -->
+  <form method="POST" id="bulkBacklogForm" action="{% url 'finance_backlog_management' %}">
+    {% csrf_token %}
+    <input type="hidden" name="bulk_delete_backlog" id="bulkDeleteInput" value="" />
+
+    <!-- TABLE CONTAINER WITH VERTICAL SCROLLBAR -->
+    <div class="bg-white border border-slate-200 rounded-2xl overflow-y-auto max-h-[550px] shadow-2xs">
+      <p class="text-xs text-slate-500 p-2 pl-4">Amount Columns Displayed in  Ghana Cedis (GHS)</p>
+      <table class="min-w-full text-sm divide-y divide-gray-200">
+        <thead class="bg-white sticky top-0 z-10 border-b border-slate-200">
+          <tr class="text-[11px] font-black uppercase tracking-widest text-slate-400">
+            <th class="px-3 py-3 text-center w-10">
+              <input type="checkbox" id="selectAllBacklog" onclick="toggleSelectAllBacklog(this)" class="rounded text-blue-600 focus:ring-blue-500 cursor-pointer">
+            </th>
+            <th class="px-5 py-3 text-left">Student</th>
+            <th class="px-4 py-3 text-left">Program & Level</th>
+            <th class="px-4 py-3 text-left">Year / Sem</th>
+            <th class="px-4 py-3 text-left">Paid</th>
+            <th class="px-4 py-3 text-left">Arrears</th>
+            <th class="px-4 py-3 text-left">Credit</th>
+            <th class="px-4 py-3 text-left">Reference</th>
+            <th class="px-4 py-3 text-center w-36">Action</th>
+          </tr>
+        </thead>
+
+        <tbody class="divide-y divide-gray-100 bg-white">
+          {% for p in payments %}
+          <tr class="hover:bg-slate-50/60 transition-colors">
+            <!-- Select Checkbox -->
+            <td class="px-3 py-3.5 text-center">
+              <input type="checkbox" name="selected_payment_ids" value="{{ p.id }}" class="backlog-checkbox rounded text-blue-600 focus:ring-blue-500 cursor-pointer">
+            </td>
+
+            <!-- Student -->
+            <td class="px-5 py-3.5">
+              <div class="font-semibold text-slate-900">{{ p.student.get_full_name }}</div>
+              <div class="text-xs text-slate-500">ID: {{ p.generated_student_id|default:p.student.student_id|default:"N/A" }}</div>
+              <div class="text-[11px] text-slate-400 font-mono">{{ p.student.email }}</div>
+            </td>
+
+            <!-- Program & Level -->
+            <td class="px-4 py-3.5">
+              <div class="font-semibold text-slate-800">{{ p.program.name|default:"N/A" }}</div>
+              {% if p.level %}
+              <div class="text-xs text-slate-500 mt-0.5">Level: {{ p.level.level_name }}</div>
+              {% endif %}
+            </td>
+
+            <!-- Academic Year / Semester -->
+            <td class="px-4 py-3.5">
+              <div class="font-medium text-slate-800">{{ p.semester.name }}</div>
+              <div class="text-xs text-slate-400">({{ p.academic_year.name }})</div>
+            </td>
+
+            <!-- Amount Paid -->
+            <td class="px-4 py-3.5">
+              <div class="font-bold text-emerald-700">{{ p.amount_paid }}</div>
+            </td>
+
+            <!-- Backlog Arrears -->
+            <td class="px-4 py-3.5">
+              <div class="font-bold text-amber-700">
+                {% if p.backlog_arrears is not None %}
+                {{ p.backlog_arrears }}
+                {% else %}
+                0.00
+                {% endif %}
+              </div>
+            </td>
+
+            <!-- Overpayment (Credit) -->
+            <td class="px-4 py-3.5">
+              <div class="font-bold text-blue-700">
+                {% if p.credit_balance %}
+                GHS {{ p.credit_balance }}
+                {% else %}
+                GHS 0.00
+                {% endif %}
+              </div>
+            </td>
+
+            <!-- Reference -->
+            <td class="px-4 py-3.5">
+              <div class="text-xs font-mono font-medium text-slate-700">{{ p.reference }}</div>
+              <div class="text-[10px] text-slate-400 mt-0.5">{{ p.date_paid|date:"M d, Y" }}</div>
+            </td>
+
+            <!-- Action Buttons -->
+            <td class="flex gap-2 flex-col px-4 py-3 text-center space-x-2">
+              <button type="button"
+                onclick="openEditBacklogModal('{{ p.id }}', '{{ p.student.get_full_name|escapejs }}', '{{ p.amount_paid }}', '{{ p.backlog_arrears|default:0 }}', '{{ p.credit_balance|default:0 }}', '{{ p.academic_year.id }}', '{{ p.semester.id }}')"
+                class="px-3 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold rounded-lg transition-colors cursor-pointer">
+                Edit
+              </button>
+
+              <button type="button"
+                onclick="submitSingleDeleteBacklog('{{ p.id }}', '{{ p.student.get_full_name|escapejs }}')"
+                class="px-3 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold rounded-lg transition-colors cursor-pointer">
+                Delete
+              </button>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="9" class="p-8 text-center text-slate-400 text-xs italic">
+              No backlog payment records found matching your query.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </form>
+
+  <!-- PAGINATION CONTROLS -->
+  {% if payments.has_other_pages %}
+  <div class="flex flex-col sm:flex-row items-center justify-between gap-3 px-5 py-4 border border-slate-200 rounded-2xl bg-white shadow-2xs">
+    <div class="text-xs text-slate-500 font-medium">
+      Showing <span class="font-bold text-slate-800">{{ payments.start_index }}</span> to <span class="font-bold text-slate-800">{{ payments.end_index }}</span> of <span class="font-bold text-slate-800">{{ payments.paginator.count }}</span> backlog records
+    </div>
+    <div class="flex items-center gap-2">
+      {% if payments.has_previous %}
+      <a href="?page={{ payments.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_program_id %}&program_id={{ selected_program_id }}{% endif %}{% if selected_level_id %}&level_id={{ selected_level_id }}{% endif %}"
+        class="px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors shadow-2xs">
+        Previous
+      </a>
+      {% else %}
+      <span class="px-3 py-1.5 rounded-xl border border-slate-100 bg-slate-50 text-xs font-medium text-slate-300 cursor-not-allowed">
+        Previous
+      </span>
+      {% endif %}
+
+      <span class="text-xs font-bold text-slate-700 px-2">
+        Page {{ payments.number }} of {{ payments.paginator.num_pages }}
+      </span>
+
+      {% if payments.has_next %}
+      <a href="?page={{ payments.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_program_id %}&program_id={{ selected_program_id }}{% endif %}{% if selected_level_id %}&level_id={{ selected_level_id }}{% endif %}"
+        class="px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors shadow-2xs">
+        Next
+      </a>
+      {% else %}
+      <span class="px-3 py-1.5 rounded-xl border border-slate-100 bg-slate-50 text-xs font-medium text-slate-300 cursor-not-allowed">
+        Next
+      </span>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- EDIT SINGLE BACKLOG PAYMENT MODAL -->
+<div id="editBacklogModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+  <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden border border-slate-100">
+    <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+      <h3 class="text-base font-bold text-slate-800">Edit Backlog Payment Record</h3>
+      <button type="button" onclick="closeEditBacklogModal()" class="text-slate-400 hover:text-slate-600 text-lg cursor-pointer">&times;</button>
+    </div>
+
+    <form method="POST" action="{% url 'finance_backlog_management' %}" class="p-6 space-y-4">
+      {% csrf_token %}
+      <input type="hidden" name="edit_backlog_payment" value="1" />
+      <input type="hidden" name="payment_id" id="editPaymentId" />
+
+      <!-- Student Display -->
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Student Name</label>
+        <input type="text" id="editStudentName" readonly class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 outline-none" />
+      </div>
+
+      <div class="grid grid-cols-3 gap-3">
+        <!-- Amount Paid -->
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Paid (GHS)</label>
+          <input type="number" step="0.01" name="amount_paid" id="editAmountPaid" required
+            class="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 outline-none focus:ring-1 focus:ring-blue-500 shadow-2xs" />
+        </div>
+
+        <!-- Backlog Arrears -->
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Arrears (GHS)</label>
+          <input type="number" step="0.01" name="backlog_arrears" id="editBacklogArrears" required
+            class="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-amber-800 outline-none focus:ring-1 focus:ring-blue-500 shadow-2xs" />
+        </div>
+
+        <!-- Overpayment / Credit -->
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Overpayment (GHS)</label>
+          <input type="number" step="0.01" name="credit_balance" id="editCreditBalance" required
+            class="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-blue-800 outline-none focus:ring-1 focus:ring-blue-500 shadow-2xs" />
+        </div>
+      </div>
+
+      <!-- Academic Year -->
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Academic Year</label>
+        <select name="academic_year_id" id="editAcademicYearId" required
+          class="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 outline-none focus:ring-1 focus:ring-blue-500 shadow-2xs">
+          {% for y in years %}
+          <option value="{{ y.id }}">{{ y.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Semester -->
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Semester</label>
+        <select name="semester_id" id="editSemesterId" required
+          class="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 outline-none focus:ring-1 focus:ring-blue-500 shadow-2xs">
+          {% for sem in semesters %}
+          <option value="{{ sem.id }}">{{ sem.name }} {% if sem.level %}({{ sem.level.level_name }}){% endif %}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+        <button type="button" onclick="closeEditBacklogModal()"
+          class="px-4 py-2 border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold rounded-xl text-xs transition-colors cursor-pointer">
+          Cancel
+        </button>
+        <button type="submit"
+          class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition-colors shadow-xs cursor-pointer">
+          Save Changes
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- BULK EDIT BACKLOG PAYMENTS MODAL -->
+<div id="bulkEditModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+  <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden border border-slate-100">
+    <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+      <h3 class="text-base font-bold text-slate-800">Bulk Edit Backlog Records</h3>
+      <button type="button" onclick="closeBulkEditModal()" class="text-slate-400 hover:text-slate-600 text-lg cursor-pointer">&times;</button>
+    </div>
+
+    <form method="POST" id="submitBulkEditForm" action="{% url 'finance_backlog_management' %}" class="p-6 space-y-4">
+      {% csrf_token %}
+      <input type="hidden" name="bulk_edit_backlog" value="1" />
+      <div id="bulkEditHiddenInputs"></div>
+
+      <div class="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-800 font-medium">
+        Modifying <span id="selectedCountDisplay" class="font-bold">0</span> selected backlog payment record(s). Leave any field empty to keep its existing value.
+      </div>
+
+      <div class="grid grid-cols-3 gap-3">
+        <!-- Amount Paid -->
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Set Paid (GHS)</label>
+          <input type="number" step="0.01" name="bulk_amount_paid" placeholder="-- Keep --"
+            class="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 outline-none focus:ring-1 focus:ring-blue-500 shadow-2xs" />
+        </div>
+
+        <!-- Backlog Arrears -->
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Set Arrears (GHS)</label>
+          <input type="number" step="0.01" name="bulk_backlog_arrears" placeholder="-- Keep --"
+            class="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-amber-800 outline-none focus:ring-1 focus:ring-blue-500 shadow-2xs" />
+        </div>
+
+        <!-- Overpayment / Credit -->
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Set Overpayment (GHS)</label>
+          <input type="number" step="0.01" name="bulk_credit_balance" placeholder="-- Keep --"
+            class="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-blue-800 outline-none focus:ring-1 focus:ring-blue-500 shadow-2xs" />
+        </div>
+      </div>
+
+      <!-- Academic Year -->
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Academic Year</label>
+        <select name="bulk_academic_year_id"
+          class="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 outline-none focus:ring-1 focus:ring-blue-500 shadow-2xs">
+          <option value="">-- Keep Unchanged --</option>
+          {% for y in years %}
+          <option value="{{ y.id }}">{{ y.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Semester -->
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Semester</label>
+        <select name="bulk_semester_id"
+          class="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 outline-none focus:ring-1 focus:ring-blue-500 shadow-2xs">
+          <option value="">-- Keep Unchanged --</option>
+          {% for sem in semesters %}
+          <option value="{{ sem.id }}">{{ sem.name }} {% if sem.level %}({{ sem.level.level_name }}){% endif %}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+        <button type="button" onclick="closeBulkEditModal()"
+          class="px-4 py-2 border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold rounded-xl text-xs transition-colors cursor-pointer">
+          Cancel
+        </button>
+        <button type="submit"
+          class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition-colors shadow-xs cursor-pointer">
+          Apply Bulk Changes
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- HIDDEN SINGLE DELETE FORM -->
+<form id="deleteBacklogForm" method="POST" action="{% url 'finance_backlog_management' %}" style="display: none;">
+  {% csrf_token %}
+  <input type="hidden" name="delete_backlog_payment" value="1" />
+  <input type="hidden" name="payment_id" id="deletePaymentId" />
+</form>
+
+<script>
+  function toggleSelectAllBacklog(master) {
+    const checkboxes = document.querySelectorAll('.backlog-checkbox');
+    checkboxes.forEach(cb => cb.checked = master.checked);
+  }
+
+  function openEditBacklogModal(id, studentName, amountPaid, backlogArrears, creditBalance, yearId, semesterId) {
+    document.getElementById('editPaymentId').value = id;
+    document.getElementById('editStudentName').value = studentName;
+    document.getElementById('editAmountPaid').value = amountPaid;
+    document.getElementById('editBacklogArrears').value = backlogArrears;
+    document.getElementById('editCreditBalance').value = creditBalance;
+    document.getElementById('editAcademicYearId').value = yearId;
+    document.getElementById('editSemesterId').value = semesterId;
+    document.getElementById('editBacklogModal').classList.remove('hidden');
+  }
+
+  function closeEditBacklogModal() {
+    document.getElementById('editBacklogModal').classList.add('hidden');
+  }
+
+  function openBulkEditModal() {
+    const checked = document.querySelectorAll('.backlog-checkbox:checked');
+    if (checked.length === 0) {
+      alert("Please select at least one backlog record checkbox to bulk edit.");
+      return;
+    }
+    const container = document.getElementById('bulkEditHiddenInputs');
+    container.innerHTML = '';
+    checked.forEach(cb => {
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = 'selected_payment_ids';
+      input.value = cb.value;
+      container.appendChild(input);
+    });
+    document.getElementById('selectedCountDisplay').textContent = checked.length;
+    document.getElementById('bulkEditModal').classList.remove('hidden');
+  }
+
+  function closeBulkEditModal() {
+    document.getElementById('bulkEditModal').classList.add('hidden');
+  }
+
+  function submitBulkDeleteBacklog() {
+    const checked = document.querySelectorAll('.backlog-checkbox:checked');
+    if (checked.length === 0) {
+      alert("Please select at least one backlog record checkbox to delete.");
+      return;
+    }
+    if (confirm(`Are you sure you want to delete ${checked.length} selected backlog record(s)? This action cannot be undone.`)) {
+      document.getElementById('bulkDeleteInput').value = '1';
+      document.getElementById('bulkBacklogForm').submit();
+    }
+  }
+
+  function submitSingleDeleteBacklog(id, studentName) {
+    if (confirm(`Are you sure you want to delete the backlog payment record for ${studentName}? This action cannot be undone.`)) {
+      document.getElementById('deletePaymentId').value = id;
+      document.getElementById('deleteBacklogForm').submit();
+    }
+  }
+</script>
+
+{% endblock %}

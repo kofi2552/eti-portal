@@ -1117,15 +1117,15 @@ def student_enrollment(request):
         return redirect("portal:home")
 
      # ======================================
-    # SEARCH
+    # ======================================
+    # SEARCH & PROGRAM FILTER
     # ======================================
     search_query = request.GET.get("q", "").strip()
-
-    # print("query: ", search_query)
+    selected_program_id = request.GET.get("program_id", "").strip()
 
     payments_qs = (
         Payment.objects
-        .select_related("student", "academic_year", "semester")
+        .select_related("student", "academic_year", "semester", "program", "semester__level", "semester__level__program")
         .order_by("-created_at")
     )
 
@@ -1133,8 +1133,15 @@ def student_enrollment(request):
         payments_qs = payments_qs.filter(
             Q(student__first_name__icontains=search_query) |
             Q(student__last_name__icontains=search_query) |
-            Q(student__username__icontains=search_query)
+            Q(student__username__icontains=search_query) |
+            Q(generated_student_id__icontains=search_query)
         )
+
+    if selected_program_id and selected_program_id != "all":
+        payments_qs = payments_qs.filter(
+            Q(program_id=selected_program_id) |
+            Q(semester__level__program_id=selected_program_id)
+        ).distinct()
 
     # ======================================
     # PAGINATION
@@ -1386,6 +1393,67 @@ def student_enrollment(request):
         return redirect("student_enrollment")
 
     # ============================
+    # BULK DELETE PAYMENTS
+    # ============================
+    if request.method == "POST" and request.POST.get("bulk_delete_payments"):
+        payment_ids = request.POST.getlist("selected_payment_ids")
+        if not payment_ids:
+            messages.error(request, "Please select at least one payment record to delete.")
+            return redirect("student_enrollment")
+
+        deleted_count, _ = Payment.objects.filter(id__in=payment_ids).delete()
+        log_event(
+            request.user,
+            "registration",
+            f"Bulk deleted {deleted_count} payment record(s)"
+        )
+        messages.success(request, f"Successfully deleted {deleted_count} payment record(s).")
+        return redirect("student_enrollment")
+
+    # ============================
+    # BULK SEMESTER REGISTRATION ACTION
+    # ============================
+    if request.method == "POST" and request.POST.get("bulk_sem_reg_action"):
+        action_type = request.POST.get("bulk_sem_reg_action")
+        semester_ids = request.POST.getlist("selected_semester_ids")
+
+        if not semester_ids:
+            messages.error(request, "Please select at least one semester item to perform bulk action.")
+            return redirect("student_enrollment")
+
+        semesters = Semester.objects.filter(id__in=semester_ids)
+        activated_count = 0
+        deactivated_count = 0
+        skipped_names = []
+
+        for sem in semesters:
+            if action_type == "activate":
+                has_active_fee = ProgramFee.objects.filter(semester=sem, is_archived=False).exists()
+                has_courses = ProgramCourse.objects.filter(semester=sem, is_active=True).exists()
+
+                if not has_active_fee or not has_courses:
+                    skipped_names.append(sem.name)
+                else:
+                    sem.sem_reg_is_active = True
+                    sem.save()
+                    activated_count += 1
+            elif action_type == "deactivate":
+                sem.sem_reg_is_active = False
+                sem.save()
+                deactivated_count += 1
+
+        if action_type == "activate":
+            msg = f"Bulk registration activation complete: {activated_count} semester(s) activated."
+            if skipped_names:
+                msg += f" (Skipped {len(skipped_names)} semester(s) missing fee structures or active courses: {', '.join(skipped_names[:4])})"
+            messages.success(request, msg)
+        else:
+            messages.success(request, f"Bulk registration deactivation complete: {deactivated_count} semester(s) deactivated.")
+
+        log_event(request.user, "registration", f"Bulk semester registration action '{action_type}': {activated_count} activated, {deactivated_count} deactivated.")
+        return redirect("student_enrollment")
+
+    # ============================
     # TOGGLE SEMESTER REGISTRATION ACTIVE
     # ============================
     if request.method == "POST" and request.POST.get("toggle_sem_reg"):
@@ -1393,9 +1461,18 @@ def student_enrollment(request):
         semester = get_object_or_404(Semester, id=sem_id)
 
         # -------------------------------------------------
-        # BLOCK activation if no ProgramCourses exist
+        # BLOCK activation if no ProgramCourses exist or if ProgramFee is archived
         # -------------------------------------------------
         if not semester.sem_reg_is_active:
+            has_active_fee = ProgramFee.objects.filter(semester=semester, is_archived=False).exists()
+            if not has_active_fee:
+                messages.error(
+                    request,
+                    f"Cannot activate registration for {semester.name}. "
+                    "The program fee structure for this semester is archived or missing."
+                )
+                return redirect("student_enrollment")
+
             has_courses = ProgramCourse.objects.filter(
                 semester=semester,
                 is_active=True
@@ -1433,15 +1510,54 @@ def student_enrollment(request):
         messages.success(request, f"Course registration for {semester.name} has been {state}.")
         return redirect("student_enrollment")
 
+    # ============================
+    # DELETE SEMESTER CONTROL ITEM
+    # ============================
+    if request.method == "POST" and request.POST.get("delete_semester"):
+        sem_id = request.POST.get("semester_id")
+        semester = get_object_or_404(Semester, id=sem_id)
+        sem_disp = f"{semester.name} ({semester.level.program.name if semester.level and semester.level.program else ''})"
+
+        try:
+            with transaction.atomic():
+                # Check for existing payments or enrollments
+                has_payments = Payment.objects.filter(semester=semester).exists()
+                has_enrollments = Enrollment.objects.filter(semester=semester).exists()
+
+                if has_payments or has_enrollments:
+                    messages.error(
+                        request,
+                        f"Cannot delete semester '{sem_disp}' because active payments or student enrollments are linked to it."
+                    )
+                    return redirect("student_enrollment")
+
+                semester.delete()
+                
+                log_event(
+                    request.user,
+                    "registration",
+                    f"Deleted semester enrollment control item: {sem_disp}"
+                )
+                messages.success(request, f"Semester '{sem_disp}' deleted successfully.")
+        except Exception as e:
+            messages.error(request, f"Failed to delete semester item: {str(e)}")
+
+        return redirect("student_enrollment")
+
+    # Filter semesters strictly to those with active (non-archived) ProgramFees
+    active_fee_semester_ids = ProgramFee.objects.filter(is_archived=False).values_list('semester_id', flat=True).distinct()
+    active_semesters = Semester.objects.filter(id__in=active_fee_semester_ids).select_related('academic_year', 'level', 'level__program')
+
     # Render page
     return render(request, "users/dashboard/contents/admin/student_enrollment.html", {
         "payments": payments_page,     
         "search_query": search_query, 
+        "selected_program_id": selected_program_id,
         "students": User.objects.filter(role="student"),
         "years": AcademicYear.objects.all(),
-        "semesters": Semester.objects.all(),
+        "semesters": active_semesters,
         "programs": Program.objects.all(),
-        "fees": ProgramFee.objects.all(),
+        "fees": ProgramFee.objects.all().select_related('academic_year', 'semester', 'program', 'level'),
         "levels": ProgramLevel.objects.all(),
     })
 
@@ -2473,36 +2589,56 @@ def admin_school(request):
     )
 
     # ---------------------------------------------------------
-    # CREATE SEMESTER
+    # CREATE SEMESTER (Supports auto-creation across multiple levels)
     # ---------------------------------------------------------
     if request.method == "POST" and request.POST.get("create_semester"):
         level_id = request.POST.get("level_id")
+        target_level_ids = request.POST.getlist("target_level_ids")
         year_id = request.POST.get("academic_year_id")
 
-        level = get_object_or_404(ProgramLevel, id=level_id)
-        year = get_object_or_404(AcademicYear, id=year_id)
+        if not target_level_ids and level_id:
+            target_level_ids = [level_id]
 
-        name = request.POST.get("name")
+        if not target_level_ids:
+            messages.error(request, "Please select at least one Program Level.")
+            return redirect(f"{request.path}?program={selected_program.id if selected_program else ''}&level={level_id or ''}")
+
+        year = get_object_or_404(AcademicYear, id=year_id)
+        name = request.POST.get("name", "").strip()
         start_date = request.POST.get("start_date") or None
         end_date = request.POST.get("end_date") or None
+        is_active_val = request.POST.get("is_active") in ["on", "true", "1"]
 
-        # Check for duplicates before creating
-        if Semester.objects.filter(name=name, academic_year=year, level=level).exists():
-            messages.error(request, f"A semester with the name '{name}' already exists for this level and year.")
-            return redirect(f"{request.path}?program={level.program.id}&level={level.id}")
+        created_count = 0
+        skipped_levels = []
 
-        Semester.objects.create(
-            name=name,
-            academic_year=year,
-            level=level,
-            start_date=start_date,
-            end_date=end_date,
-            is_active=False,
-            sem_reg_is_active=False,
-        )
+        target_levels = ProgramLevel.objects.filter(id__in=target_level_ids)
 
-        messages.success(request, "Semester created successfully.")
-        return redirect(f"{request.path}?program={level.program.id}&level={level.id}")
+        for lvl in target_levels:
+            if Semester.objects.filter(name__iexact=name, academic_year=year, level=lvl).exists():
+                skipped_levels.append(lvl.level_name)
+            else:
+                Semester.objects.create(
+                    name=name,
+                    academic_year=year,
+                    level=lvl,
+                    start_date=start_date,
+                    end_date=end_date,
+                    is_active=is_active_val,
+                    sem_reg_is_active=False,
+                )
+                created_count += 1
+
+        if created_count > 0:
+            msg = f"Successfully created '{name}' for {created_count} level(s)."
+            if skipped_levels:
+                msg += f" (Skipped existing for: {', '.join(skipped_levels)})"
+            messages.success(request, msg)
+        else:
+            messages.warning(request, f"Semester '{name}' already exists for all selected levels ({', '.join(skipped_levels)}).")
+
+        prog_id = selected_program.id if selected_program else (target_levels.first().program.id if target_levels.exists() else '')
+        return redirect(f"{request.path}?program={prog_id}&level={level_id or ''}")
 
     # ---------------------------------------------------------
     # UPDATE SEMESTER
@@ -4843,3 +4979,198 @@ def student_help_center(request):
         'tickets': tickets
     }
     return render(request, "users/dashboard/contents/student/student_help_center.html", context)
+
+
+# ============================================
+# EXPORT SEMESTERS CSV (TEMPLATE & DATA)
+# ============================================
+@login_required
+def admin_export_semesters_csv(request):
+    if getattr(request.user, "role", None) not in ["admin", "superadmin"]:
+        messages.error(request, "Access denied.")
+        return redirect("portal:home")
+
+    filename = f"semesters_template_export_{timezone.now().strftime('%Y%m%d_%H%M')}.csv"
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+    writer = csv.writer(response)
+    # Write CSV Header
+    writer.writerow([
+        "Semester Name",
+        "Program",
+        "Level",
+        "Academic Year",
+        "Start Date",
+        "End Date",
+        "Is Active"
+    ])
+
+    semesters = (
+        Semester.objects
+        .select_related("academic_year", "level", "level__program")
+        .all()
+        .order_by("level__program__name", "level__order", "-academic_year__start_date", "name")
+    )
+
+    if semesters.exists():
+        for sem in semesters:
+            program_name = sem.level.program.name if sem.level and sem.level.program else ""
+            level_name = sem.level.level_name if sem.level else ""
+            year_name = sem.academic_year.name if sem.academic_year else ""
+            start_date_str = sem.start_date.strftime('%Y-%m-%d') if sem.start_date else ""
+            end_date_str = sem.end_date.strftime('%Y-%m-%d') if sem.end_date else ""
+            is_active_str = "Yes" if sem.is_active else "No"
+
+            writer.writerow([
+                sem.name,
+                program_name,
+                level_name,
+                year_name,
+                start_date_str,
+                end_date_str,
+                is_active_str
+            ])
+    else:
+        # Sample template row if database is empty
+        writer.writerow([
+            "Semester 1",
+            "Bachelor of Science in Information Technology",
+            "Level 100",
+            "2025/2026",
+            "2025-09-01",
+            "2026-01-15",
+            "Yes"
+        ])
+
+    return response
+
+
+# ============================================
+# UPLOAD SEMESTERS CSV
+# ============================================
+@login_required
+def admin_upload_semesters_csv(request):
+    if getattr(request.user, "role", None) not in ["admin", "superadmin"]:
+        messages.error(request, "Access denied.")
+        return redirect("portal:home")
+
+    if request.method == "POST":
+        csv_file = request.FILES.get("csv_file")
+        if not csv_file:
+            messages.error(request, "Please provide a valid CSV file.")
+            return redirect("admin_school")
+
+        if not csv_file.name.endswith('.csv'):
+            messages.error(request, "Invalid file format. Please upload a .csv file.")
+            return redirect("admin_school")
+
+        try:
+            data_set = csv_file.read().decode('utf-8-sig')
+            io_string = io.StringIO(data_set)
+            reader = csv.DictReader(io_string)
+
+            created_count = 0
+            updated_count = 0
+            skipped_count = 0
+            errors = []
+
+            for row_idx, row in enumerate(reader, start=2):
+                sem_name = (row.get('Semester Name') or row.get('Semester') or row.get('name') or '').strip()
+                program_name = (row.get('Program') or row.get('program_name') or '').strip()
+                level_name = (row.get('Level') or row.get('level_name') or '').strip()
+                year_name = (row.get('Academic Year') or row.get('Year') or '').strip()
+                start_date_raw = (row.get('Start Date') or '').strip()
+                end_date_raw = (row.get('End Date') or '').strip()
+                is_active_raw = (row.get('Is Active') or row.get('Active') or '').strip().lower()
+
+                if not sem_name or not program_name or not level_name or not year_name:
+                    skipped_count += 1
+                    errors.append(f"Row {row_idx}: Missing required fields (Semester Name, Program, Level, or Academic Year).")
+                    continue
+
+                # 1. Lookup Program
+                program = Program.objects.filter(name__iexact=program_name).first()
+                if not program:
+                    program = Program.objects.filter(name__icontains=program_name).first()
+                if not program:
+                    skipped_count += 1
+                    errors.append(f"Row {row_idx}: Program '{program_name}' not found.")
+                    continue
+
+                # 2. Lookup Level
+                level = ProgramLevel.objects.filter(program=program, level_name__icontains=level_name).first()
+                if not level:
+                    level = ProgramLevel.objects.filter(level_name__icontains=level_name).first()
+                if not level:
+                    skipped_count += 1
+                    errors.append(f"Row {row_idx}: Level '{level_name}' not found for program '{program.name}'.")
+                    continue
+
+                # 3. Lookup Academic Year
+                year = AcademicYear.objects.filter(name__iexact=year_name).first()
+                if not year:
+                    year = AcademicYear.objects.filter(name__icontains=year_name).first()
+                if not year:
+                    skipped_count += 1
+                    errors.append(f"Row {row_idx}: Academic Year '{year_name}' not found.")
+                    continue
+
+                # Parse dates if provided
+                start_date = None
+                if start_date_raw:
+                    try:
+                        start_date = datetime.datetime.strptime(start_date_raw, "%Y-%m-%d").date()
+                    except ValueError:
+                        try:
+                            start_date = datetime.datetime.strptime(start_date_raw, "%d/%m/%Y").date()
+                        except ValueError:
+                            start_date = None
+
+                end_date = None
+                if end_date_raw:
+                    try:
+                        end_date = datetime.datetime.strptime(end_date_raw, "%Y-%m-%d").date()
+                    except ValueError:
+                        try:
+                            end_date = datetime.datetime.strptime(end_date_raw, "%d/%m/%Y").date()
+                        except ValueError:
+                            end_date = None
+
+                is_active = is_active_raw in ['yes', 'true', '1', 'y', 'active']
+
+                # Create or Update Semester
+                semester_obj, created = Semester.objects.update_or_create(
+                    name=sem_name,
+                    academic_year=year,
+                    level=level,
+                    defaults={
+                        'start_date': start_date,
+                        'end_date': end_date,
+                        'is_active': is_active,
+                    }
+                )
+
+                if created:
+                    created_count += 1
+                else:
+                    updated_count += 1
+
+            # Build summary message
+            msg = f"Bulk semester upload complete: {created_count} created, {updated_count} updated."
+            if skipped_count > 0:
+                msg += f" ({skipped_count} row(s) skipped due to missing/invalid data)."
+            messages.success(request, msg)
+
+            if errors:
+                for err in errors[:5]:
+                    messages.warning(request, err)
+
+            log_event(request.user, "admin", f"Bulk semester CSV uploaded: {created_count} created, {updated_count} updated.")
+
+        except Exception as e:
+            messages.error(request, f"Critical error parsing CSV: {str(e)}")
+
+        return redirect("admin_school")
+
+    return redirect("admin_school")

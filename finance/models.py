@@ -71,7 +71,8 @@ class ProgramFee(models.Model):
         unique_together = ("academic_year", "semester", "program", "level")
 
     def __str__(self):
-        return f"{self.semester} ({self.academic_year}) - {self.total_amount}"
+        prog_name = self.program.name if self.program else "No Program"
+        return f"{prog_name} - {self.semester.name} ({self.academic_year.name}) - GHS {self.total_amount}"
 
 
 

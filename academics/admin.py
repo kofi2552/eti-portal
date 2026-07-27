@@ -48,10 +48,15 @@ class AcademicYearAdmin(admin.ModelAdmin):
 
 @admin.register(Semester)
 class SemesterAdmin(admin.ModelAdmin):
-    list_display = ("name", "academic_year", "is_active", "start_date", "end_date")
-    search_fields = ("name",)
-    list_filter = ("academic_year", "is_active")
+    list_display = ("name", "academic_year", "get_program", "level", "is_active", "sem_reg_is_active")
+    list_editable = ("sem_reg_is_active",)
+    search_fields = ("name", "academic_year__name", "level__program__name", "level__level_name")
+    list_filter = ("academic_year", "is_active", "sem_reg_is_active", "level__program")
     ordering = ("academic_year", "name")
+
+    def get_program(self, obj):
+        return obj.level.program.name if obj.level and obj.level.program else "-"
+    get_program.short_description = "Program"
 
 @admin.register(Enrollment)
 class EnrollmentAdmin(admin.ModelAdmin):

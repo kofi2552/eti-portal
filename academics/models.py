@@ -226,9 +226,13 @@ class Semester(models.Model):
 
     class Meta:
         unique_together = ("name", "academic_year", "level")
+        verbose_name = "Semester Enrollment Control"
+        verbose_name_plural = "Semester Enrollment Control For Programs"
 
     def __str__(self):
-        return f"{self.name} - {self.academic_year.name}"
+        prog_str = f" - {self.level.program.name}" if self.level and self.level.program else ""
+        lvl_str = f" ({self.level.level_name})" if self.level else ""
+        return f"{self.name}{prog_str}{lvl_str} ({self.academic_year.name})"
 
 
 class Course(models.Model):

@@ -1,88 +1,262 @@
 {% extends "finance_dashboard_layout.html" %}
-{% block title %} Backlog Preview {% endblock %}
+{% block title %} Backlog Upload Preview {% endblock %}
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 py-8">
-  <div class="mb-8 flex justify-between items-end">
+  <!-- Header Section -->
+  <div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
     <div>
-      <h2 class="text-2xl font-bold text-gray-800">Backlog Upload Preview</h2>
-      <p class="text-gray-500 mt-1 text-sm">Please verify that all students and programs have been correctly identified
-        before
-        finalizing.</p>
+      <div class="flex items-center gap-3">
+        <h2 class="text-2xl font-bold text-gray-900">Backlog Upload Preview</h2>
+        {% if any_errors %}
+        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-800 border border-red-200">
+          Action Required: Resolve Errors
+        </span>
+        {% else %}
+        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+          Ready for Import
+        </span>
+        {% endif %}
+      </div>
+      <p class="text-gray-500 mt-1 text-sm">Review parsed records, check error details, and resolve issues before saving payments into student accounts.</p>
     </div>
-    <div class="flex gap-3">
+
+    <div class="flex items-center gap-3">
       <a href="{% url 'finance_create_student_payment' %}"
-        class="px-6 py-2.5 border border-gray-300 rounded-xl text-gray-600 font-semibold hover:bg-gray-50 transition-all">
+        class="px-5 py-2.5 border border-gray-300 rounded-xl text-gray-700 font-semibold hover:bg-gray-50 transition-all text-sm flex items-center gap-2 shadow-xs">
+        <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+        </svg>
         Cancel
       </a>
       <form id="finalizeBacklogForm" method="POST" action="{% url 'finance_save_backlog' %}">
         {% csrf_token %}
-        <button type="submit" {% if any_errors %}disabled{% endif %}
-          class="px-8 py-2.5 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition-all shadow-sm shadow-emerald-200 disabled:opacity-50 disabled:cursor-not-allowed">
+        <button type="submit" {% if any_errors %}disabled title="Fix all error rows before finalizing"{% endif %}
+          class="px-6 py-2.5 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition-all shadow-md shadow-emerald-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+          </svg>
           Finalize & Save
         </button>
       </form>
     </div>
   </div>
 
+  <!-- Summary Cards Bar -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    <div class="bg-white border border-gray-200 rounded-2xl p-4 shadow-xs">
+      <div class="text-xs font-semibold uppercase tracking-wider text-gray-500">Total Rows</div>
+      <div class="text-2xl font-black text-gray-900 mt-1" id="stat-total">{{ preview|length }}</div>
+    </div>
+    <div class="bg-white border border-emerald-200 rounded-2xl p-4 shadow-xs">
+      <div class="text-xs font-semibold uppercase tracking-wider text-emerald-600 flex items-center gap-1.5">
+        <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Ready Records
+      </div>
+      <div class="text-2xl font-black text-emerald-700 mt-1" id="stat-ready">
+        {% with ready_count=0 %}
+          {% for r in preview %}{% if r.status == 'Ready' %}{% endif %}{% endfor %}
+          <span id="ready-count-disp">0</span>
+        {% endwith %}
+      </div>
+    </div>
+    <div class="bg-white border border-amber-200 rounded-2xl p-4 shadow-xs">
+      <div class="text-xs font-semibold uppercase tracking-wider text-amber-600 flex items-center gap-1.5">
+        <span class="w-2 h-2 rounded-full bg-amber-500"></span> Warnings
+      </div>
+      <div class="text-2xl font-black text-amber-700 mt-1" id="stat-warning">
+        <span id="warning-count-disp">0</span>
+      </div>
+    </div>
+    <div class="bg-white border border-red-200 rounded-2xl p-4 shadow-xs">
+      <div class="text-xs font-semibold uppercase tracking-wider text-red-600 flex items-center gap-1.5">
+        <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span> Action Errors
+      </div>
+      <div class="text-2xl font-black text-red-700 mt-1" id="stat-error">
+        <span id="error-count-disp">0</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter & Search Controls Bar -->
+  <div class="bg-white border border-gray-200 rounded-2xl p-4 mb-6 shadow-xs flex flex-col md:flex-row items-center justify-between gap-4">
+    <div class="flex items-center gap-2 overflow-x-auto w-full md:w-auto">
+      <button onclick="filterTable('all')" id="btn-filter-all"
+        class="filter-tab-btn active-tab px-4 py-2 rounded-xl text-xs font-bold transition-all bg-gray-900 text-white shadow-xs">
+        All Records ({{ preview|length }})
+      </button>
+      <button onclick="filterTable('Error')" id="btn-filter-error"
+        class="filter-tab-btn px-4 py-2 rounded-xl text-xs font-bold transition-all bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 flex items-center gap-1.5">
+        Errors Only <span id="btn-err-badge" class="px-1.5 py-0.5 rounded-full text-[10px] bg-red-600 text-white font-black">0</span>
+      </button>
+      <button onclick="filterTable('Warning')" id="btn-filter-warning"
+        class="filter-tab-btn px-4 py-2 rounded-xl text-xs font-bold transition-all bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100">
+        Warnings Only (<span id="btn-warn-cnt">0</span>)
+      </button>
+      <button onclick="filterTable('Ready')" id="btn-filter-ready"
+        class="filter-tab-btn px-4 py-2 rounded-xl text-xs font-bold transition-all bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100">
+        Ready Only (<span id="btn-ready-cnt">0</span>)
+      </button>
+    </div>
+
+    <!-- Live Search Input -->
+    <div class="relative w-full md:w-72">
+      <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+      </div>
+      <input type="text" id="searchInput" onkeyup="searchTable()"
+        placeholder="Filter student, email or error..."
+        class="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all">
+    </div>
+  </div>
+
+  <!-- Preview Table -->
   <div class="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
-    <div class="overflow-x-auto max-h-[600px] overflow-y-auto">
-      <table class="min-w-full divide-y divide-gray-200 text-sm">
+    <div class="overflow-x-auto max-h-[650px] overflow-y-auto">
+      <table class="min-w-full divide-y divide-gray-200 text-xs" id="previewTable">
         <thead class="bg-gray-50 sticky top-0 z-10">
           <tr>
-            <th class="px-6 py-4 text-left font-bold text-gray-600 uppercase tracking-wider">Status</th>
-            <th class="px-6 py-4 text-left font-bold text-gray-600 uppercase tracking-wider">Email</th>
-            <th class="px-6 py-4 text-left font-bold text-gray-600 uppercase tracking-wider">Student</th>
-            <th class="px-6 py-4 text-left font-bold text-gray-600 uppercase tracking-wider">Program</th>
-            <th class="px-6 py-4 text-left font-bold text-gray-600 uppercase tracking-wider">Level</th>
-            <th class="px-6 py-4 text-left font-bold text-gray-600 uppercase tracking-wider">Year/Sem</th>
-            <th class="px-6 py-4 text-left font-bold text-gray-600 uppercase tracking-wider">Amount</th>
-            <th class="px-6 py-4 text-left font-bold text-gray-600 uppercase tracking-wider">Expected</th>
-            <th class="px-6 py-4 text-left font-bold text-gray-600 uppercase tracking-wider">Reference</th>
+            <th class="px-4 py-3.5 text-left font-bold text-gray-600 uppercase tracking-wider w-12">#</th>
+            <th class="px-4 py-3.5 text-left font-bold text-gray-600 uppercase tracking-wider w-24">Status</th>
+            <th class="px-4 py-3.5 text-left font-bold text-gray-600 uppercase tracking-wider">Student & Email</th>
+            <th class="px-4 py-3.5 text-left font-bold text-gray-600 uppercase tracking-wider">Program & Level</th>
+            <th class="px-4 py-3.5 text-left font-bold text-gray-600 uppercase tracking-wider">Academic Year</th>
+            <th class="px-4 py-3.5 text-left font-bold text-gray-600 uppercase tracking-wider">Paid / Expected</th>
+            <th class="px-4 py-3.5 text-left font-bold text-gray-600 uppercase tracking-wider">Arrears</th>
+            <th class="px-4 py-3.5 text-left font-bold text-gray-600 uppercase tracking-wider">Semester (CSV Data)</th>
+            <th class="px-6 py-3.5 text-left font-bold text-gray-700 uppercase tracking-wider bg-gray-100/70">Validation & Error Details</th>
           </tr>
         </thead>
         <tbody class="bg-white divide-y divide-gray-100">
           {% for row in preview %}
-          <tr class="{% if row.status == 'Error' %}bg-red-50{% elif row.status == 'Warning' %}bg-amber-50{% endif %}">
-            <td class="px-6 py-4 whitespace-nowrap">
+          <tr data-status="{{ row.status }}" class="preview-row transition-colors {% if row.status == 'Error' %}bg-red-50/50 hover:bg-red-50/80 border-l-4 border-l-red-500{% elif row.status == 'Warning' %}bg-amber-50/50 hover:bg-amber-50/80 border-l-4 border-l-amber-400{% else %}hover:bg-emerald-50/30 border-l-4 border-l-emerald-500{% endif %}">
+            <!-- Row Index -->
+            <td class="px-4 py-4 font-mono font-bold text-gray-500 align-top">
+              #{{ row.row_num|default:forloop.counter }}
+            </td>
+
+            <!-- Status Badge -->
+            <td class="px-4 py-4 align-top">
               {% if row.status == 'Ready' %}
-              <span
-                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+              <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
                 Ready
               </span>
               {% elif row.status == 'Error' %}
-              <span
-                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800"
-                title="{{ row.errors }}">
+              <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-800 border border-red-200 shadow-2xs">
+                <svg class="w-3.5 h-3.5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
                 Error
               </span>
               {% else %}
-              <span
-                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800"
-                title="{{ row.errors }}">
+              <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                <svg class="w-3.5 h-3.5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
                 Warning
               </span>
               {% endif %}
             </td>
-            <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900">{{ row.email }}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-gray-600">
-              {{ row.student_name }}
+
+            <!-- Email & Student Name -->
+            <td class="px-4 py-4 align-top">
+              <div class="font-semibold text-gray-900 {% if row.has_student_error %}text-red-700 font-bold{% endif %}">
+                {{ row.email|default:"(Missing Email)" }}
+              </div>
+              <div class="text-xs text-gray-600 font-medium mt-0.5">
+                {{ row.student_name }}
+              </div>
               {% if row.index_number %}
-              <div class="text-[10px] text-gray-400">Index: {{ row.index_number }}</div>
+              <div class="text-[10px] text-gray-400 font-mono">ID: {{ row.index_number }}</div>
               {% endif %}
             </td>
-            <td class="px-6 py-4 whitespace-nowrap text-gray-600">
-              <div class="text-xs font-semibold">{{ row.identified_program }}</div>
-              <div class="text-[10px] text-gray-400 italic">{{ row.program_name }}</div>
+
+            <!-- Program & Level -->
+            <td class="px-4 py-4 align-top">
+              <div class="font-semibold text-gray-800 {% if row.has_program_error %}text-red-600 font-bold{% endif %}">
+                {{ row.identified_program }}
+              </div>
+              {% if row.program_name and row.program_name != row.identified_program %}
+              <div class="text-[10px] text-gray-400 italic">CSV: {{ row.program_name }}</div>
+              {% endif %}
+              <div class="text-xs text-gray-500 mt-1 {% if row.has_level_error %}text-red-600 font-bold{% endif %}">
+                Level: {{ row.identified_level }}
+              </div>
             </td>
-            <td class="px-6 py-4 whitespace-nowrap text-gray-600">{{ row.identified_level }}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-gray-600">
-              <div class="text-xs">{{ row.identified_year }}</div>
-              <div class="text-[10px]">{{ row.identified_semester }}</div>
+
+            <!-- Academic Year -->
+            <td class="px-4 py-4 align-top">
+              <div class="font-semibold text-gray-800">{{ row.identified_year }}</div>
             </td>
-            <td class="px-6 py-4 whitespace-nowrap font-bold text-gray-900">GHS {{ row.amount_paid }}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-gray-500">GHS {{ row.amount_expected }}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-gray-400 text-xs">{{ row.reference|default:"Auto-gen" }}</td>
+
+            <!-- Paid / Expected -->
+            <td class="px-4 py-4 align-top whitespace-nowrap">
+              <div class="font-bold text-emerald-700 text-sm {% if row.has_amount_error %}text-red-600 font-black{% endif %}">
+                GHS {{ row.amount_paid }}
+              </div>
+              <div class="text-[11px] text-gray-500 mt-0.5 {% if row.has_fee_error %}text-red-600 font-semibold{% endif %}">
+                Expected: GHS {{ row.amount_expected }}
+              </div>
+            </td>
+
+            <!-- Arrears -->
+            <td class="px-4 py-4 align-top whitespace-nowrap">
+              <div class="font-bold text-amber-700 text-sm">
+                GHS {{ row.backlog_arrears }}
+              </div>
+            </td>
+
+            <!-- Semester (CSV Input & Mapped) -->
+            <td class="px-4 py-4 align-top text-xs text-gray-700">
+              <div class="font-bold text-gray-900 {% if row.has_semester_error %}text-red-600 font-bold bg-red-100 px-1.5 py-0.5 rounded w-fit{% endif %}">
+                {{ row.semester_name|default:"(Missing)" }}
+              </div>
+              {% if row.identified_semester and row.identified_semester != "N/A" %}
+              <div class="text-[10px] text-gray-500 font-medium mt-0.5">
+                Mapped: <span class="font-bold text-gray-800">{{ row.identified_semester }}</span>
+              </div>
+              {% endif %}
+            </td>
+
+            <!-- Detailed Validation & Error Information -->
+            <td class="px-6 py-4 align-top">
+              {% if row.status == 'Ready' %}
+              <div class="flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-xl w-fit">
+                <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                <span>All validations passed</span>
+              </div>
+              {% else %}
+              <div class="space-y-1.5 max-w-md">
+                {% if row.errors_list %}
+                  {% for err in row.errors_list %}
+                  <div class="flex items-start gap-2 text-xs font-medium px-3 py-1.5 rounded-xl shadow-2xs {% if row.status == 'Error' %}bg-red-100/90 text-red-900 border border-red-200{% else %}bg-amber-100/90 text-amber-900 border border-amber-200{% endif %}">
+                    <svg class="w-4 h-4 mt-0.5 flex-shrink-0 {% if row.status == 'Error' %}text-red-600{% else %}text-amber-600{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      {% if row.status == 'Error' %}
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                      {% else %}
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                      {% endif %}
+                    </svg>
+                    <span class="leading-tight">{{ err }}</span>
+                  </div>
+                  {% endfor %}
+                {% else %}
+                  <div class="flex items-start gap-2 text-xs font-medium px-3 py-1.5 rounded-xl bg-red-100/90 text-red-900 border border-red-200">
+                    <svg class="w-4 h-4 mt-0.5 flex-shrink-0 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <span class="leading-tight">{{ row.errors }}</span>
+                  </div>
+                {% endif %}
+              </div>
+              {% endif %}
+            </td>
           </tr>
           {% endfor %}
         </tbody>
@@ -90,13 +264,42 @@
     </div>
   </div>
 
+  <!-- Error Attention & Troubleshooting Guide -->
   {% if any_errors %}
-  <div class="mt-6 p-4 bg-red-50 border border-red-200 rounded-xl">
-    <p class="text-red-700 text-sm font-medium">
-      <strong>Attention:</strong> Your upload contains errors. To ensure financial data integrity, <strong>all errors
-        must be resolved</strong> before you can finalize the backlog. No partial data will be uploaded. Please correct
-      your CSV and re-upload.
-    </p>
+  <div class="mt-6 p-6 bg-red-50 border border-red-200 rounded-2xl shadow-xs">
+    <div class="flex items-start gap-3">
+      <div class="p-2 bg-red-100 rounded-xl text-red-600 mt-0.5">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+        </svg>
+      </div>
+      <div>
+        <h4 class="text-base font-bold text-red-900">Upload Blocked Due To Errors</h4>
+        <p class="text-red-700 text-sm mt-1">
+          To ensure financial data integrity, <strong>all error rows must be resolved</strong> before saving. No partial data will be uploaded. Please correct your CSV file and click <strong>Cancel / Re-upload</strong>.
+        </p>
+
+        <!-- Common Solutions Quick Guide -->
+        <div class="mt-4 pt-4 border-t border-red-200/80 grid grid-cols-1 md:grid-cols-2 gap-3 text-xs text-red-900">
+          <div class="flex items-start gap-2">
+            <span class="font-bold text-red-700">• Student Email Not Found:</span>
+            <span>Verify the student's email matches an existing user account in the system.</span>
+          </div>
+          <div class="flex items-start gap-2">
+            <span class="font-bold text-red-700">• Program / Level Not Found:</span>
+            <span>Ensure the CSV program and level names match existing academic setup names.</span>
+          </div>
+          <div class="flex items-start gap-2">
+            <span class="font-bold text-red-700">• No Fee Structure Found:</span>
+            <span>Configure a Program Fee structure for the program, academic year, and semester in the Finance module.</span>
+          </div>
+          <div class="flex items-start gap-2">
+            <span class="font-bold text-red-700">• Duplicate Reference:</span>
+            <span>Check if this transaction reference code has already been recorded for this student.</span>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
   {% endif %}
 </div>
@@ -117,16 +320,42 @@
   }
   .custom-spinner {
     border: 4px solid #f1f5f9;
-    border-top: 4px solid #059669; /* Emerald green theme */
+    border-top: 4px solid #059669;
     border-radius: 50%;
     width: 3rem;
     height: 3rem;
     animation: spin 1s linear infinite;
   }
+  .filter-tab-btn.active-tab {
+    background-color: #111827 !important;
+    color: #ffffff !important;
+    border-color: #111827 !important;
+  }
 </style>
 
 <script>
   document.addEventListener("DOMContentLoaded", function() {
+    // Count status metrics dynamically
+    const rows = document.querySelectorAll(".preview-row");
+    let readyCount = 0;
+    let warningCount = 0;
+    let errorCount = 0;
+
+    rows.forEach(r => {
+      const st = r.getAttribute("data-status");
+      if (st === "Ready") readyCount++;
+      else if (st === "Warning") warningCount++;
+      else if (st === "Error") errorCount++;
+    });
+
+    document.getElementById("ready-count-disp").innerText = readyCount;
+    document.getElementById("btn-ready-cnt").innerText = readyCount;
+    document.getElementById("warning-count-disp").innerText = warningCount;
+    document.getElementById("btn-warn-cnt").innerText = warningCount;
+    document.getElementById("error-count-disp").innerText = errorCount;
+    document.getElementById("btn-err-badge").innerText = errorCount;
+
+    // Loading overlay trigger
     const finalizeForm = document.getElementById("finalizeBacklogForm");
     const overlay = document.getElementById("loadingOverlay");
     if (finalizeForm && overlay) {
@@ -135,5 +364,47 @@
       });
     }
   });
+
+  let currentFilter = 'all';
+
+  function filterTable(statusFilter) {
+    currentFilter = statusFilter;
+
+    // Reset tab active states
+    document.querySelectorAll('.filter-tab-btn').forEach(btn => {
+      btn.classList.remove('active-tab');
+    });
+
+    if (statusFilter === 'all') {
+      document.getElementById('btn-filter-all').classList.add('active-tab');
+    } else if (statusFilter === 'Error') {
+      document.getElementById('btn-filter-error').classList.add('active-tab');
+    } else if (statusFilter === 'Warning') {
+      document.getElementById('btn-filter-warning').classList.add('active-tab');
+    } else if (statusFilter === 'Ready') {
+      document.getElementById('btn-filter-ready').classList.add('active-tab');
+    }
+
+    searchTable();
+  }
+
+  function searchTable() {
+    const query = document.getElementById("searchInput").value.toLowerCase();
+    const rows = document.querySelectorAll(".preview-row");
+
+    rows.forEach(row => {
+      const rowStatus = row.getAttribute("data-status");
+      const text = row.innerText.toLowerCase();
+
+      const matchesStatus = (currentFilter === 'all' || rowStatus === currentFilter);
+      const matchesSearch = (!query || text.includes(query));
+
+      if (matchesStatus && matchesSearch) {
+        row.style.display = "";
+      } else {
+        row.style.display = "none";
+      }
+    });
+  }
 </script>
 {% endblock %}

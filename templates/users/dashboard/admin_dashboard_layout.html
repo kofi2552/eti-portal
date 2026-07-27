@@ -101,48 +101,49 @@
 
       <nav class="p-4 space-y-2 text-sm font-medium">
         <a href="{% url 'admin_main' %}"
-          class="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 transition-colors">
+          class="flex items-center gap-3 p-2 rounded-xl transition-colors {% if request.resolver_match.url_name == 'admin_main' %}bg-slate-100 text-slate-900 font-bold shadow-2xs{% else %}hover:bg-slate-50 text-slate-600{% endif %}">
           <i data-lucide="layout-dashboard" class="w-5 h-5 flex-shrink-0"></i>
           <span class="nav-text">Overview</span>
         </a>
 
         <a href="{% url 'admin_manage_users' %}"
-          class="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 transition-colors">
+          class="flex items-center gap-3 p-2 rounded-xl transition-colors {% if request.resolver_match.url_name == 'admin_manage_users' %}bg-slate-100 text-slate-900 font-bold shadow-2xs{% else %}hover:bg-slate-50 text-slate-600{% endif %}">
           <i data-lucide="users" class="w-5 h-5 flex-shrink-0"></i>
           <span class="nav-text">Manage Users</span>
         </a>
 
         <a href="{% url 'admin_manage_programs' %}"
-          class="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 transition-colors">
+          class="flex items-center gap-3 p-2 rounded-xl transition-colors {% if request.resolver_match.url_name == 'admin_manage_programs' %}bg-slate-100 text-slate-900 font-bold shadow-2xs{% else %}hover:bg-slate-50 text-slate-600{% endif %}">
           <i data-lucide="book-open" class="w-5 h-5 flex-shrink-0"></i>
           <span class="nav-text">Manage Programs</span>
         </a>
 
         <a href="{% url 'student_enrollment' %}"
-          class="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 transition-colors">
+          class="flex items-center gap-3 p-2 rounded-xl transition-colors {% if request.resolver_match.url_name == 'student_enrollment' %}bg-slate-100 text-slate-900 font-bold shadow-2xs{% else %}hover:bg-slate-50 text-slate-600{% endif %}">
           <i data-lucide="credit-card" class="w-5 h-5 flex-shrink-0"></i>
           <span class="nav-text">Fee Payment</span>
         </a>
 
         <a href="{% url 'admin_school' %}"
-          class="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 transition-colors">
+          class="flex items-center gap-3 p-2 rounded-xl transition-colors {% if request.resolver_match.url_name == 'admin_school' %}bg-slate-100 text-slate-900 font-bold shadow-2xs{% else %}hover:bg-slate-50 text-slate-600{% endif %}">
           <i data-lucide="calendar" class="w-5 h-5 flex-shrink-0"></i>
           <span class="nav-text">Academic Calendar</span>
         </a>
 
         <a href="{% url 'admin_score_moderation' %}"
-          class="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 transition-colors">
+          class="flex items-center gap-3 p-2 rounded-xl transition-colors {% if request.resolver_match.url_name == 'admin_score_moderation' %}bg-slate-100 text-slate-900 font-bold shadow-2xs{% else %}hover:bg-slate-50 text-slate-600{% endif %}">
           <i data-lucide="award" class="w-5 h-5 flex-shrink-0"></i>
           <span class="nav-text">Score Moderation</span>
         </a>
 
         <a href="{% url 'admin_transcript_requests' %}"
-          class="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 transition-colors">
+          class="flex items-center gap-3 p-2 rounded-xl transition-colors {% if request.resolver_match.url_name == 'admin_transcript_requests' %}bg-slate-100 text-slate-900 font-bold shadow-2xs{% else %}hover:bg-slate-50 text-slate-600{% endif %}">
           <i data-lucide="file-text" class="w-5 h-5 flex-shrink-0"></i>
           <span class="nav-text">Generate Reports</span>
         </a>
+
         <a href="{% url 'admin_school_setup' %}"
-          class="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 transition-colors">
+          class="flex items-center gap-3 p-2 rounded-xl transition-colors {% if request.resolver_match.url_name == 'admin_school_setup' %}bg-slate-100 text-slate-900 font-bold shadow-2xs{% else %}hover:bg-slate-50 text-slate-600{% endif %}">
           <i data-lucide="settings" class="w-5 h-5 flex-shrink-0"></i>
           <span class="nav-text">School Setup</span>
         </a>

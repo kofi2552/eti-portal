@@ -94,18 +94,40 @@ def finance_dashboard(request):
     }
 
     # ---------------------------------
-    # Recent payments
+    # Recent payments filtering
     # ---------------------------------
-    recent_payments = (
+    search_query = request.GET.get("q", "").strip()
+    selected_program_id = request.GET.get("program_id", "").strip()
+    selected_level_id = request.GET.get("level_id", "").strip()
+
+    recent_payments_qs = (
         Payment.objects
-        .select_related(
-            "student",
-            "semester",
-            "academic_year",
-            "program",
-        )
-        .order_by("-created_at")[:10]
+        .select_related("student", "semester", "academic_year", "program", "level")
+        .order_by("-created_at")
     )
+
+    if search_query:
+        recent_payments_qs = recent_payments_qs.filter(
+            Q(student__first_name__icontains=search_query) |
+            Q(student__last_name__icontains=search_query) |
+            Q(student__username__icontains=search_query) |
+            Q(generated_student_id__icontains=search_query) |
+            Q(reference__icontains=search_query)
+        )
+
+    if selected_program_id and selected_program_id != "all":
+        recent_payments_qs = recent_payments_qs.filter(
+            Q(program_id=selected_program_id) |
+            Q(semester__level__program_id=selected_program_id)
+        ).distinct()
+
+    if selected_level_id and selected_level_id != "all":
+        recent_payments_qs = recent_payments_qs.filter(
+            Q(level_id=selected_level_id) |
+            Q(semester__level_id=selected_level_id)
+        ).distinct()
+
+    recent_payments = list(recent_payments_qs[:20])
 
     # ---------------------------------
     # Fetch related ProgramFees in bulk
@@ -113,19 +135,15 @@ def finance_dashboard(request):
     program_fee_map = {}
 
     program_fees = ProgramFee.objects.filter(
-        program__in=[p.program for p in recent_payments],
-        academic_year__in=[p.academic_year for p in recent_payments],
-        semester__in=[p.semester for p in recent_payments],
+        program__in=[p.program for p in recent_payments if p.program],
+        academic_year__in=[p.academic_year for p in recent_payments if p.academic_year],
+        semester__in=[p.semester for p in recent_payments if p.semester],
     )
 
-    # Key by (program_id, academic_year_id, semester_id)
     for pf in program_fees:
         key = (pf.program_id, pf.academic_year_id, pf.semester_id)
         program_fee_map[key] = pf
 
-    # ---------------------------------
-    # Attach ProgramFee to each payment
-    # ---------------------------------
     for payment in recent_payments:
         key = (payment.program_id, payment.academic_year_id, payment.semester_id)
         payment.program_fee = program_fee_map.get(key)
@@ -136,6 +154,11 @@ def finance_dashboard(request):
         {
             "stats": stats,
             "recent_payments": recent_payments,
+            "search_query": search_query,
+            "selected_program_id": selected_program_id,
+            "selected_level_id": selected_level_id,
+            "programs": Program.objects.all(),
+            "levels": ProgramLevel.objects.all().select_related("program"),
         }
     )
 
@@ -165,10 +188,25 @@ def semester_fee_list(request):
     if request.method == "POST" and request.POST.get("action") == "save_program_fee":
         program_id = request.POST.get("program")
         academic_year_id = request.POST.get("academic_year")
-        semester_id = request.POST.get("semester")
+        primary_semester_id = request.POST.get("semester")
+        target_semester_ids = request.POST.getlist("target_semester_ids")
         level_id = request.POST.get("level")
         initial_amount = Decimal(request.POST.get("initial_amount"))
         total_amount = Decimal(request.POST.get("total_amount"))
+
+        # Combine primary semester dropdown choice + any ticked additional semesters
+        all_sem_ids = []
+        if primary_semester_id and primary_semester_id.isdigit():
+            all_sem_ids.append(int(primary_semester_id))
+        for sid in target_semester_ids:
+            if sid.isdigit():
+                sid_int = int(sid)
+                if sid_int not in all_sem_ids:
+                    all_sem_ids.append(sid_int)
+
+        if not all_sem_ids:
+            messages.error(request, "Please select at least one semester.")
+            return redirect("semester_fee_list")
 
         use_default = request.POST.get("use_default_components") == "on"
         component_ids = [
@@ -206,45 +244,50 @@ def semester_fee_list(request):
             )
             return redirect("semester_fee_list")
 
-        try:
-            program_fee = ProgramFee.objects.create(
-                program_id=program_id,
-                academic_year_id=academic_year_id,
-                semester_id=semester_id,
-                level_id=level_id if level_id else None,
-                initial_amount=initial_amount,
-                total_amount=total_amount,
-                created_by=request.user,
-            )
-        except IntegrityError:
-            messages.error(
-                request,
-                "Semester fee for this program already exists."
-            )
-            return redirect("semester_fee_list")
+        created_count = 0
+        skipped_sem_names = []
 
-        for component, amount in components_data:
-            ProgramFeeComponent.objects.create(
-                program_fee=program_fee,
-                component=component,
-                total_fee=amount
-            )
+        for sem_id in all_sem_ids:
+            try:
+                with transaction.atomic():
+                    program_fee = ProgramFee.objects.create(
+                        program_id=program_id,
+                        academic_year_id=academic_year_id,
+                        semester_id=sem_id,
+                        level_id=level_id if level_id else None,
+                        initial_amount=initial_amount,
+                        total_amount=total_amount,
+                        created_by=request.user,
+                    )
+                    for component, amount in components_data:
+                        ProgramFeeComponent.objects.create(
+                            program_fee=program_fee,
+                            component=component,
+                            total_fee=amount
+                        )
+                    created_count += 1
+            except IntegrityError:
+                sem_obj = Semester.objects.filter(id=sem_id).first()
+                if sem_obj:
+                    skipped_sem_names.append(sem_obj.name)
 
-        messages.success(request, "Program semester fee declared successfully.")
+        if created_count > 0:
+            msg = f"Program semester fee declared successfully for {created_count} semester(s)."
+            if skipped_sem_names:
+                msg += f" (Skipped existing fees for: {', '.join(skipped_sem_names)})"
+            messages.success(request, msg)
+        else:
+            messages.error(request, f"Semester fee for this program already exists for all selected semesters ({', '.join(skipped_sem_names)}).")
 
         program = Program.objects.get(id=program_id)
         academic_year = AcademicYear.objects.get(id=academic_year_id)
-        semester = Semester.objects.get(id=semester_id)
 
-        # Example usage in your log
         log_event(
             request.user,
             "finance",
-            f"Program fees declared for {program.name} with total amount & initial amount being GHS{total_amount} & GHS{initial_amount}, "
-            f"Academic Year {academic_year.name}, "
-            f"Semester {semester.name}"
+            f"Program fees declared for {program.name} across {created_count} semester(s) with total amount & initial amount being GHS{total_amount} & GHS{initial_amount}, "
+            f"Academic Year {academic_year.name}"
         )
-
 
         return redirect("semester_fee_list")
 
@@ -542,15 +585,15 @@ def finance_create_student_payment(request):
     payments = Payment.objects.select_related("student", "academic_year", "semester").order_by("-created_at")
 
     # ======================================
-    # SEARCH
+    # SEARCH & FILTERS
     # ======================================
     search_query = request.GET.get("q", "").strip()
-
-    # print("query: ", search_query)
+    selected_program_id = request.GET.get("program_id", "").strip()
+    selected_level_id = request.GET.get("level_id", "").strip()
 
     payments_qs = (
         Payment.objects
-        .select_related("student", "academic_year", "semester")
+        .select_related("student", "academic_year", "semester", "program", "level")
         .order_by("-created_at")
     )
 
@@ -558,13 +601,27 @@ def finance_create_student_payment(request):
         payments_qs = payments_qs.filter(
             Q(student__first_name__icontains=search_query) |
             Q(student__last_name__icontains=search_query) |
-            Q(student__username__icontains=search_query)
+            Q(student__username__icontains=search_query) |
+            Q(generated_student_id__icontains=search_query) |
+            Q(reference__icontains=search_query)
         )
+
+    if selected_program_id and selected_program_id != "all":
+        payments_qs = payments_qs.filter(
+            Q(program_id=selected_program_id) |
+            Q(semester__level__program_id=selected_program_id)
+        ).distinct()
+
+    if selected_level_id and selected_level_id != "all":
+        payments_qs = payments_qs.filter(
+            Q(level_id=selected_level_id) |
+            Q(semester__level_id=selected_level_id)
+        ).distinct()
 
     # ======================================
     # PAGINATION
     # ======================================
-    paginator = Paginator(payments_qs, 10)  # 10 per page
+    paginator = Paginator(payments_qs, 15)  # 15 per page
     page_number = request.GET.get("page")
     payments_page = paginator.get_page(page_number)
 
@@ -879,11 +936,13 @@ def finance_create_student_payment(request):
     return render(request, "accounts/finance_payments.html", {
         "payments": payments_page,     
         "search_query": search_query, 
+        "selected_program_id": selected_program_id,
+        "selected_level_id": selected_level_id,
         "students": User.objects.filter(role="student"),
         "years": AcademicYear.objects.all(),
         "semesters": Semester.objects.all(),
         "programs": Program.objects.all(),
-        "levels": ProgramLevel.objects.all(),
+        "levels": ProgramLevel.objects.all().select_related("program"),
         "tx_id": tx_id_get,
         "prefill_student": prefill_student,
         "prefill_amount": prefill_amount,
@@ -1547,7 +1606,7 @@ def finance_export_student_template_csv(request):
     writer.writerow([
         'Index Number', 'Full Name', 'Email', 
         'Program', 'Level', 'Academic Year', 'Semester', 
-        'Total Paid', 'Reference'
+        'Total Paid', 'Arrears', 'Reference'
     ])
 
     students = User.objects.filter(role="student").select_related("program", "level")
@@ -1562,6 +1621,7 @@ def finance_export_student_template_csv(request):
             "",  # Academic Year
             "",  # Semester
             "",  # Total Paid (leave empty for finance to fill)
+            "",  # Arrears (leave empty or fill if backlog student owes arrears)
             ""   # Reference (leave empty for finance to fill)
         ])
 
@@ -1590,7 +1650,7 @@ def finance_upload_backlog_csv(request):
             
             preview_data = []
             
-            for row in reader:
+            for row_idx, row in enumerate(reader, start=2):
                 email = row.get('Email', '').strip()
                 index_number = row.get('Index Number', '').strip()
                 program_name = row.get('Program', '').strip()
@@ -1598,28 +1658,78 @@ def finance_upload_backlog_csv(request):
                 year_name = row.get('Academic Year', '').strip()
                 semester_name = row.get('Semester', '').strip()
                 amount_str = row.get('Total Paid', '').strip()
+                arrears_str = (row.get('Arrears') or row.get('Arrears Amount') or row.get('Backlog Arrears') or '').strip()
+                cleaned_arrears_str = arrears_str.replace(',', '').replace('GHS', '').replace('GH₵', '').replace('$', '').strip() if arrears_str else ''
+                backlog_arrears_val = Decimal('0.00')
+                if cleaned_arrears_str:
+                    try:
+                        backlog_arrears_val = Decimal(cleaned_arrears_str)
+                        if backlog_arrears_val < 0:
+                            backlog_arrears_val = Decimal('0.00')
+                    except Exception:
+                        backlog_arrears_val = Decimal('0.00')
+
                 reference = row.get('Reference', '').strip()
+                if not reference:
+                    reference = f"REF-BL-{get_random_string(8).upper()}"
+                    while Payment.objects.filter(reference=reference).exists():
+                        reference = f"REF-BL-{get_random_string(8).upper()}"
                 
-                if not email or not amount_str:
-                    continue
-                    
                 status = "Ready"
                 errors = []
                 
-                # Lookups
-                student = User.objects.filter(email=email).first()
-                if not student:
+                has_student_error = False
+                has_program_error = False
+                has_level_error = False
+                has_semester_error = False
+                has_fee_error = False
+                has_ref_error = False
+                has_amount_error = False
+
+                # Validate email
+                student = None
+                if not email:
                     status = "Error"
-                    errors.append("Student not found")
-                
-                # Try exact match first, then icontains for Program
-                p = Program.objects.filter(name=program_name).first() if program_name else None
+                    has_student_error = True
+                    errors.append("Missing required field: Email is empty")
+                else:
+                    student = User.objects.filter(email__iexact=email).first()
+                    if not student:
+                        status = "Error"
+                        has_student_error = True
+                        errors.append(f"Student email '{email}' not found in system")
+
+                # Validate amount paid
+                cleaned_amount_str = amount_str.replace(',', '').replace('GHS', '').replace('GH₵', '').replace('$', '').strip() if amount_str else ''
+                amt_val = None
+                if not amount_str:
+                    status = "Error"
+                    has_amount_error = True
+                    errors.append("Missing required field: Total Paid is empty")
+                else:
+                    try:
+                        amt_val = Decimal(cleaned_amount_str)
+                        if amt_val <= 0:
+                            status = "Error"
+                            has_amount_error = True
+                            errors.append(f"Invalid amount '{amount_str}': Total Paid must be greater than 0")
+                    except Exception:
+                        status = "Error"
+                        has_amount_error = True
+                        errors.append(f"Invalid numeric format for Total Paid: '{amount_str}'")
+
+                # Lookups: Program
+                p = Program.objects.filter(name__iexact=program_name).first() if program_name else None
                 if not p and program_name:
                     p = Program.objects.filter(name__icontains=program_name).first()
                 
                 if not p:
                     status = "Error"
-                    errors.append("Program not found")
+                    has_program_error = True
+                    if program_name:
+                        errors.append(f"Program '{program_name}' not found")
+                    else:
+                        errors.append("Missing required field: Program is empty")
                 
                 # Scope Level to Program
                 lvl = None
@@ -1627,36 +1737,104 @@ def finance_upload_backlog_csv(request):
                     lvl = ProgramLevel.objects.filter(program=p, level_name__icontains=level_name).first()
                     if not lvl:
                         lvl = ProgramLevel.objects.filter(level_name__icontains=level_name).first()
-                
-                if not lvl and level_name:
+                elif level_name:
+                    lvl = ProgramLevel.objects.filter(level_name__icontains=level_name).first()
+
+                if not lvl:
                     status = "Error"
-                    errors.append("Level not found")
+                    has_level_error = True
+                    if level_name:
+                        errors.append(f"Level '{level_name}' not found for program")
+                    else:
+                        errors.append("Missing required field: Level is empty")
                     
                 year = global_year
                 
-                # Try exact match first, then icontains for Semester
-                matching_semesters = Semester.objects.filter(name=semester_name) if semester_name else Semester.objects.none()
-                if not matching_semesters.exists() and semester_name:
-                    matching_semesters = Semester.objects.filter(name__icontains=semester_name)
-
-                if not matching_semesters.exists():
-                    status = "Error"
-                    errors.append("Semester not found")
-                    semester = None
-                else:
-                    # Try to find a semester that matches the identified level
-                    semester = None
-                    if lvl:
-                        semester = matching_semesters.filter(level=lvl).first()
-                    
-                    # Fallback to first match if level-specific one not found
-                    if not semester:
-                        semester = matching_semesters.first()
+                # Flexible Lookup for Semester (Intakes: 'sept', 'may', 'jan')
+                semester = None
+                matching_semesters = Semester.objects.none()
                 
-                # Check for existing payment
+                # Scope candidate semesters (prefer student's level if level is identified)
+                if lvl:
+                    base_sem_qs = Semester.objects.filter(level=lvl)
+                    if not base_sem_qs.exists():
+                        base_sem_qs = Semester.objects.all()
+                else:
+                    base_sem_qs = Semester.objects.all()
+
+                if semester_name:
+                    sem_input_clean = semester_name.strip()
+                    # Normalize "sep" -> "sept"
+                    sem_input_norm = sem_input_clean.lower().replace('sep ', 'sept ').replace('sep-', 'sept-')
+
+                    # 1. Exact match on full string
+                    match_sem = base_sem_qs.filter(name__iexact=sem_input_clean).first()
+
+                    # 2. Normalized intake spelling match
+                    if not match_sem:
+                        match_sem = base_sem_qs.filter(name__iexact=sem_input_norm).first()
+
+                    # 3. Substring match
+                    if not match_sem:
+                        match_sem = base_sem_qs.filter(name__icontains=sem_input_norm).first()
+
+                    # 4. Intake keyword + Semester number match (sept, jan, may)
+                    if not match_sem:
+                        low_in = sem_input_norm.lower()
+                        intake_kw = None
+                        if 'sept' in low_in or 'sep' in low_in:
+                            intake_kw = 'sept'
+                        elif 'jan' in low_in:
+                            intake_kw = 'jan'
+                        elif 'may' in low_in:
+                            intake_kw = 'may'
+
+                        num_str = '1' if '1' in low_in else ('2' if '2' in low_in else '')
+
+                        if intake_kw and num_str:
+                            match_sem = base_sem_qs.filter(
+                                name__icontains=intake_kw
+                            ).filter(
+                                name__icontains=f'semester {num_str}'
+                            ).first()
+
+                    # 5. Base semester match (e.g. "Semester 1" or "Semester 2") prioritizing ProgramFee configured semesters
+                    if not match_sem:
+                        sem_base = sem_input_clean.split('-')[0].split('(')[0].strip()
+                        num_str = '1' if '1' in sem_base else ('2' if '2' in sem_base else '')
+                        if num_str and p and lvl:
+                            pf_sem_ids = ProgramFee.objects.filter(
+                                program=p, academic_year=year, semester__level=lvl, semester__name__icontains=f'semester {num_str}'
+                            ).values_list('semester_id', flat=True)
+                            if pf_sem_ids:
+                                match_sem = base_sem_qs.filter(id__in=pf_sem_ids).first()
+                        if not match_sem and sem_base:
+                            match_sem = base_sem_qs.filter(name__icontains=sem_base).first()
+
+                    if match_sem:
+                        semester = match_sem
+                        matching_semesters = Semester.objects.filter(id=semester.id)
+                else:
+                    # If semester_name is empty in CSV, auto-infer from ProgramFee for that level/year
+                    if p and lvl:
+                        pf = ProgramFee.objects.filter(program=p, academic_year=year, semester__level=lvl).first()
+                        if pf:
+                            semester = pf.semester
+                            matching_semesters = Semester.objects.filter(id=semester.id)
+
+                if not semester:
+                    status = "Error"
+                    has_semester_error = True
+                    if semester_name:
+                        errors.append(f"Semester '{semester_name}' not found")
+                    else:
+                        errors.append("Missing required field: Semester is empty")
+                
+                # Check for existing payment duplicate reference
                 if student and reference and Payment.objects.filter(reference=reference, student=student).exists():
                     status = "Error"
-                    errors.append("Duplicate reference")
+                    has_ref_error = True
+                    errors.append(f"Duplicate payment reference '{reference}' already exists for student")
 
                 # Check fee structure
                 amount_expected = Decimal('0.00')
@@ -1669,23 +1847,27 @@ def finance_upload_backlog_csv(request):
                     
                     if pf:
                         amount_expected = pf.total_amount
-                        # Update identified semester to the one that actually has the fee
                         semester = pf.semester
                         if not pf.program_fee_components.exists():
-                            status = "Warning"
-                            errors.append("No fee components found")
+                            if status != "Error":
+                                status = "Warning"
+                            errors.append(f"Fee structure exists for {p.name} ({semester.name}), but has no fee components configured")
                     else:
                         status = "Error"
-                        errors.append("No fee structure found for this selection")
+                        has_fee_error = True
+                        sem_name_disp = semester.name if semester else (semester_name or "selected semester")
+                        errors.append(f"No fee structure defined for '{p.name}' in {year.name} ({sem_name_disp})")
 
                 preview_data.append({
+                    'row_num': row_idx,
                     'email': email,
                     'index_number': index_number,
                     'program_name': program_name,
                     'level_name': level_name,
                     'year_name': global_year.name,
                     'semester_name': semester_name,
-                    'amount_paid': amount_str,
+                    'amount_paid': str(amt_val) if amt_val is not None else amount_str,
+                    'backlog_arrears': str(backlog_arrears_val),
                     'reference': reference,
                     'student_name': student.get_full_name() if student else "N/A",
                     'identified_program': p.name if p else "N/A",
@@ -1698,7 +1880,15 @@ def finance_upload_backlog_csv(request):
                     'semester_id': semester.id if semester else None,
                     'amount_expected': str(amount_expected),
                     'status': status,
-                    'errors': ", ".join(errors)
+                    'errors': ", ".join(errors),
+                    'errors_list': errors,
+                    'has_student_error': has_student_error,
+                    'has_program_error': has_program_error,
+                    'has_level_error': has_level_error,
+                    'has_semester_error': has_semester_error,
+                    'has_fee_error': has_fee_error,
+                    'has_ref_error': has_ref_error,
+                    'has_amount_error': has_amount_error,
                 })
                 
             request.session['backlog_preview'] = preview_data
@@ -1738,7 +1928,7 @@ def finance_save_backlog(request):
                 level = ProgramLevel.objects.get(id=row['level_id'])
                 year = AcademicYear.objects.get(id=row['year_id'])
                 semester = Semester.objects.get(id=row['semester_id'])
-                amount_paid = Decimal(row['amount_paid'])
+                amount_paid = Decimal(str(row['amount_paid']).replace(',', '').replace('GHS', '').replace('GH₵', '').replace('$', '').strip())
                 reference = row['reference']
                 
                 # Update student
@@ -1779,6 +1969,8 @@ def finance_save_backlog(request):
                     semester=semester,
                     amount_expected=amount_expected,
                     amount_paid=amount_paid,
+                    backlog_arrears=Decimal(str(row.get('backlog_arrears', '0.00'))),
+                    is_backlog=True,
                     reference=reference or f"BACKLOG-{get_random_string(6, allowed_chars='0123456789')}",
                     date_paid=timezone.now(),
                     is_verified=True,
@@ -1809,6 +2001,7 @@ def finance_save_backlog(request):
                 if remaining_paid > 0:
                     payment.credit_balance = remaining_paid
                     payment.save()
+                    from finance.models import StudentOverpayment
                     StudentOverpayment.objects.create(
                         student=student,
                         payment=payment,
@@ -1849,13 +2042,262 @@ def finance_save_backlog(request):
 
 
 @login_required
+def finance_backlog_management(request):
+    if getattr(request.user, "role", None) not in ["finance", "admin", "superadmin"]:
+        messages.error(request, "Access denied.")
+        return redirect("portal:home")
+
+    # ======================================
+    # EDIT BACKLOG PAYMENT POST HANDLER
+    # ======================================
+    if request.method == "POST" and request.POST.get("edit_backlog_payment"):
+        payment_id = request.POST.get("payment_id")
+        payment = get_object_or_404(Payment, id=payment_id, is_backlog=True)
+
+        amount_paid_str = request.POST.get("amount_paid", "").strip()
+        arrears_str = request.POST.get("backlog_arrears", "").strip()
+        credit_str = request.POST.get("credit_balance", "").strip()
+        academic_year_id = request.POST.get("academic_year_id")
+        semester_id = request.POST.get("semester_id")
+
+        try:
+            with transaction.atomic():
+                if amount_paid_str:
+                    payment.amount_paid = Decimal(amount_paid_str.replace(',', '').replace('GHS', '').replace('GH₵', '').replace('$', '').strip())
+                
+                if arrears_str:
+                    payment.backlog_arrears = Decimal(arrears_str.replace(',', '').replace('GHS', '').replace('GH₵', '').replace('$', '').strip())
+                else:
+                    payment.backlog_arrears = Decimal("0.00")
+
+                if credit_str is not None and credit_str != "":
+                    payment.credit_balance = Decimal(credit_str.replace(',', '').replace('GHS', '').replace('GH₵', '').replace('$', '').strip())
+
+                if academic_year_id:
+                    payment.academic_year = get_object_or_404(AcademicYear, id=academic_year_id)
+
+                if semester_id:
+                    semester = get_object_or_404(Semester, id=semester_id)
+                    payment.semester = semester
+                    if semester.level:
+                        payment.level = semester.level
+                        if semester.level.program:
+                            payment.program = semester.level.program
+
+                payment.save()
+
+                # Sync StudentOverpayment model
+                from finance.models import StudentOverpayment
+                if payment.credit_balance > 0:
+                    StudentOverpayment.objects.update_or_create(
+                        student=payment.student,
+                        payment=payment,
+                        defaults={
+                            "academic_year": payment.academic_year,
+                            "semester": payment.semester,
+                            "amount": payment.credit_balance
+                        }
+                    )
+                else:
+                    StudentOverpayment.objects.filter(payment=payment).delete()
+
+                log_event(
+                    request.user,
+                    "finance",
+                    f"Updated backlog payment record (ID: {payment.id}) for student {payment.student.get_full_name()}"
+                )
+                messages.success(request, f"Backlog payment record for {payment.student.get_full_name()} updated successfully.")
+        except Exception as e:
+            messages.error(request, f"Failed to update backlog payment: {str(e)}")
+
+        return redirect("finance_backlog_management")
+
+    # ======================================
+    # DELETE BACKLOG PAYMENT POST HANDLER
+    # ======================================
+    if request.method == "POST" and request.POST.get("delete_backlog_payment"):
+        payment_id = request.POST.get("payment_id")
+        payment = get_object_or_404(Payment, id=payment_id, is_backlog=True)
+        student_name = payment.student.get_full_name()
+
+        log_event(
+            request.user,
+            "finance",
+            f"Deleted backlog payment record ID {payment_id} for student {student_name}"
+        )
+        payment.delete()
+        messages.success(request, f"Backlog payment record for {student_name} deleted successfully.")
+        return redirect("finance_backlog_management")
+
+    # ======================================
+    # BULK EDIT BACKLOG PAYMENTS POST HANDLER
+    # ======================================
+    if request.method == "POST" and request.POST.get("bulk_edit_backlog"):
+        payment_ids = request.POST.getlist("selected_payment_ids")
+        if not payment_ids:
+            messages.error(request, "Please select at least one backlog payment record to bulk edit.")
+            return redirect("finance_backlog_management")
+
+        academic_year_id = request.POST.get("bulk_academic_year_id", "").strip()
+        semester_id = request.POST.get("bulk_semester_id", "").strip()
+        amount_paid_str = request.POST.get("bulk_amount_paid", "").strip()
+        arrears_str = request.POST.get("bulk_backlog_arrears", "").strip()
+        credit_str = request.POST.get("bulk_credit_balance", "").strip()
+
+        try:
+            with transaction.atomic():
+                payments = Payment.objects.filter(id__in=payment_ids, is_backlog=True)
+                updated_count = 0
+
+                sem_obj = Semester.objects.filter(id=semester_id).first() if semester_id else None
+                year_obj = AcademicYear.objects.filter(id=academic_year_id).first() if academic_year_id else None
+                new_amt = Decimal(amount_paid_str.replace(',', '').replace('GHS', '').replace('GH₵', '').replace('$', '').strip()) if amount_paid_str else None
+                new_arr = Decimal(arrears_str.replace(',', '').replace('GHS', '').replace('GH₵', '').replace('$', '').strip()) if arrears_str else None
+                new_cred = Decimal(credit_str.replace(',', '').replace('GHS', '').replace('GH₵', '').replace('$', '').strip()) if credit_str else None
+
+                from finance.models import StudentOverpayment
+                for p in payments:
+                    changed = False
+                    if sem_obj:
+                        p.semester = sem_obj
+                        if sem_obj.level:
+                            p.level = sem_obj.level
+                            if sem_obj.level.program:
+                                p.program = sem_obj.level.program
+                        changed = True
+                    if year_obj:
+                        p.academic_year = year_obj
+                        changed = True
+                    if new_amt is not None:
+                        p.amount_paid = new_amt
+                        changed = True
+                    if new_arr is not None:
+                        p.backlog_arrears = new_arr
+                        changed = True
+                    if new_cred is not None:
+                        p.credit_balance = new_cred
+                        changed = True
+
+                    if changed:
+                        p.save()
+                        if p.credit_balance > 0:
+                            StudentOverpayment.objects.update_or_create(
+                                student=p.student,
+                                payment=p,
+                                defaults={
+                                    "academic_year": p.academic_year,
+                                    "semester": p.semester,
+                                    "amount": p.credit_balance
+                                }
+                            )
+                        else:
+                            StudentOverpayment.objects.filter(payment=p).delete()
+                        updated_count += 1
+
+                log_event(
+                    request.user,
+                    "finance",
+                    f"Bulk updated {updated_count} backlog payment record(s) (IDs: {', '.join(payment_ids)})"
+                )
+                messages.success(request, f"Successfully bulk updated {updated_count} backlog payment record(s).")
+        except Exception as e:
+            messages.error(request, f"Bulk edit failed: {str(e)}")
+
+        return redirect("finance_backlog_management")
+
+    # ======================================
+    # BULK DELETE BACKLOG PAYMENTS POST HANDLER
+    # ======================================
+    if request.method == "POST" and request.POST.get("bulk_delete_backlog"):
+        payment_ids = request.POST.getlist("selected_payment_ids")
+        if not payment_ids:
+            messages.error(request, "Please select at least one backlog payment record to delete.")
+            return redirect("finance_backlog_management")
+
+        deleted_count, _ = Payment.objects.filter(id__in=payment_ids, is_backlog=True).delete()
+        log_event(
+            request.user,
+            "finance",
+            f"Bulk deleted {deleted_count} backlog payment record(s)"
+        )
+        messages.success(request, f"Successfully deleted {deleted_count} backlog payment record(s).")
+        return redirect("finance_backlog_management")
+
+    # ======================================
+    # QUERY & FILTERING
+    # ======================================
+    search_query = request.GET.get("q", "").strip()
+    selected_program_id = request.GET.get("program_id", "").strip()
+    selected_level_id = request.GET.get("level_id", "").strip()
+
+    backlog_qs = (
+        Payment.objects
+        .filter(is_backlog=True)
+        .select_related("student", "program", "level", "academic_year", "semester")
+        .order_by("-created_at")
+    )
+
+    if search_query:
+        backlog_qs = backlog_qs.filter(
+            Q(student__first_name__icontains=search_query) |
+            Q(student__last_name__icontains=search_query) |
+            Q(student__username__icontains=search_query) |
+            Q(generated_student_id__icontains=search_query) |
+            Q(reference__icontains=search_query)
+        )
+
+    if selected_program_id and selected_program_id != "all":
+        backlog_qs = backlog_qs.filter(
+            Q(program_id=selected_program_id) |
+            Q(semester__level__program_id=selected_program_id)
+        ).distinct()
+
+    if selected_level_id and selected_level_id != "all":
+        backlog_qs = backlog_qs.filter(
+            Q(level_id=selected_level_id) |
+            Q(semester__level_id=selected_level_id)
+        ).distinct()
+
+    # ======================================
+    # PAGINATION
+    # ======================================
+    paginator = Paginator(backlog_qs, 15)  # 15 per page
+    page_number = request.GET.get("page")
+    payments_page = paginator.get_page(page_number)
+
+    return render(
+        request,
+        "accounts/backlog_management.html",
+        {
+            "payments": payments_page,
+            "programs": Program.objects.all(),
+            "levels": ProgramLevel.objects.all().select_related("program"),
+            "years": AcademicYear.objects.all(),
+            "semesters": Semester.objects.all().select_related("academic_year", "level"),
+            "search_query": search_query,
+            "selected_program_id": selected_program_id,
+            "selected_level_id": selected_level_id,
+        }
+    )
+
+
+@login_required
 def ajax_get_semesters(request, level_id):
     if getattr(request.user, "role", None) not in ["finance", "admin", "superadmin"]:
         return JsonResponse({"status": "error", "message": "Access denied"}, status=403)
     
     from academics.models import Semester
+    from finance.models import ProgramFee
+
     semesters = Semester.objects.filter(level_id=level_id).select_related('academic_year').order_by('-is_active', '-academic_year__name', 'name')
     
+    program_id = request.GET.get("program_id")
+    exclude_declared = request.GET.get("exclude_declared") == "true"
+
+    if exclude_declared and program_id:
+        existing_sem_ids = ProgramFee.objects.filter(program_id=program_id).values_list('semester_id', flat=True)
+        semesters = semesters.exclude(id__in=existing_sem_ids)
+
     data = [
         {
             "id": sem.id, 

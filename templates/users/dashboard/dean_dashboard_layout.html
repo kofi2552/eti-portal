@@ -93,23 +93,26 @@
         <span class="brand-text">Dean Panel</span>
       </div>
 
-      <nav class="p-4 space-y-2 text-sm">
-        <a href="{% url 'dean_main' %}" class="flex items-center gap-3 p-2 rounded hover:bg-gray-100">
+      <nav class="p-4 space-y-2 text-sm font-medium">
+        <a href="{% url 'dean_main' %}"
+          class="flex items-center gap-3 p-2 rounded-xl transition-colors {% if request.resolver_match.url_name == 'dean_main' %}bg-slate-100 text-slate-900 font-bold shadow-2xs{% else %}hover:bg-slate-50 text-slate-600{% endif %}">
           <i data-lucide="layout-dashboard" class="w-5 h-5 flex-shrink-0"></i>
           <span class="nav-text">Overview</span>
         </a>
 
-        <a href="{% url 'manage_courses' %}" class="flex items-center gap-3 p-2 rounded hover:bg-gray-100">
+        <a href="{% url 'manage_courses' %}"
+          class="flex items-center gap-3 p-2 rounded-xl transition-colors {% if request.resolver_match.url_name == 'manage_courses' %}bg-slate-100 text-slate-900 font-bold shadow-2xs{% else %}hover:bg-slate-50 text-slate-600{% endif %}">
           <i data-lucide="book" class="w-5 h-5 flex-shrink-0"></i>
           <span class="nav-text">Base Courses</span>
         </a>
 
-        <a href="{% url 'dean_program_courses_list' %}" class="flex items-center gap-3 p-2 rounded hover:bg-gray-100">
+        <a href="{% url 'dean_program_courses_list' %}"
+          class="flex items-center gap-3 p-2 rounded-xl transition-colors {% if request.resolver_match.url_name == 'dean_program_courses_list' %}bg-slate-100 text-slate-900 font-bold shadow-2xs{% else %}hover:bg-slate-50 text-slate-600{% endif %}">
           <i data-lucide="library" class="w-5 h-5 flex-shrink-0"></i>
           <span class="nav-text">Program Courses</span>
         </a>
 
-        <a href="{% url 'logout' %}" class="flex items-center gap-3 p-2 rounded hover:bg-red-50 text-red-600">
+        <a href="{% url 'logout' %}" class="flex items-center gap-3 p-2 rounded-xl hover:bg-red-50 text-red-600 transition-colors">
           <i data-lucide="log-out" class="w-5 h-5 flex-shrink-0"></i>
           <span class="nav-text">Logout</span>
         </a>
