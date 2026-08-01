@@ -1,33 +1,30 @@
 <!-- ------------------------------------ -->
 {% extends "users/dashboard/admin_dashboard_layout.html" %}
 <!-- ------------------------------------ -->
-{% block title %}Manage Users{% endblock %}
+{% block title %}Upload Users (CSV){% endblock %}
 <!-- ------------------------------------- -->
 {% block content %} {% load static %}
-<div class="max-w-6xl mx-auto px-4">
-  <div class="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div class="max-w-7xl mx-auto px-4 sm:px-6">
+  <div class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
     <div>
-      <h2 class="text-3xl font-extrabold text-slate-800 tracking-tight">Upload Users (CSV)</h2>
-      <p class="text-slate-500 font-medium text-sm mt-1">Bulk import students and staff into the ETI Portal.</p>
+      <h2 class="text-xl font-bold text-slate-900 tracking-tight">Upload Users</h2>
+      <p class="text-slate-400 font-normal text-sm mt-1">Bulk import students and staff into the ETI Portal with real-time validation. (CSV / Excel)</p>
     </div>
 
     <a href="{% static 'user_upload_template.csv' %}" download
-      class="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-100 text-slate-600 font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-slate-200 transition-all cursor-pointer">
+      class="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-100 text-slate-700 font-bold text-xs uppercase tracking-wider rounded-xl hover:bg-slate-200 transition-all cursor-pointer shadow-sm">
       <i data-lucide="download" class="w-4 h-4"></i>
       CSV Template
     </a>
   </div>
 
   {% if upload_errors %}
-  <div class="mb-8 border border-red-200 rounded-2xl bg-red-50/50 overflow-hidden shadow-sm animate-fade-in">
-    <div class="border-b border-red-100 px-6 py-4 bg-red-50 text-sm font-bold text-red-800 flex items-center gap-2">
-      <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-      </svg>
-      Import Errors - Entire Upload Rolled Back
+  <div class="mb-8 border border-red-200 rounded-2xl bg-red-50/60 overflow-hidden shadow-sm animate-fade-in">
+    <div class="border-b border-red-100 px-6 py-3.5 bg-red-100/50 text-sm font-bold text-red-800 flex items-center gap-2">
+      <i data-lucide="alert-triangle" class="w-5 h-5 text-red-600"></i>
+      Upload Errors Encountered
     </div>
     <div class="px-6 py-4 max-h-60 overflow-y-auto text-sm text-red-700 font-medium">
-      <p class="font-semibold mb-2">The following issues were encountered during user upload. None of the records have been saved:</p>
       <ul class="list-disc pl-5 space-y-1">
         {% for err in upload_errors %}
           <li>{{ err }}</li>
@@ -39,66 +36,189 @@
 
   <!-- CSV Upload Form -->
   <form method="POST" enctype="multipart/form-data"
-    class="mb-12 bg-white border border-slate-100 p-8 rounded-2xl shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
+    class="mb-10 bg-white border border-slate-200/80 p-6 md:p-8 rounded-2xl shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
     {% csrf_token %}
 
     <div class="flex-1 w-full">
-      <label class="block text-xs font-black uppercase tracking-widest text-slate-400 mb-2 px-1">Select CSV File</label>
-      <input type="file" name="file" accept=".csv"
-        class="w-full text-sm border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-1 focus:ring-blue-500 transition-all font-medium text-slate-500"
+      <label class="block text-xs font-black uppercase tracking-widest text-slate-400 mb-2 px-1">Select CSV / Excel File</label>
+      <input type="file" name="file" accept=".csv, .xlsx"
+        class="w-full text-sm border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-slate-600 bg-slate-50/50"
         required />
     </div>
 
-    <button name="upload_csv"
-      class="w-full md:w-auto md:mb-[-17px] px-8 py-2.5 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition-all shadow-sm cursor-pointer">
-      Process File
+    <button name="upload_csv" type="submit"
+      class="w-full md:w-auto px-8 py-3 mt-5 bg-slate-900 text-white font-bold text-sm rounded-xl hover:bg-slate-800 transition-all shadow-sm cursor-pointer flex items-center justify-center gap-2">
+      <i data-lucide="file-up" class="w-4 h-4"></i>
+      Process & Validate File
     </button>
   </form>
 
-  <div class="w-full mx-auto pt-6">
-    {% if preview %}
-    <h3 class="text-xs font-black uppercase tracking-widest text-slate-400 mb-6">
-      Data Preview
-    </h3>
+  {% if preview %}
+  <div class="w-full mx-auto pt-2 space-y-6">
+    <!-- Stat Summary Cards & Preview Controls -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div>
+        <h3 class="text-lg font-bold text-slate-800 tracking-tight">Data Preview & Validation</h3>
+        <p class="text-xs text-slate-500 font-medium mt-0.5">Review each row for errors before finalizing import.</p>
+      </div>
 
-    <div class="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
-      <div class="max-h-[500px] overflow-y-auto overflow-x-auto">
-        <table class="min-w-full text-sm">
-          <thead class="bg-slate-50 sticky top-0 z-10">
+      <!-- Preview Actions: Refresh & Clear -->
+      <div class="flex items-center gap-2">
+        <form method="POST" class="inline-block">
+          {% csrf_token %}
+          <button type="submit" name="refresh_preview" value="1"
+            class="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-100 text-slate-700 hover:text-slate-900 font-bold text-xs rounded-xl hover:bg-slate-200 transition-all cursor-pointer shadow-sm">
+            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+            Refresh
+          </button>
+        </form>
+
+        <form method="POST" class="inline-block">
+          {% csrf_token %}
+          <button type="submit" name="clear_preview" value="1"
+            class="inline-flex items-center gap-1.5 px-4 py-2 bg-rose-50 text-rose-700 hover:bg-rose-100 font-bold text-xs rounded-xl transition-all cursor-pointer shadow-sm border border-rose-100">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            Clear Preview
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Summary Metrics -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div class="bg-white border border-slate-200/80 p-5 rounded-2xl shadow-sm flex items-center justify-between">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Total Rows</span>
+          <div class="text-2xl font-extrabold text-slate-800 mt-1">{{ total_count }}</div>
+        </div>
+        <div class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600">
+          <i data-lucide="layers" class="w-5 h-5"></i>
+        </div>
+      </div>
+
+      <div class="bg-white border border-emerald-100 p-5 rounded-2xl shadow-sm flex items-center justify-between bg-emerald-50/20">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-emerald-600">Ready to Import</span>
+          <div class="text-2xl font-extrabold text-emerald-700 mt-1">{{ ready_count }}</div>
+        </div>
+        <div class="w-10 h-10 rounded-xl bg-emerald-100/70 flex items-center justify-center text-emerald-700">
+          <i data-lucide="check-circle-2" class="w-5 h-5"></i>
+        </div>
+      </div>
+
+      <div class="bg-white border border-red-100 p-5 rounded-2xl shadow-sm flex items-center justify-between bg-red-50/20">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-red-600">Errors Found</span>
+          <div class="text-2xl font-extrabold text-red-700 mt-1">{{ error_count }}</div>
+        </div>
+        <div class="w-10 h-10 rounded-xl bg-red-100/70 flex items-center justify-center text-red-700">
+          <i data-lucide="x-circle" class="w-5 h-5"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- Preview Table -->
+    <div class="bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm">
+      <div class="max-h-[550px] overflow-y-auto overflow-x-auto">
+        <table class="min-w-full text-sm text-left divide-y divide-slate-100">
+          <thead class="bg-slate-50/90 sticky top-0 z-10 backdrop-blur-sm">
             <tr>
-              {% for column in preview.0.keys %}
-              <th
-                class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500 border-b border-slate-100 bg-slate-50">
-                {{ column|capfirst }}
-              </th>
-              {% endfor %}
+              <th class="px-4 py-3.5 text-xs font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200/80 w-16">Row #</th>
+              <th class="px-4 py-3.5 text-xs font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200/80 w-28">Status</th>
+              <th class="px-4 py-3.5 text-xs font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200/80">First Name</th>
+              <th class="px-4 py-3.5 text-xs font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200/80">Last Name</th>
+              <th class="px-4 py-3.5 text-xs font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200/80">Username</th>
+              <th class="px-4 py-3.5 text-xs font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200/80">Role</th>
+              <th class="px-4 py-3.5 text-xs font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200/80">Email</th>
+              <th class="px-4 py-3.5 text-xs font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200/80 min-w-[240px]">Validation Issues</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-gray-100">
+          <tbody class="divide-y divide-slate-100 font-medium">
             {% for row in preview %}
-            <tr>
-              {% for key, value in row.items %}
-              <td class="px-6 py-4 text-slate-600 font-medium">
-                {{ value }}
+            <tr class="{% if row.status == 'Error' %}bg-red-50/60 hover:bg-red-100/40{% else %}hover:bg-slate-50/70{% endif %} transition-colors">
+              <td class="px-4 py-3.5 text-slate-500 font-mono text-xs font-bold">
+                #{{ row.row_num }}
               </td>
-              {% endfor %}
+
+              <td class="px-4 py-3.5">
+                {% if row.status == 'Ready' %}
+                  <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                    <i data-lucide="check" class="w-3 h-3"></i> Ready
+                  </span>
+                {% else %}
+                  <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-800 border border-red-200">
+                    <i data-lucide="alert-circle" class="w-3 h-3"></i> Error
+                  </span>
+                {% endif %}
+              </td>
+
+              <td class="px-4 py-3.5 text-slate-800">
+                {{ row.first_name|default:"-" }}
+              </td>
+
+              <td class="px-4 py-3.5 text-slate-800">
+                {{ row.last_name|default:"-" }}
+              </td>
+
+              <td class="px-4 py-3.5 text-slate-900 font-semibold">
+                {{ row.username|default:"-" }}
+              </td>
+
+              <td class="px-4 py-3.5 text-slate-700 capitalize">
+                {{ row.role|default:"-" }}
+              </td>
+
+              <td class="px-4 py-3.5 text-slate-600 text-xs font-mono">
+                {{ row.email|default:"-" }}
+              </td>
+
+              <td class="px-4 py-3.5">
+                {% if row.status == 'Ready' %}
+                  <span class="text-xs font-semibold text-emerald-600 flex items-center gap-1">
+                    <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i> No issues found
+                  </span>
+                {% else %}
+                  <ul class="list-disc pl-4 text-xs font-bold text-red-600 space-y-1">
+                    {% for err in row.errors %}
+                      <li>{{ err }}</li>
+                    {% endfor %}
+                  </ul>
+                {% endif %}
+              </td>
             </tr>
             {% endfor %}
           </tbody>
         </table>
       </div>
     </div>
-    <div class="flex w-full justify-end mt-10 pb-12">
-      <form method="post" action="{% url 'save_uploaded_users' %}">
+
+    <!-- Finalize Save Section -->
+    <div class="pt-4 pb-12 flex flex-col md:flex-row items-center justify-between gap-4">
+      <div>
+        {% if has_errors %}
+          <div class="flex items-center gap-2 text-red-600 font-semibold text-sm">
+            <i data-lucide="alert-octagon" class="w-5 h-5"></i>
+            <span>Fix the {{ error_count }} row error(s) in your CSV file and re-upload to enable saving.</span>
+          </div>
+        {% else %}
+          <div class="flex items-center gap-2 text-emerald-700 font-semibold text-sm">
+            <i data-lucide="shield-check" class="w-5 h-5 text-emerald-600"></i>
+            <span>All records validated successfully. Click button to import into system.</span>
+          </div>
+        {% endif %}
+      </div>
+
+      <form method="POST" action="{% url 'save_uploaded_users' %}">
         {% csrf_token %}
-        <button name="upload_csv" type="submit"
-          class="px-10 py-4 bg-emerald-600 text-white font-black uppercase tracking-widest text-xs rounded-xl hover:bg-emerald-700 transition-all shadow-sm cursor-pointer">
-          Finalize & Save
+        <button type="submit"
+          {% if has_errors %}disabled class="px-8 py-3.5 bg-slate-300 text-slate-500 font-bold uppercase tracking-wider text-xs rounded-xl cursor-not-allowed shadow-none"
+          {% else %}class="px-10 py-3.5 bg-emerald-600 text-white font-extrabold uppercase tracking-wider text-xs rounded-xl hover:bg-emerald-700 transition-all shadow-md cursor-pointer flex items-center gap-2"{% endif %}>
+          Save Data
         </button>
       </form>
     </div>
-    {% endif %}
   </div>
+  {% endif %}
 </div>
 
 <!-- Loading Overlay -->

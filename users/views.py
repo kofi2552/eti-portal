@@ -4146,14 +4146,163 @@ def generate_auto_password(first_name: str):
     return f"@{camel}{year}"
 
 
+USER_UPLOAD_HEADER_MAP = {
+    "first_name": "first_name",
+    "firstname": "first_name",
+    "first name": "first_name",
+    "last_name": "last_name",
+    "lastname": "last_name",
+    "last name": "last_name",
+    "username": "username",
+    "user_name": "username",
+    "user name": "username",
+    "role": "role",
+    "user_role": "role",
+    "user role": "role",
+    "email": "email",
+    "email_address": "email",
+    "email address": "email",
+    "pin_code": "pin_code",
+    "pincode": "pin_code",
+    "pin code": "pin_code",
+    "pin": "pin_code",
+}
+
+
+def _format_user_name(val):
+    if not val:
+        return ""
+    parts = str(val).strip().split()
+    capitalized_parts = []
+    for part in parts:
+        if "-" in part:
+            subparts = part.split("-")
+            capitalized_parts.append("-".join([sp.capitalize() for sp in subparts]))
+        else:
+            capitalized_parts.append(part.capitalize())
+    return " ".join(capitalized_parts)
+
+
+def _validate_preview_user_rows(raw_records):
+    """
+    Normalizes keys and performs upfront row-level validation for user upload preview.
+    Returns: (preview_rows, ready_count, error_count)
+    """
+    processed_usernames = set()
+    processed_emails = set()
+    valid_roles = [choice[0] for choice in User.ROLE_CHOICES]
+
+    preview_rows = []
+    ready_count = 0
+    error_count = 0
+
+    for idx, raw in enumerate(raw_records, start=1):
+        # Convert all keys and values to strings, stripping leading/trailing whitespace
+        row = {}
+        for k, v in raw.items():
+            key_str = str(k).strip()
+            # Ignore auto-generated Unnamed columns
+            if key_str.lower().startswith("unnamed:"):
+                continue
+            normalized_key = USER_UPLOAD_HEADER_MAP.get(key_str.lower(), key_str)
+            row[normalized_key] = str(v).strip() if v is not None else ""
+
+        # Skip completely empty rows
+        if not any(row.values()):
+            continue
+
+        first_name = _format_user_name(row.get("first_name", ""))
+        last_name = _format_user_name(row.get("last_name", ""))
+        username = row.get("username", "").strip().lower()
+        role = row.get("role", "").strip().lower()
+        email = row.get("email", "").strip().lower()
+        pin_code = row.get("pin_code", "").strip()
+
+        row_errors = []
+
+        # Validate Username
+        if not username:
+            row_errors.append("Username is required.")
+        else:
+            if username.lower() in processed_usernames:
+                row_errors.append(f"Duplicate username '{username}' in uploaded file.")
+            elif User.objects.filter(username__iexact=username).exists():
+                row_errors.append(f"Username '{username}' already exists in database.")
+
+        # Validate Role
+        if not role:
+            row_errors.append("Role is required.")
+        elif role not in valid_roles:
+            row_errors.append(f"Invalid role '{role}'. Valid options: {', '.join(valid_roles)}.")
+
+        # Validate Email
+        if email:
+            if email.lower() in processed_emails:
+                row_errors.append(f"Duplicate email '{email}' in uploaded file.")
+            elif User.objects.filter(email__iexact=email).exists():
+                row_errors.append(f"Email '{email}' is already in use.")
+
+        # Record keys for duplicate detection
+        if username:
+            processed_usernames.add(username.lower())
+        if email:
+            processed_emails.add(email.lower())
+
+        status = "Ready" if not row_errors else "Error"
+        if status == "Ready":
+            ready_count += 1
+        else:
+            error_count += 1
+
+        preview_rows.append({
+            "row_num": idx,
+            "first_name": first_name,
+            "last_name": last_name,
+            "username": username,
+            "role": role,
+            "email": email,
+            "pin_code": pin_code,
+            "status": status,
+            "errors": row_errors,
+            "error_text": "; ".join(row_errors),
+        })
+
+    return preview_rows, ready_count, error_count
+
+
 def upload_users(request):
+    if getattr(request.user, "role", None) not in ["admin", "superadmin"]:
+        messages.error(request, "Access denied.")
+        return redirect("portal:home")
+
+    # Refresh preview action (re-validates existing preview against DB)
+    if request.method == "POST" and "refresh_preview" in request.POST:
+        existing_preview = request.session.get("preview_users")
+        if existing_preview:
+            revalidated_rows, ready_count, error_count = _validate_preview_user_rows(existing_preview)
+            request.session["preview_users"] = revalidated_rows
+            if error_count > 0:
+                messages.warning(request, f"Preview refreshed: {ready_count} row(s) ready, {error_count} row(s) contain validation errors.")
+            else:
+                messages.success(request, f"Preview refreshed! All {ready_count} row(s) are ready to import.")
+        else:
+            messages.info(request, "No preview data to refresh.")
+        return redirect("upload_users")
+
+    # Clear preview action (resets preview state)
+    if request.method == "POST" and "clear_preview" in request.POST:
+        request.session.pop("preview_users", None)
+        request.session.pop("upload_errors", None)
+        messages.info(request, "Data preview cleared.")
+        return redirect("upload_users")
+
     preview_data = request.session.get("preview_users")
     upload_errors = request.session.pop("upload_errors", [])
 
     if request.method == "POST" and "file" in request.FILES:
         file = request.FILES["file"]
 
-        # Load CSV/Excel
+        # Load CSV/Excel using Pandas
         try:
             if file.name.endswith(".csv"):
                 df = pd.read_csv(file).fillna("")
@@ -4182,31 +4331,84 @@ def upload_users(request):
             messages.error(request, f"Invalid file format: {str(e)}")
             return redirect("upload_users")
 
-        # Convert DataFrame to list of dicts
-        preview_data = df.to_dict(orient="records")
+        # Strip whitespace from columns and drop Unnamed index columns
+        clean_cols = []
+        cols_to_drop = []
+        for col in df.columns:
+            str_col = str(col).strip()
+            if str_col.lower().startswith("unnamed:"):
+                col_vals = df[col].astype(str).str.strip().tolist()
+                is_empty = all(v == "" or v.lower() == "nan" for v in col_vals)
+                is_seq_idx = False
+                try:
+                    non_empty = [int(v) for v in col_vals if v != "" and v.lower() != "nan"]
+                    if non_empty and (non_empty == list(range(len(non_empty))) or non_empty == list(range(1, len(non_empty) + 1))):
+                        is_seq_idx = True
+                except ValueError:
+                    pass
 
-        # Save to session temporarily
+                if is_empty or is_seq_idx:
+                    cols_to_drop.append(col)
+                    continue
+
+            clean_cols.append(str_col)
+
+        if cols_to_drop:
+            df = df.drop(columns=cols_to_drop)
+
+        # Convert DataFrame to records and run upfront validation
+        raw_records = df.to_dict(orient="records")
+        preview_data, ready_count, error_count = _validate_preview_user_rows(raw_records)
+
+        # Save preview to session
         request.session["preview_users"] = preview_data
-        messages.success(request, "File uploaded. Preview below.")
+
+        if error_count > 0:
+            messages.warning(
+                request,
+                f"File processed with warnings: {ready_count} row(s) ready, {error_count} row(s) contain errors. Please review the specific row issues below before saving."
+            )
+        else:
+            messages.success(request, f"File processed cleanly! All {ready_count} row(s) are ready to import.")
+
         return redirect("upload_users")
+
+    ready_count = sum(1 for r in preview_data if r.get("status") == "Ready") if preview_data else 0
+    error_count = sum(1 for r in preview_data if r.get("status") == "Error") if preview_data else 0
+    total_count = len(preview_data) if preview_data else 0
 
     return render(request, "users/dashboard/contents/admin/upload_users.html", {
         "preview": preview_data,
-        "upload_errors": upload_errors
+        "upload_errors": upload_errors,
+        "total_count": total_count,
+        "ready_count": ready_count,
+        "error_count": error_count,
+        "has_errors": error_count > 0,
     })
 
 
 def save_uploaded_users(request):
+    if getattr(request.user, "role", None) not in ["admin", "superadmin"]:
+        messages.error(request, "Access denied.")
+        return redirect("portal:home")
+
     preview_data = request.session.get("preview_users")
 
     if not preview_data:
-        messages.error(request, "No data to save!")
+        messages.error(request, "No preview data found to save! Please upload a CSV file first.")
+        return redirect("upload_users")
+
+    # Block saving if any row contains validation errors
+    error_rows = [r for r in preview_data if r.get("status") == "Error"]
+    if error_rows:
+        messages.error(
+            request,
+            f"Cannot finalize upload because {len(error_rows)} row(s) contain validation errors. Please fix your CSV file and re-upload."
+        )
         return redirect("upload_users")
 
     created = 0
     errors = []
-    processed_usernames = set()
-    processed_emails = set()
 
     import logging
     import traceback
@@ -4215,97 +4417,55 @@ def save_uploaded_users(request):
 
     try:
         with transaction.atomic():
-            for i, row in enumerate(preview_data, start=1):
-                if not any(row.values()):
-                    continue
+            for row in preview_data:
+                first_name = _format_user_name(row.get("first_name", ""))
+                last_name = _format_user_name(row.get("last_name", ""))
+                username = row.get("username", "").strip().lower()
+                role = row.get("role", "").strip().lower()
+                email = row.get("email", "").strip().lower() or None
+                student_id = None
+                pin_code = row.get("pin_code", "").strip() or None
 
-                try:
-                    with transaction.atomic():
-                        first_name = str(row.get("first_name", "")).strip()
-                        last_name = str(row.get("last_name", "")).strip()
-                        username = str(row.get("username", "")).strip()
-                        role = str(row.get("role", "")).strip().lower()
-                        email = str(row.get("email", "")).strip()
+                user = User.objects.create(
+                    username=username,
+                    first_name=first_name,
+                    last_name=last_name,
+                    role=role,
+                    email=email,
+                    student_id=student_id,
+                    pin_code=pin_code,
+                    is_fee_paid=False
+                )
 
-                        if not username:
-                            raise ValueError("Username is required.")
+                # Auto-generate password
+                password = generate_auto_password(first_name)
+                user.set_password(password)
+                user.save()
 
-                        if not role:
-                            raise ValueError("Role is required.")
+                created += 1
 
-                        valid_roles = [choice[0] for choice in User.ROLE_CHOICES]
-                        if role not in valid_roles:
-                            raise ValueError(f"Invalid role '{role}'. Valid roles are: {', '.join(valid_roles)}")
-
-                        if username.lower() in processed_usernames:
-                            raise ValueError(f"Duplicate username '{username}' in the uploaded file.")
-
-                        if email and email.lower() in processed_emails:
-                            raise ValueError(f"Duplicate email '{email}' in the uploaded file.")
-
-                        if User.objects.filter(username__iexact=username).exists():
-                            raise ValueError("Username already exists in the database.")
-
-                        if email and User.objects.filter(email__iexact=email).exists():
-                            raise ValueError(f"Email '{email}' is already in use.")
-
-                        # Optional fields default to None
-                        student_id = None
-                        pin_code = None
-                        department = None
-                        program = None
-                        is_fee_paid = False
-
-                        user = User.objects.create(
-                            username=username,
-                            first_name=first_name,
-                            last_name=last_name,
-                            role=role,
-                            email=email,
-                            student_id=student_id,
-                            pin_code=pin_code,
-                            department=department,
-                            program=program,
-                            is_fee_paid=is_fee_paid
-                        )
-
-                        # Auto-generate password
-                        password = generate_auto_password(first_name)
-                        user.set_password(password)
-                        user.save()
-
-                        created += 1
-                        processed_usernames.add(username.lower())
-                        if email:
-                            processed_emails.add(email.lower())
-                except Exception as row_error:
-                    errors.append(f"Row {i} ({row.get('username', 'Unknown')}): {str(row_error)}")
-
-            if errors:
-                raise ValueError("Bulk user upload aborted due to validation/database errors.")
-
-        # If success, clear preview session data
-        request.session["preview_users"] = None
+        # Clear session upon successful save
+        request.session.pop("preview_users", None)
         request.session.pop("upload_errors", None)
-        messages.success(request, f"{created} users saved successfully.")
+        messages.success(request, f"Successfully imported {created} user(s).")
         return redirect("admin_manage_users")
 
     except Exception as e:
         tb = traceback.format_exc()
-        logger.error(f"User upload aborted: {str(e)}", exc_info=True)
+        logger.error(f"User upload saving failed: {str(e)}", exc_info=True)
         try:
             ErrorLog.objects.create(
                 user=request.user if request.user.is_authenticated else None,
                 path=request.build_absolute_uri(),
                 method=request.method,
-                error_message=f"Bulk user upload aborted: {str(e)}",
+                error_message=f"Bulk user upload saving failed: {str(e)}",
                 stack_trace=tb
             )
         except Exception as log_error:
             logger.error(f"Failed to save ErrorLog: {str(log_error)}", exc_info=True)
 
-        messages.error(request, "Upload aborted. No users were imported. Please check the error list below.")
-        request.session["upload_errors"] = errors if errors else [str(e)]
+        messages.error(request, f"Upload aborted: {str(e)}")
+        request.session["upload_errors"] = [str(e)]
         return redirect("upload_users")
 
 
