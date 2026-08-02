@@ -1860,6 +1860,7 @@ def finance_upload_backlog_csv(request):
 
                 preview_data.append({
                     'row_num': row_idx,
+                    'user_id': student.id if student else None,
                     'email': email,
                     'index_number': index_number,
                     'program_name': program_name,
@@ -1923,7 +1924,15 @@ def finance_save_backlog(request):
         with transaction.atomic():
             for row in preview_data:
                 email = row['email']
-                student = User.objects.get(email=email)
+                user_id = row.get('user_id')
+                if user_id:
+                    student = User.objects.filter(id=user_id).first()
+                else:
+                    student = User.objects.filter(email__iexact=email).first()
+                
+                if not student:
+                    raise ValueError(f"Student with email '{email}' could not be found in the database.")
+
                 program = Program.objects.get(id=row['program_id'])
                 level = ProgramLevel.objects.get(id=row['level_id'])
                 year = AcademicYear.objects.get(id=row['year_id'])
