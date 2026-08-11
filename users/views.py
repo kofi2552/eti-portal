@@ -13,9 +13,10 @@ from portal.models import SystemLog
 from school.models import School
 from django.core.paginator import Paginator
 from reportlab.lib.utils import ImageReader
+from PIL import Image
 from django.conf import settings
 import os
-import csv, io
+import csv, io, zipfile, re
 import pandas as pd
 from django.http import HttpResponse,JsonResponse
 import random
@@ -1122,10 +1123,11 @@ def student_enrollment(request):
     # ======================================
     search_query = request.GET.get("q", "").strip()
     selected_program_id = request.GET.get("program_id", "").strip()
+    selected_level_id = request.GET.get("level_id", "").strip()
 
     payments_qs = (
         Payment.objects
-        .select_related("student", "academic_year", "semester", "program", "semester__level", "semester__level__program")
+        .select_related("student", "academic_year", "semester", "program", "level", "semester__level", "semester__level__program")
         .order_by("-created_at")
     )
 
@@ -1140,7 +1142,16 @@ def student_enrollment(request):
     if selected_program_id and selected_program_id != "all":
         payments_qs = payments_qs.filter(
             Q(program_id=selected_program_id) |
-            Q(semester__level__program_id=selected_program_id)
+            Q(semester__level__program_id=selected_program_id) |
+            Q(student__program_id=selected_program_id)
+        ).distinct()
+
+    if selected_level_id and selected_level_id != "all":
+        payments_qs = payments_qs.filter(
+            Q(level_id=selected_level_id) |
+            Q(semester__level_id=selected_level_id) |
+            Q(student__level_id=selected_level_id) |
+            Q(enrollment_payment__level_id=selected_level_id)
         ).distinct()
 
     # ======================================
@@ -1553,6 +1564,7 @@ def student_enrollment(request):
         "payments": payments_page,     
         "search_query": search_query, 
         "selected_program_id": selected_program_id,
+        "selected_level_id": selected_level_id,
         "students": User.objects.filter(role="student"),
         "years": AcademicYear.objects.all(),
         "semesters": active_semesters,
@@ -1562,56 +1574,85 @@ def student_enrollment(request):
     })
 
 
-@login_required
-def generate_payment_pdf(request, payment_id):
-    payment = get_object_or_404(Payment, id=payment_id)
+def sanitize_filename(name):
+    if not name:
+        return ""
+    return re.sub(r'[\\/*?:"<>|]', "", str(name)).strip()
 
-    # Response
-    response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="payment_{payment_id}.pdf"'
 
-    p = canvas.Canvas(response, pagesize=letter)
+def get_school_logo_path(school):
+    if not school or not school.logo:
+        return None
+    try:
+        if school.logo.path and os.path.exists(school.logo.path):
+            return school.logo.path
+    except Exception:
+        pass
+
+    media_root = settings.MEDIA_ROOT
+    if hasattr(school.logo, 'name') and school.logo.name:
+        p1 = os.path.join(media_root, school.logo.name)
+        if os.path.exists(p1):
+            return p1
+
+    school_logo_dir = os.path.join(media_root, 'school_logo')
+    if os.path.exists(school_logo_dir):
+        files = os.listdir(school_logo_dir)
+        if files:
+            return os.path.join(school_logo_dir, files[0])
+
+    return None
+
+
+def get_watermark_reader(logo_path, opacity=0.08):
+    try:
+        img = Image.open(logo_path).convert("RGBA")
+        r, g, b, a = img.split()
+        a = a.point(lambda p: int(p * opacity))
+        img.putalpha(a)
+        return ImageReader(img)
+    except Exception:
+        return ImageReader(logo_path)
+
+
+def build_payment_pdf_buffer(payment):
+    buffer = io.BytesIO()
+    p = canvas.Canvas(buffer, pagesize=letter)
     width, height = letter
 
     # ---------------------------------------------
     # HEADER (SCHOOL BRANDING)
     # ---------------------------------------------
     school = School.objects.first()
-
     header_top = height - 50
 
-    # LOGO (LEFT) & WATERMARK
-    if school and school.logo:
-        logo_path = os.path.join(settings.MEDIA_ROOT, school.logo.name)
-        if os.path.exists(logo_path):
-            p.drawImage(
-                ImageReader(logo_path),
-                50,
-                header_top - 50,
-                width=60,
-                height=60,
-                preserveAspectRatio=True,
-                mask="auto"
-            )
-            
-            # WATERMARK (CENTER)
-            p.saveState()
-            try:
-                p.setFillAlpha(0.03)  # 3% Opacity for washed out look
-            except Exception:
-                pass
-            
-            watermark_size = 550
-            p.drawImage(
-                ImageReader(logo_path),
-                (width - watermark_size) / 2,
-                (height - watermark_size) / 2 - 50,
-                width=watermark_size,
-                height=watermark_size,
-                preserveAspectRatio=True,
-                mask="auto"
-            )
-            p.restoreState()
+    # LOGO (LEFT) & WATERMARK (CENTER)
+    logo_path = get_school_logo_path(school)
+    if logo_path:
+        # 1. WATERMARK (CENTER BACKGROUND)
+        p.saveState()
+        watermark_size = 500
+        p.drawImage(
+            get_watermark_reader(logo_path, opacity=0.08),
+            (width - watermark_size) / 2,
+            (height - watermark_size) / 2 - 40,
+            width=watermark_size,
+            height=watermark_size,
+            preserveAspectRatio=True,
+            mask="auto"
+        )
+        p.restoreState()
+
+        # 2. LOGO (TOP LEFT)
+        p.drawImage(
+            ImageReader(logo_path),
+            50,
+            header_top - 50,
+            width=60,
+            height=60,
+            preserveAspectRatio=True,
+            mask="auto"
+        )
 
     # SCHOOL NAME
     p.setFont("Helvetica-Bold", 16)
@@ -1642,28 +1683,23 @@ def generate_payment_pdf(request, payment_id):
             " | ".join(details)
         )
 
-    # DIVIDER LINE (unchanged position)
+    # DIVIDER LINE
     p.setStrokeColor(colors.HexColor("#e5e7eb"))
     p.setLineWidth(0.6)
     p.line(50, header_top - 35, width - 50, header_top - 35)
 
-    # DOCUMENT TITLE — centered with breathing room
+    # DOCUMENT TITLE
     p.setFont("Helvetica-Bold", 14)
     p.setFillColor(colors.HexColor("#111827"))
-    title_y = header_top - 80   # controls TOP space
+    title_y = header_top - 80
     p.drawCentredString(width / 2, title_y, "STUDENT PAYMENT RECORD")
 
-    # 🔑 THIS LINE CREATES THE BOTTOM SPACE
-    y = title_y - 40 
-
-    # ---------------------------------------------
     # DATA TABLE CONFIG
-    # ---------------------------------------------
     y = title_y - 40
-    row_height = 28          # Taller rows for clean vertical spacing
+    row_height = 28
     label_x = 60
-    value_x = 240            # Second column begins here
-    vertical_line_x = 220    # Divider line position
+    value_x = 240
+    vertical_line_x = 220
 
     enroll = payment.enrollment_payment.first()
     lvl_name = enroll.level.level_name if (enroll and enroll.level) else (payment.student.level.level_name if payment.student.level else "N/A")
@@ -1693,48 +1729,135 @@ def generate_payment_pdf(request, payment_id):
         ("Date Paid", payment.date_paid.strftime("%Y-%m-%d %I:%M %p") if payment.date_paid else "N/A"),
     ]
 
-    # ---------------------------------------------
     # DRAW TABLE ROWS
-    # ---------------------------------------------
     for label, value in data:
         row_top = y
         row_bottom = y - row_height
 
-        # Row separator line
         p.setStrokeColor(colors.HexColor("#e6e6e6"))
         p.setLineWidth(0.4)
         p.line(50, row_bottom, width - 50, row_bottom)
-
-        # Vertical divider line
         p.line(vertical_line_x, row_top, vertical_line_x, row_bottom)
 
-        # Vertical centering inside row:
-        # Middle = row_bottom + (row_height / 2) - (approx text height / 4)
         text_y = row_bottom + (row_height / 2) - 3
 
-        # Label
         p.setFont("Helvetica-Bold", 10)
         p.setFillColor(colors.HexColor("#555555"))
         p.drawString(label_x, text_y, label)
 
-        # Value
         p.setFont("Helvetica", 11)
         p.setFillColor(colors.black)
         p.drawString(value_x, text_y, value)
 
         y -= row_height
 
-        # ---------------------------------------------
-        # FOOTER
-        # ---------------------------------------------
-        timestamp = timezone.now().strftime("%Y-%m-%d %H:%M")
-        p.setFont("Helvetica-Oblique", 8)
-        p.setFillColor(colors.HexColor("#999999"))
-        p.drawRightString(width - 50, 40, f"Generated on {timestamp}")
+    # FOOTER
+    timestamp = timezone.now().strftime("%Y-%m-%d %H:%M")
+    p.setFont("Helvetica-Oblique", 8)
+    p.setFillColor(colors.HexColor("#999999"))
+    p.drawRightString(width - 50, 40, f"Generated on {timestamp}")
 
     p.showPage()
     p.save()
+    buffer.seek(0)
+    return buffer
 
+
+@login_required
+def generate_payment_pdf(request, payment_id):
+    payment = get_object_or_404(Payment, id=payment_id)
+    pdf_buffer = build_payment_pdf_buffer(payment)
+
+    response = HttpResponse(pdf_buffer.getvalue(), content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="payment_{payment_id}.pdf"'
+    return response
+
+
+@login_required
+def bulk_download_payment_pdfs(request):
+    if getattr(request.user, "role", None) not in ["admin", "superadmin"]:
+        messages.error(request, "Access denied.")
+        return redirect("portal:home")
+
+    program_id = (request.POST.get("program_id") or request.GET.get("program_id") or "").strip()
+    level_id = (request.POST.get("level_id") or request.GET.get("level_id") or "").strip()
+    search_query = (request.POST.get("q") or request.GET.get("q") or "").strip()
+    raw_selected_ids = request.POST.getlist("selected_payment_ids") or request.GET.getlist("selected_payment_ids")
+    selected_ids = [pid.strip() for pid in raw_selected_ids if pid and str(pid).strip()]
+
+    payments_qs = Payment.objects.select_related(
+        "student", "academic_year", "semester", "program", "level", "semester__level", "semester__level__program"
+    ).order_by("-created_at")
+
+    if selected_ids:
+        payments_qs = payments_qs.filter(id__in=selected_ids)
+    else:
+        if search_query:
+            payments_qs = payments_qs.filter(
+                Q(student__first_name__icontains=search_query) |
+                Q(student__last_name__icontains=search_query) |
+                Q(student__username__icontains=search_query) |
+                Q(generated_student_id__icontains=search_query)
+            )
+
+        if program_id and program_id != "all":
+            payments_qs = payments_qs.filter(
+                Q(program_id=program_id) |
+                Q(semester__level__program_id=program_id) |
+                Q(student__program_id=program_id)
+            ).distinct()
+
+        if level_id and level_id != "all":
+            payments_qs = payments_qs.filter(
+                Q(level_id=level_id) |
+                Q(semester__level_id=level_id) |
+                Q(student__level_id=level_id) |
+                Q(enrollment_payment__level_id=level_id)
+            ).distinct()
+
+    if not payments_qs.exists():
+        messages.error(request, "No student payment records found for the specified selection/filters.")
+        return redirect("student_enrollment")
+
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
+        used_filenames = set()
+        for payment in payments_qs:
+            pdf_buf = build_payment_pdf_buffer(payment)
+            student_name = sanitize_filename(payment.student.get_full_name())
+            student_id = sanitize_filename(payment.generated_student_id or payment.student.username or str(payment.student.id))
+            
+            base_filename = f"{student_id}_{student_name}_Payment_{payment.id}.pdf"
+            filename = base_filename
+            counter = 1
+            while filename in used_filenames:
+                filename = f"{student_id}_{student_name}_Payment_{payment.id}_{counter}.pdf"
+                counter += 1
+            used_filenames.add(filename)
+
+            zf.writestr(filename, pdf_buf.getvalue())
+
+    zip_buffer.seek(0)
+
+    if selected_ids:
+        zip_filename = f"Selected_Student_Payment_PDFs_{len(payments_qs)}_records.zip"
+    else:
+        prog_label = "All_Programs"
+        if program_id and program_id != "all":
+            prog = Program.objects.filter(id=program_id).first()
+            if prog:
+                prog_label = sanitize_filename(prog.name).replace(" ", "_")
+
+        lvl_label = "All_Levels"
+        if level_id and level_id != "all":
+            lvl = ProgramLevel.objects.filter(id=level_id).first()
+            if lvl:
+                lvl_label = sanitize_filename(lvl.level_name).replace(" ", "_")
+
+        zip_filename = f"Student_Payment_PDFs_{prog_label}_{lvl_label}.zip"
+
+    response = HttpResponse(zip_buffer.getvalue(), content_type='application/zip')
+    response['Content-Disposition'] = f'attachment; filename="{zip_filename}"'
     return response
 
 

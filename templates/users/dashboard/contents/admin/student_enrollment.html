@@ -2,13 +2,33 @@
 Fee Payments {% endblock %} {% block content %}
 
 <div class="max-w-6xl mx-auto px-2 pt-6 pb-8">
-  <div class="w-full flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-4">
-    <div>
-      <h2 class="text-xl font-semibold">Enrollment and Fee Payment</h2>
+  <div class="w-full flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+    <div class="shrink-0">
+      <h2 class="text-xl font-semibold text-slate-900 whitespace-nowrap">Enrollment and Fee Payment</h2>
       <p class="text-xs text-slate-500 mt-0.5">Manage and verify student payment records.</p>
     </div>
 
-    <div class="flex flex-wrap items-center gap-3">
+    <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+      <!-- Bulk Download Selected Students Button -->
+      <button type="button" onclick="submitBulkDownloadSelectedPDFs()"
+        class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+        title="Download individual payment PDFs in a ZIP file for selected checkboxes">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+        </svg>
+        <span>Bulk Download Selected</span>
+      </button>
+
+      <!-- Bulk Download Filtered Button -->
+      <button type="button" onclick="openBulkDownloadModal()"
+        class="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+        title="Download individual payment PDFs in a ZIP file by Program and Level filters">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
+        </svg>
+        <span>Bulk Download by Filter</span>
+      </button>
+
       <!-- Bulk Delete Button -->
       <button type="button" onclick="submitBulkDeletePayments()"
         class="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer whitespace-nowrap">
@@ -17,8 +37,13 @@ Fee Payments {% endblock %} {% block content %}
         </svg>
         <span>Bulk Delete Selected</span>
       </button>
+    </div>
+  </div>
 
-      <form method="GET" class="flex flex-wrap items-center gap-3">
+  <div class="w-full mx-auto bg-white p-6 rounded-2xl border border-slate-100 space-y-4">
+    <!-- SEARCH & FILTER FORM BAR -->
+    <form method="GET" class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100">
+      <div class="flex flex-wrap items-center gap-3 w-full">
         <!-- Search Input -->
         <input type="text" name="q" value="{{ search_query }}" placeholder="Search student name or ID..."
           class="border border-slate-200 rounded-xl px-3 py-1.5 text-xs bg-white text-slate-800 font-semibold outline-none focus:ring-1 focus:ring-blue-500 shadow-2xs w-48 sm:w-60" />
@@ -26,11 +51,25 @@ Fee Payments {% endblock %} {% block content %}
         <!-- Program Filter -->
         <div class="flex items-center gap-2">
           <label class="text-xs font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap">Program:</label>
-          <select name="program_id" onchange="this.form.submit()"
-            class="w-[180px] sm:w-[220px] border border-slate-200 rounded-xl px-3 py-1.5 text-xs bg-white text-slate-800 font-semibold outline-none focus:ring-1 focus:ring-blue-500 shadow-2xs truncate">
+          <select name="program_id" id="mainPaymentProgramFilter" onchange="this.form.submit()"
+            class="w-[160px] sm:w-[190px] border border-slate-200 rounded-xl px-3 py-1.5 text-xs bg-white text-slate-800 font-semibold outline-none focus:ring-1 focus:ring-blue-500 shadow-2xs truncate">
             <option value="all">-- All Programs --</option>
             {% for prog in programs %}
             <option value="{{ prog.id }}" {% if selected_program_id == prog.id|stringformat:"s" %}selected{% endif %}>{{ prog.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Level Filter -->
+        <div class="flex items-center gap-2">
+          <label class="text-xs font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap">Level:</label>
+          <select name="level_id" id="mainPaymentLevelFilter" onchange="this.form.submit()"
+            class="w-[130px] sm:w-[160px] border border-slate-200 rounded-xl px-3 py-1.5 text-xs bg-white text-slate-800 font-semibold outline-none focus:ring-1 focus:ring-blue-500 shadow-2xs truncate">
+            <option value="all">-- All Levels --</option>
+            {% for lvl in levels %}
+            <option value="{{ lvl.id }}" {% if selected_level_id == lvl.id|stringformat:"s" %}selected{% endif %}>
+              {{ lvl.level_name }} {% if lvl.program %}({{ lvl.program.name }}){% endif %}
+            </option>
             {% endfor %}
           </select>
         </div>
@@ -40,14 +79,11 @@ Fee Payments {% endblock %} {% block content %}
           Filter
         </button>
 
-        {% if search_query or selected_program_id and selected_program_id != 'all' %}
+        {% if search_query or selected_program_id and selected_program_id != 'all' or selected_level_id and selected_level_id != 'all' %}
         <a href="{% url 'student_enrollment' %}" class="text-xs text-slate-500 hover:text-slate-700 underline font-medium">Clear</a>
         {% endif %}
-      </form>
-    </div>
-  </div>
-
-  <div class="w-full mx-auto bg-white p-6 rounded-2xl border border-slate-100 space-y-4">
+      </div>
+    </form>
     <!-- BULK PAYMENT DELETE FORM WRAPPER -->
     <form method="POST" id="bulkPaymentForm">
       {% csrf_token %}
@@ -528,6 +564,84 @@ Fee Payments {% endblock %} {% block content %}
   </div>
 </div>
 
+<!-- HIDDEN BULK DOWNLOAD FORM FOR PAYMENTS -->
+<form id="bulkPdfZipForm" method="POST" action="{% url 'bulk_download_payment_pdfs' %}" style="display:none;">
+  {% csrf_token %}
+  <input type="hidden" name="program_id" id="bulkZipProgramId" value="" />
+  <input type="hidden" name="level_id" id="bulkZipLevelId" value="" />
+  <input type="hidden" name="q" id="bulkZipSearchQuery" value="" />
+  <div id="bulkZipSelectedContainer"></div>
+</form>
+
+<!-- BULK DOWNLOAD PDFS MODAL -->
+<div id="bulkDownloadModal" class="w-full hidden fixed inset-0 flex items-center justify-center z-50"
+  style="backdrop-filter: blur(6px); background-color: rgba(15, 23, 42, 0.4)">
+  <div class="bg-white mx-auto p-6 rounded-2xl border border-slate-100 shadow-xl w-[92%] sm:w-[480px]">
+    <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+          </svg>
+        </div>
+        <div>
+          <h3 class="text-base font-bold text-slate-900">Bulk Download Student PDFs</h3>
+          <p class="text-xs text-slate-500">Generate and package individual student PDFs in a ZIP archive</p>
+        </div>
+      </div>
+      <button type="button" onclick="closeBulkDownloadModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+
+    <form method="POST" action="{% url 'bulk_download_payment_pdfs' %}" id="modalBulkDownloadForm">
+      {% csrf_token %}
+
+      <div class="space-y-4 text-xs">
+        <div>
+          <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">Filter Program</label>
+          <select name="program_id" id="modalBulkProgramSelect" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs bg-white text-slate-800 font-semibold outline-none focus:ring-1 focus:ring-blue-500 shadow-2xs">
+            <option value="all">-- All Programs --</option>
+            {% for prog in programs %}
+            <option value="{{ prog.id }}" {% if selected_program_id == prog.id|stringformat:"s" %}selected{% endif %}>{{ prog.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">Filter Level</label>
+          <select name="level_id" id="modalBulkLevelSelect" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs bg-white text-slate-800 font-semibold outline-none focus:ring-1 focus:ring-blue-500 shadow-2xs">
+            <option value="all">-- All Levels --</option>
+            {% for lvl in levels %}
+            <option value="{{ lvl.id }}" {% if selected_level_id == lvl.id|stringformat:"s" %}selected{% endif %}>
+              {{ lvl.level_name }} {% if lvl.program %}({{ lvl.program.name }}){% endif %}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="p-3 bg-blue-50/70 border border-blue-100 rounded-xl text-blue-800 text-[11px] leading-relaxed">
+          <strong>Note:</strong> Each student payment record matching the selected Program and Level filters will be converted to an individual PDF file and zipped together into one file for download.
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-slate-100">
+        <button type="button" onclick="closeBulkDownloadModal()" class="px-4 py-2 border border-slate-200 text-slate-700 font-bold rounded-xl text-xs hover:bg-slate-50 transition-colors">
+          Cancel
+        </button>
+        <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition-colors shadow-xs flex items-center gap-1.5 cursor-pointer">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+          </svg>
+          <span>Download ZIP</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <script>
   document
     .getElementById("programSelect")
@@ -677,6 +791,72 @@ Fee Payments {% endblock %} {% block content %}
       document.getElementById('singleDeletePaymentForm').submit();
     }
   }
+
+  function openBulkDownloadModal() {
+    document.getElementById("bulkDownloadModal").classList.remove("hidden");
+  }
+
+  function closeBulkDownloadModal() {
+    document.getElementById("bulkDownloadModal").classList.add("hidden");
+  }
+
+  function submitBulkDownloadSelectedPDFs() {
+    const checked = document.querySelectorAll('.payment-checkbox:checked');
+    if (checked.length === 0) {
+      alert("Please select at least one student payment record checkbox to download.");
+      return;
+    }
+
+    const form = document.getElementById('bulkPdfZipForm');
+    const container = document.getElementById('bulkZipSelectedContainer');
+    container.innerHTML = '';
+
+    // Clear filter fields so only selected IDs are downloaded
+    document.getElementById('bulkZipProgramId').value = '';
+    document.getElementById('bulkZipLevelId').value = '';
+    document.getElementById('bulkZipSearchQuery').value = '';
+
+    checked.forEach(cb => {
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = 'selected_payment_ids';
+      input.value = cb.value;
+      container.appendChild(input);
+    });
+
+    form.submit();
+  }
+
+  function submitBulkDownloadPDFs() {
+    const checked = document.querySelectorAll('.payment-checkbox:checked');
+    if (checked.length > 0) {
+      submitBulkDownloadSelectedPDFs();
+    } else {
+      openBulkDownloadModal();
+    }
+  }
+
+  document.getElementById("modalBulkProgramSelect")?.addEventListener("change", function () {
+    const programId = this.value;
+    const levelSelect = document.getElementById("modalBulkLevelSelect");
+    levelSelect.innerHTML = '<option value="all">-- All Levels --</option>';
+
+    if (!programId || programId === "all") return;
+
+    fetch(`/users/admin/ajax/program-levels/${programId}/`)
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.levels) {
+          data.levels.forEach((level) => {
+            const opt = document.createElement("option");
+            opt.value = level.id;
+            opt.textContent = level.name;
+            levelSelect.appendChild(opt);
+          });
+        }
+      })
+      .catch((err) => console.error("Error loading modal levels:", err));
+  });
 </script>
 
 {% endblock %}

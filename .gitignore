@@ -8,6 +8,9 @@ package-lock.json
 node_modules/
 requirement.txt
 requirements.txt
+generate_student_guide.py
+ETI_student_Portal_user_Guide.docx
+student_handbook.docx
 
 # Debug
 debug/

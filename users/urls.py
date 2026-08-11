@@ -41,6 +41,7 @@ urlpatterns = [
     path("admin/manage-users/", views.admin_manage_users, name="admin_manage_users"),
     path("admin/enroll/students/", views.student_enrollment, name="student_enrollment"),
     path("admin/enroll/students/payments/pdf/<int:payment_id>/", views.generate_payment_pdf, name="payment_pdf"),
+    path("admin/enroll/students/payments/bulk-pdf-zip/", views.bulk_download_payment_pdfs, name="bulk_download_payment_pdfs"),
     path("admin/manage-school/", views.admin_school, name="admin_school"),
     path("admin/semesters/export/csv/", views.admin_export_semesters_csv, name="admin_export_semesters_csv"),
     path("admin/semesters/upload/csv/", views.admin_upload_semesters_csv, name="admin_upload_semesters_csv"),
