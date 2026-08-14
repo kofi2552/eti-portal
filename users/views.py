@@ -580,7 +580,7 @@ def course_detail(request, course_id):
     All users can view.
     """
     # print("course id: ", course_id)
-    course = get_object_or_404(ProgramCourse.objects.select_related("program", "semester"), id=course_id)
+    course = get_object_or_404(ProgramCourse.objects.select_related("program", "semester", "level", "semester__level"), id=course_id)
     user = request.user
 
     # Permission to manage resources: admin OR assigned lecturer
@@ -600,7 +600,11 @@ def course_detail(request, course_id):
             messages.error(request, "You do not have permission to add resources for this course.")
             return redirect("course_detail", course_id=course_id)
 
-        form = ResourceForm(request.POST, request.FILES)
+        post_data = request.POST.copy()
+        if not post_data.get("semester") and course.semester_id:
+            post_data["semester"] = str(course.semester_id)
+
+        form = ResourceForm(post_data, request.FILES, program=course.program, lecturer=user)
         if form.is_valid():
             resource = form.save(commit=False)
             resource.course = course
@@ -622,7 +626,7 @@ def course_detail(request, course_id):
         initial = {}
         if course.semester_id:
             initial["semester"] = course.semester_id
-        form = ResourceForm(initial=initial)
+        form = ResourceForm(initial=initial, program=course.program, lecturer=user)
 
     return render(request, "users/dashboard/contents/lecturer/course_detail.html", {
         "course": course,
@@ -1884,9 +1888,26 @@ def toggle_program_fee_allowed(request, fee_id):
 
 
 # DEAN SECTION ------------------------------
+def get_dean_programs(user):
+    if getattr(user, "role", None) in ["admin", "superadmin"]:
+        return Program.objects.all().select_related("department")
+    return Program.objects.filter(
+        Q(department__dean=user) |
+        Q(id=user.program_id) |
+        Q(department=user.department)
+    ).distinct().select_related("department")
+
+
 @login_required
 def dean_main(request):
-    return render(request, "users/dashboard/contents/dean/dean_main.html")
+    if getattr(request.user, "role", None) not in ["dean", "admin"]:
+        messages.error(request, "Access denied.")
+        return redirect("portal:home")
+    programs = list(get_dean_programs(request.user).order_by("name"))
+    return render(request, "users/dashboard/contents/dean/dean_main.html", {
+        "programs": programs,
+        "default_program": programs[0] if programs else None,
+    })
 
 @login_required
 def assign_lecturers(request):
@@ -1922,21 +1943,32 @@ def manage_courses(request):
         return redirect("portal:home")
 
     user = request.user
+    programs = list(get_dean_programs(user).order_by('name'))
+    default_program = programs[0] if programs else None
 
-    # Admin sees all programs
-    if user.role == "admin":
-        programs = Program.objects.select_related('department').order_by('department__name', 'name')
-    else:
-        # Dean sees only programs in his/her department
-        programs = Program.objects.filter(department__dean=user).order_by('name')
-
-    programs = list(programs)
-
+    search = request.GET.get("search", "").strip()
+    selected_program = request.GET.get("program_id", "").strip()
 
     # All courses under these programs
-    courses = Course.objects.filter(program__in=programs) \
+    courses_qs = Course.objects.filter(program__in=programs) \
         .select_related('program', 'department') \
+        .prefetch_related('assigned_lecturers') \
         .order_by('program__name', 'title')
+
+    if selected_program:
+        courses_qs = courses_qs.filter(program_id=selected_program)
+
+    if search:
+        courses_qs = courses_qs.filter(
+            Q(code__icontains=search) |
+            Q(title__icontains=search) |
+            Q(assigned_lecturers__first_name__icontains=search) |
+            Q(assigned_lecturers__last_name__icontains=search)
+        ).distinct()
+
+    paginator = Paginator(courses_qs, 15)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
 
     lecturers = User.objects.filter(role='lecturer').order_by('last_name', 'first_name')
 
@@ -1955,26 +1987,27 @@ def manage_courses(request):
         program_id = request.POST.get("program_id")
         lecturer_ids = request.POST.getlist("lecturer_ids")
 
-        program = Program.objects.filter(id=program_id).first()
+        if not program_id and len(programs) == 1:
+            program = programs[0]
+        else:
+            program = Program.objects.filter(id=program_id).first()
 
-        # AUTO-GENERATE CODE
-        code = generate_course_code(title, program.department.name)
-
-        # Ensure uniqueness
-        while Course.objects.filter(code=code).exists():
-            code = generate_course_code(title, program.department.name)
-
-        if not title or not code or not program_id:
-            messages.error(request, "Program, course code, and title are required.")
-            return redirect("manage_courses")
-
-
-        
         if not program or program not in programs:
             messages.error(request, "Invalid program selected.")
             return redirect("manage_courses")
 
-       
+        # AUTO-GENERATE CODE
+        dept_name = program.department.name if program.department else "GEN"
+        code = generate_course_code(title, dept_name)
+
+        # Ensure uniqueness
+        while Course.objects.filter(code=code).exists():
+            code = generate_course_code(title, dept_name)
+
+        if not title:
+            messages.error(request, "Course title is required.")
+            return redirect("manage_courses")
+
         if Course.objects.filter(code__iexact=code).exists():
             messages.error(request, "A course with this code already exists.")
             return redirect("manage_courses")
@@ -2011,18 +2044,22 @@ def manage_courses(request):
         program_id = request.POST.get("program_id")
         lecturer_ids = request.POST.getlist("lecturer_ids")
 
-        if not title or not program_id:
+        if not program_id and len(programs) == 1:
+            program = programs[0]
+        else:
+            program = Program.objects.filter(id=program_id).first()
+
+        if not program or program not in programs:
+            messages.error(request, "Invalid program selected.")
+            return redirect("manage_courses")
+
+        if not title:
             messages.error(request, "Program and course title are required.")
             return redirect("manage_courses")
 
         # Fallback if code is missing from POST (should be readonly but safety first)
         if not code:
             code = course.code
-
-        program = Program.objects.filter(id=program_id).first()
-        if not program or program not in programs:
-            messages.error(request, "Invalid program selected.")
-            return redirect("manage_courses")
 
         if Course.objects.filter(code__iexact=code).exclude(id=course.id).exists():
             messages.error(request, "A course with this code already exists.")
@@ -2046,6 +2083,9 @@ def manage_courses(request):
     if request.method == "POST" and request.POST.get("delete_course"):
         course_id = request.POST.get("course_id")
         course = get_object_or_404(Course, id=course_id)
+        if course.program not in programs:
+            messages.error(request, "You cannot delete courses outside your assigned programs.")
+            return redirect("manage_courses")
         course.delete()
         messages.success(request, "Course deleted successfully.")
         return redirect("manage_courses")
@@ -2053,8 +2093,12 @@ def manage_courses(request):
     # ---------- RENDER ----------
     return render(request, "users/dashboard/contents/dean/courses.html", {
         "programs": programs,
-        "courses": courses,
+        "default_program": default_program,
+        "courses": page_obj,
+        "page_obj": page_obj,
         "lecturers": lecturers,
+        "search": search,
+        "selected_program": selected_program,
     })
 
 
@@ -2066,12 +2110,21 @@ def ajax_get_program_course(request, pc_id):
 
     pc = get_object_or_404(ProgramCourse, id=pc_id)
 
+    if request.user.role == "dean":
+        dean_programs = get_dean_programs(request.user)
+        if pc.program not in dean_programs:
+            return JsonResponse({"error": "Unauthorized program access"}, status=403)
+
     data = {
         "id": pc.id,
         "title": pc.title,
         "code": pc.course_code,
         "credit_hours": pc.credit_hours,
         "active": pc.is_active,
+        "program_id": pc.program_id,
+        "program_name": pc.program.name if pc.program else "",
+        "level_id": pc.level_id,
+        "semester_id": pc.semester_id,
         "lecturer_ids": list(pc.assigned_lecturers.values_list("id", flat=True)),
     }
 
@@ -2086,33 +2139,46 @@ def ajax_update_program_course(request):
     if request.user.role not in ["dean", "admin"]:
         return JsonResponse({"error": "Unauthorized"}, status=403)
 
-
     pc_id = request.POST.get("pc_id")
-    pc_title = request.POST.get("pc_title").strip()
+    pc_title = request.POST.get("pc_title", "").strip()
     pc_code = request.POST.get("pc_code", "").strip()
-    pc_credit = request.POST.get("pc_credit").strip()
+    pc_credit = request.POST.get("pc_credit", "").strip()
     pc_active = request.POST.get("is_active") == "true"
+    level_id = request.POST.get("level_id")
+    semester_id = request.POST.get("semester_id")
     lecturer_ids = request.POST.getlist("lecturers")  # multiple select
 
     if not pc_id:
         return JsonResponse({"error": "ProgramCourse ID missing"}, status=400)
 
+    pc = get_object_or_404(ProgramCourse, id=pc_id)
+
+    if request.user.role == "dean":
+        dean_programs = get_dean_programs(request.user)
+        if pc.program not in dean_programs:
+            return JsonResponse({"error": "Unauthorized program access"}, status=403)
+
     try:
         # Prevent unique constraint crashes if changing to an already existing code
         if pc_code and ProgramCourse.objects.filter(course_code=pc_code).exclude(id=pc_id).exists():
             return JsonResponse({"error": f"Course code {pc_code} is already in use by another course."}, status=400)
-    except Exception as e:
-        pass
 
-    pc = get_object_or_404(ProgramCourse, id=pc_id)
-
-    # Update lecturers
-    try:
-        pc.title = pc_title
+        if pc_title:
+            pc.title = pc_title
         if pc_code:
             pc.course_code = pc_code
         pc.is_active = pc_active
-        pc.credit_hours = int(pc_credit)
+        if pc_credit:
+            pc.credit_hours = int(pc_credit)
+
+        if level_id:
+            pc.level_id = int(level_id)
+
+        if semester_id:
+            pc.semester_id = int(semester_id)
+        elif semester_id == "":
+            pc.semester = None
+
         pc.assigned_lecturers.set(lecturer_ids)
         pc.save()
     except Exception as e:
@@ -2178,25 +2244,19 @@ def dean_program_courses_list(request):
         return redirect("portal:home")
 
     q = request.GET.get("q", "").strip()
-    program_id = request.GET.get("program_id")
-    level_id = request.GET.get("level_id")
-    semester_id = request.GET.get("semester_id")
+    program_id = request.GET.get("program_id", "").strip()
+    level_id = request.GET.get("level_id", "").strip()
+    semester_id = request.GET.get("semester_id", "").strip()
 
-    if request.user.role == "dean":
-        programs = Program.objects.filter(department__dean=request.user).order_by("name")
-        levels = ProgramLevel.objects.filter(program__department__dean=request.user).select_related("program").order_by("program__name", "order")
-        semesters = Semester.objects.filter(level__program__department__dean=request.user).order_by("academic_year__start_date", "name")
-    else:
-        programs = Program.objects.all().order_by("name")
-        levels = ProgramLevel.objects.select_related("program").order_by("program__name", "order")
-        semesters = Semester.objects.all().order_by("academic_year__start_date", "name")
+    programs = list(get_dean_programs(request.user).order_by("name"))
+    default_program = programs[0] if programs else None
 
-    queryset = ProgramCourse.objects.select_related(
+    levels = ProgramLevel.objects.filter(program__in=programs).select_related("program").order_by("program__name", "order")
+    semesters = Semester.objects.filter(level__program__in=programs).select_related("academic_year", "level", "level__program").order_by("academic_year__start_date", "name")
+
+    queryset = ProgramCourse.objects.filter(program__in=programs).select_related(
         "program", "level", "semester"
-    ).order_by("program__name", "level__order")
-
-    if request.user.role == "dean":
-        queryset = queryset.filter(program__department__dean=request.user)
+    ).prefetch_related("assigned_lecturers").order_by("program__name", "level__order", "course_code")
 
     # SEARCH
     if q:
@@ -2215,16 +2275,16 @@ def dean_program_courses_list(request):
     if semester_id:
         queryset = queryset.filter(semester_id=semester_id)
 
-    paginator = Paginator(queryset, 20)
+    paginator = Paginator(queryset, 15)
     page_obj = paginator.get_page(request.GET.get("page"))
 
-    lecturers = User.objects.filter(role="lecturer")
-
-    default_courses = Course.objects.filter(program=None).order_by("title")
+    lecturers = User.objects.filter(role="lecturer").order_by("last_name", "first_name")
+    default_courses = Course.objects.filter(program__in=programs).order_by("title")
 
     return render(request, "users/dashboard/contents/dean/program_courses_list.html", {
         "q": q,
         "programs": programs,
+        "default_program": default_program,
         "levels": levels,
         "semesters": semesters,
         "selected_program": program_id,
@@ -2238,7 +2298,14 @@ def dean_program_courses_list(request):
 
 @login_required
 def ajax_program_levels_courses(request, program_id):
-    program = get_object_or_404(Program, id=program_id)
+    if request.user.role not in ["dean", "admin"]:
+        return JsonResponse({"error": "Unauthorized"}, status=403)
+
+    if request.user.role == "dean":
+        dean_programs = get_dean_programs(request.user)
+        program = get_object_or_404(dean_programs, id=program_id)
+    else:
+        program = get_object_or_404(Program, id=program_id)
 
     levels = ProgramLevel.objects.filter(program=program).order_by("order")
 
@@ -2255,6 +2322,11 @@ def ajax_program_levels_courses(request, program_id):
 def ajax_level_semesters(request, level_id):
     level = get_object_or_404(ProgramLevel, id=level_id)
 
+    if request.user.role == "dean":
+        dean_programs = get_dean_programs(request.user)
+        if level.program not in dean_programs:
+            return JsonResponse({"semesters": []}, status=403)
+
     semesters = Semester.objects.filter(level=level).order_by("start_date")
 
     return JsonResponse({
@@ -2267,6 +2339,9 @@ def ajax_duplicate_program_course(request):
     if request.method != "POST":
         return JsonResponse({"error": "Invalid request"}, status=400)
 
+    if request.user.role not in ["dean", "admin"]:
+        return JsonResponse({"error": "Unauthorized"}, status=403)
+
     program_id = request.POST.get("program_id")
     level_id = request.POST.get("level_id")
     semester_id = request.POST.get("semester_id")
@@ -2276,8 +2351,13 @@ def ajax_duplicate_program_course(request):
     if not program_id or not level_id or not base_course_id or not semester_id:
         return JsonResponse({"error": "Missing required fields"}, status=400)
 
-    program = get_object_or_404(Program, id=program_id)
-    level = get_object_or_404(ProgramLevel, id=level_id)
+    if request.user.role == "dean":
+        dean_programs = get_dean_programs(request.user)
+        program = get_object_or_404(dean_programs, id=program_id)
+    else:
+        program = get_object_or_404(Program, id=program_id)
+
+    level = get_object_or_404(ProgramLevel, id=level_id, program=program)
     base_course = get_object_or_404(Course, id=base_course_id)
 
     semester = None
@@ -2300,7 +2380,6 @@ def ajax_duplicate_program_course(request):
             )
         })
 
-
     # Generate code dynamically based on level
     code = ProgramCourse.generate_code_for(base_course.title, level)
 
@@ -2319,11 +2398,11 @@ def ajax_duplicate_program_course(request):
     pc.assigned_lecturers.set(base_course.assigned_lecturers.all())
 
     return JsonResponse({
-            "success": True,
-            "message": "Course duplicated successfully",
-            "pc_id": pc.id,
-            "code": code,
-        })
+        "success": True,
+        "message": "Course duplicated successfully",
+        "pc_id": pc.id,
+        "code": code,
+    })
 
 
 @login_required
@@ -2341,6 +2420,11 @@ def ajax_delete_program_course(request):
     pc = ProgramCourse.objects.filter(id=pc_id).first()
     if not pc:
         return JsonResponse({"error": "Course mapping not found"}, status=404)
+
+    if request.user.role == "dean":
+        dean_programs = get_dean_programs(request.user)
+        if pc.program not in dean_programs:
+            return JsonResponse({"error": "Unauthorized"}, status=403)
 
     pc.delete()
     return JsonResponse({"success": True})
@@ -3688,12 +3772,20 @@ def lecturer_assessments(request):
         return redirect("portal:home")
 
     # -----------------------------
-    # LOAD SEMESTERS
+    # LOAD SEMESTERS (ONLY FOR ASSIGNED COURSES)
     # -----------------------------
+    assigned_pcs = user.program_courses_taught.filter(is_active=True)
+    prog_ids = assigned_pcs.values_list("program_id", flat=True)
+    direct_sem_ids = assigned_pcs.values_list("semester_id", flat=True)
+
     semesters = (
-        Semester.objects.filter(is_active=True)
-        .select_related("academic_year")
-        .order_by("-start_date")
+        Semester.objects.filter(
+            Q(level__program_id__in=prog_ids) | Q(id__in=direct_sem_ids),
+            is_active=True
+        )
+        .select_related("academic_year", "level")
+        .distinct()
+        .order_by("-academic_year__start_date", "name")
     )
 
     # -----------------------------
@@ -3704,8 +3796,8 @@ def lecturer_assessments(request):
 
     selected_semester = None
     if semester_id:
-        selected_semester = Semester.objects.filter(id=semester_id).first()
-    else:
+        selected_semester = semesters.filter(id=semester_id).first()
+    if not selected_semester:
         # auto-select latest active semester
         selected_semester = semesters.first()
 
@@ -3785,7 +3877,7 @@ def lecturer_assessments(request):
     lecturer_courses = (
         ProgramCourse.objects
         .filter(assigned_lecturers=user, is_active=True)
-        .select_related("program")
+        .select_related("program", "semester", "level", "semester__level")
         .order_by("program__name", "course_code")
     )
 
@@ -3802,9 +3894,14 @@ def lecturer_assessments(request):
                 assigned_lecturers=user
             )
 
-            semester = Semester.objects.get(
-                id=request.POST.get("semester_id")
-            )
+            semester_id = request.POST.get("semester_id")
+            if semester_id:
+                semester = Semester.objects.get(id=semester_id)
+            elif course.semester:
+                semester = course.semester
+            else:
+                messages.error(request, "Selected course has no assigned semester. Please contact the Dean.")
+                return redirect("lecturer_assessments")
 
             task = AssessmentTask.objects.create(
                 course=course,

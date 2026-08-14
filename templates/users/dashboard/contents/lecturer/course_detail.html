@@ -71,10 +71,16 @@
           </div>
 
           <div>
-            {{ form.semester.label_tag }} {{ form.semester }}
-            <!-- --------------------------- -->
+            <label class="block mb-1 text-sm text-gray-700 font-medium">Semester</label>
+            <input type="hidden" name="semester" value="{{ course.semester_id|default:'' }}" />
+            <input
+              type="text"
+              readonly
+              class="w-full border-c bg-gray-50 text-gray-700 font-medium rounded px-3 py-2 text-sm cursor-not-allowed"
+              value="{% if course.semester %}{{ course.semester.name }}{% if course.semester.level %}_{{ course.semester.level.level_name }}{% elif course.level %}_{{ course.level.level_name }}{% endif %}{% else %}No semester assigned{% endif %}"
+            />
             {% if form.semester.errors %}
-            <div class="text-red-600 text-sm">{{ form.semester.errors }}</div>
+            <div class="text-red-600 text-sm mt-1">{{ form.semester.errors }}</div>
             {% endif %}
           </div>
 

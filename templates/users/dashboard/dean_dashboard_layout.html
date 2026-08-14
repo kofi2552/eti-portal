@@ -205,17 +205,20 @@
 
         <!-- RIGHT SIDEBAR -->
         <aside class="w-52 bg-gray-50 border-l border-gray-200 hidden lg:block p-4">
-          <h3 class="font-semibold mb-3 text-sm">Quick Actions</h3>
+          <h3 class="font-semibold mb-3 text-sm">Quick Info</h3>
 
           <ul class="space-y-2 text-sm">
-            <li>
-              <a href="#" class="text-blue-600 hover:underline">Generate Report</a>
+            <li class="mb-4">
+              <a href="{% url 'manage_courses' %}" class="text-blue-600 hover:underline">Base Courses</a>
+              <p class="text-xs text-gray-500">This is a course that is not assigned to any semester. This course can be reused by multiple semesters in a program.</p>
             </li>
-            <li>
-              <a href="#" class="text-blue-600 hover:underline">View Logs</a>
+            <li class="mb-4">
+              <a href="{% url 'dean_program_courses_list' %}" class="text-blue-600 hover:underline">Program Courses</a>
+              <p class="text-xs text-gray-500">This is a course that is assigned to a specific semester and lecturer. It can not be reused once the semester is over.</p>
             </li>
-            <li>
-              <a href="#" class="text-blue-600 hover:underline">System Settings</a>
+            <li class="mb-4">
+              <a href="{% url 'dean_program_courses_list' %}" class="text-blue-600 hover:underline">Semester Courses</a>
+              <p class="text-xs text-gray-500">Duplicating a base course is how you create a fresh and empty program course for a specific semester and lecturer. Only base courses can be duplicated into program or semester courses.</p>
             </li>
           </ul>
         </aside>

@@ -6,92 +6,93 @@
 
   <!-- PAGE HEADER -->
   <div class="flex justify-between items-center mb-6">
-    <h2 class="text-2xl font-semibold">Program Courses</h2>
+    <h2 class="text-2xl font-semibold text-gray-800">Program/Semester Courses</h2>
 
     <button onclick="openDuplicateModal()"
-      class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 cursor-pointer">
-      Duplicate Course →
+      class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 cursor-pointer font-medium text-sm">
+      Create Semester Course →
     </button>
   </div>
 
   <!-- FILTER FORM -->
-  <form method="GET" class="w-full mx-auto flex flex-wrap gap-3 items-center mb-5">
+  <form method="GET" id="programCourseFilterForm" class="w-full mx-auto flex flex-wrap gap-3 items-center mb-5 bg-white p-4 rounded-lg border border-gray-200">
 
-    <input type="text" name="q" value="{{ q }}" placeholder="Search..."
-      class="border-white pr-3 py-2 rounded w-[1px] ml-[-30px]" />
+    <input type="text" name="q" value="{{ q }}" placeholder="Search by title or course code..."
+      class="border border-gray-300 px-3 py-2 rounded-md w-64 text-sm" />
 
-    <select name="program_id" id="filter_program" class="w-52 border-c px-3 py-2 rounded">
+    <select name="program_id" id="filter_program" class="w-52 border border-gray-300 px-3 py-2 rounded-md text-sm bg-white">
+      {% if programs|length > 1 %}
       <option value="">All Programs</option>
+      {% endif %}
       {% for p in programs %}
-      <option value="{{ p.id }}">
+      <option value="{{ p.id }}" {% if selected_program == p.id|stringformat:"s" or programs|length == 1 %}selected{% endif %}>
         {{ p.name }}
       </option>
       {% endfor %}
     </select>
 
-    <select name="level_id" id="filter_level" class="w-52 border-c px-3 py-2 rounded">
+    <select name="level_id" id="filter_level" class="w-52 border border-gray-300 px-3 py-2 rounded-md text-sm bg-white">
       <option value="">All Levels</option>
       {% for lvl in levels %}
-      <option value="{{ lvl.id }}">
+      <option value="{{ lvl.id }}" data-program-id="{{ lvl.program_id }}">
         {{ lvl.program.name }} — {{ lvl.level_name }}
       </option>
       {% endfor %}
     </select>
 
-    <select name="semester_id" id="filter_semester" class="w-52 border-c px-3 py-2 rounded">
+    <select name="semester_id" id="filter_semester" class="w-52 border border-gray-300 px-3 py-2 rounded-md text-sm bg-white">
       <option value="">All Semesters</option>
       {% for s in semesters %}
-      <option value="{{ s.id }}">
+      <option value="{{ s.id }}" data-level-id="{{ s.level_id }}" data-program-id="{{ s.level.program_id }}">
         {{ s.name }} ({{ s.academic_year.name }})
       </option>
       {% endfor %}
     </select>
 
-    <button class="px-4 py-2 bg-blue-600 text-white rounded cursor-pointer">Apply</button>
+    <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium cursor-pointer">Apply</button>
+    {% if q or selected_program or selected_level or selected_semester %}
+    <a href="{% url 'dean_program_courses_list' %}" class="px-4 py-2 border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-md text-sm font-medium">Clear</a>
+    {% endif %}
   </form>
 
-
-
-
   <!-- PROGRAM COURSE TABLE -->
-  <div class="bg-white border-c rounded overflow-hidden">
+  <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
     <div class="overflow-x-auto">
-      <table class="min-w-full text-sm">
-        <thead class="bg-gray-50">
-          <tr class="text-left">
-            <th class="px-3 py-2">Code</th>
-            <th class="px-3 py-2">Title</th>
-            <th class="px-3 py-2">Program</th>
-            <th class="px-3 py-2">Level</th>
-            <th class="px-3 py-2">Semester</th>
-            <th class="px-3 py-2">Lecturers</th>
-            <th class="px-3 py-2">Status</th>
-            <th class="px-3 py-2">Actions</th>
+      <table class="min-w-full text-sm divide-y divide-gray-200">
+        <thead class="bg-gray-50 text-left">
+          <tr>
+            <th class="px-4 py-3 text-gray-600 font-medium">Code</th>
+            <th class="px-4 py-3 text-gray-600 font-medium">Title</th>
+            <th class="px-4 py-3 text-gray-600 font-medium">Program</th>
+            <th class="px-4 py-3 text-gray-600 font-medium">Level</th>
+            <th class="px-4 py-3 text-gray-600 font-medium">Semester</th>
+            <th class="px-4 py-3 text-gray-600 font-medium">Lecturers</th>
+            <th class="px-4 py-3 text-gray-600 font-medium">Status</th>
+            <th class="px-4 py-3 text-gray-600 font-medium">Actions</th>
           </tr>
         </thead>
 
-        <tbody>
+        <tbody class="divide-y divide-gray-100">
           {% for pc in page_obj %}
-          <tr class="border-t border-gray-100">
-            <td class="px-3 py-2 font-medium">{{ pc.course_code }}</td>
-            <td class="px-3 py-2">{{ pc.title }}</td>
-            <td class="px-3 py-2">
+          <tr class="hover:bg-gray-50">
+            <td class="px-4 py-3 font-medium text-gray-800">{{ pc.course_code }}</td>
+            <td class="px-4 py-3">{{ pc.title }}</td>
+            <td class="px-4 py-3">
               {{ pc.program.name }}
             </td>
-            <td class="px-3 py-2">{{ pc.level.level_name }}</td>
+            <td class="px-4 py-3">{{ pc.level.level_name }}</td>
 
-            <td class="px-3 py-2">
+            <td class="px-4 py-3">
               {% if pc.semester %}
               {{ pc.semester.name }}
               {% else %}
-              -
+              <span class="text-gray-400">-</span>
               {% endif %}
             </td>
 
-            <td class=""> <!-- LECTURERS -->
-              <div class="px-4 py-2 text-xs">
+            <td class="px-4 py-3"> <!-- LECTURERS -->
+              <div class="text-xs">
                 {% if pc.assigned_lecturers.exists %}
-                <!-- ----------------------------- -->
                 {% for lect in pc.assigned_lecturers.all %}
                 <span class="inline-flex items-center text-xs px-2 py-1 rounded-md border border-gray-200 mr-1 mb-1 whitespace-nowrap bg-gray-50">
                   {{ lect.get_full_name }}
@@ -103,23 +104,32 @@
                   </button>
                 </span>
                 {% endfor %}
-                <!-- ------------ -->
                 {% else %}
-                <span class="text-gray-500 text-sm">None</span>
+                <span class="text-gray-400 text-xs">None</span>
                 {% endif %}
               </div>
             </td>
-            <td class="px-3 py-2 text-xs">{{ pc.is_active|yesno:"Active,Locked" }}</td>
+            <td class="px-4 py-3 text-xs">
+              <span class="px-2 py-1 rounded text-xs font-medium {% if pc.is_active %}bg-green-100 text-green-700{% else %}bg-gray-100 text-gray-600{% endif %}">
+                {{ pc.is_active|yesno:"Active,Locked" }}
+              </span>
+            </td>
 
-            <td class="px-3 py-2 whitespace-nowrap">
+            <td class="px-4 py-3 whitespace-nowrap space-x-2">
               <button onclick="openEditProgramCourse('{{ pc.id }}')"
-                class="text-blue-600 hover:underline text-xs cursor-pointer">
+                class="text-blue-600 hover:underline text-xs font-medium cursor-pointer">
                 Edit
               </button>
-              <button class="text-red-600 hover:underline text-xs ml-3 cursor-pointer"
+              <button class="text-red-600 hover:underline text-xs font-medium cursor-pointer"
                 onclick="openDeleteProgramCourse('{{ pc.id }}', '{{ pc.title|escapejs }}')">
                 Delete
               </button>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8" class="px-4 py-8 text-center text-gray-500">
+              No program courses found.
             </td>
           </tr>
           {% endfor %}
@@ -131,19 +141,20 @@
 
   <!-- PAGINATION -->
   {% if page_obj.has_other_pages %}
-  <div class="mt-4 flex gap-2">
+  <div class="mt-6 flex justify-center items-center gap-2">
     {% if page_obj.has_previous %}
-    <a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-1 border-c rounded">Prev</a>
+    <a href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q }}{% endif %}{% if selected_program %}&program_id={{ selected_program }}{% endif %}{% if selected_level %}&level_id={{ selected_level }}{% endif %}{% if selected_semester %}&semester_id={{ selected_semester }}{% endif %}"
+      class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 text-sm font-medium">Prev</a>
     {% endif %}
 
-    <span class="px-3 py-1">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    <span class="px-4 py-1 bg-blue-600 text-white rounded text-sm font-medium">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
 
     {% if page_obj.has_next %}
-    <a href="?page={{ page_obj.next_page_number }}" class="px-3 py-1 border-c rounded">Next</a>
+    <a href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q }}{% endif %}{% if selected_program %}&program_id={{ selected_program }}{% endif %}{% if selected_level %}&level_id={{ selected_level }}{% endif %}{% if selected_semester %}&semester_id={{ selected_semester }}{% endif %}"
+      class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 text-sm font-medium">Next</a>
     {% endif %}
   </div>
   {% endif %}
-
 
 </div>
 
@@ -152,41 +163,56 @@
 <!-- EDIT MODAL -->
 <!-- ============================ -->
 <div id="editProgramCourseModal"
-  class="hidden fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
+  class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
 
-  <div class="bg-white rounded-lg w-[500px] p-6 shadow-xl">
-    <h3 class="text-lg font-semibold mb-4">Edit Course Mapping</h3>
+  <div class="bg-white rounded-lg w-[540px] p-6 shadow-xl max-h-[90vh] overflow-y-auto">
+    <h3 class="text-lg font-semibold mb-4 text-gray-800">Edit Course Mapping</h3>
 
     <form id="editProgramCourseForm" class="space-y-4">
       {% csrf_token %}
       <input type="hidden" name="pc_id" id="pc_id">
 
       <div class="w-full">
-        <label class="text-sm text-gray-600">Course Title</label>
-        <input id="pc_title" name="pc_title" class="w-full border px-3 py-2 rounded" required>
+        <label class="text-sm font-medium text-gray-700">Course Title</label>
+        <input id="pc_title" name="pc_title" class="w-full border border-gray-300 px-3 py-2 rounded-md mt-1 text-sm" required>
       </div>
 
       <div class="w-full">
-        <label class="mt-3 text-sm text-gray-600">Course Code</label>
-        <input id="pc_code" name="pc_code" class="w-full border px-3 py-2 rounded" required>
+        <label class="text-sm font-medium text-gray-700">Course Code</label>
+        <input id="pc_code" name="pc_code" class="w-full border border-gray-300 px-3 py-2 rounded-md mt-1 text-sm" required>
       </div>
 
       <div class="w-full">
-        <label class="mt-3 text-sm text-gray-600">Credit hours</label>
-        <input id="pc_credit" name="pc_credit" class="w-full border px-3 py-2 rounded">
+        <label class="text-sm font-medium text-gray-700">Level</label>
+        <select id="edit_pc_level" name="level_id" class="w-full border border-gray-300 px-3 py-2 rounded-md mt-1 text-sm bg-white" required>
+          <option value="">-- Select Level --</option>
+          {% for lvl in levels %}
+          <option value="{{ lvl.id }}" data-program-id="{{ lvl.program_id }}">{{ lvl.program.name }} — {{ lvl.level_name }}</option>
+          {% endfor %}
+        </select>
       </div>
 
-      <!-- <div class=""> -->
-      <label class="flex items-center space-x-2 my-4 text-sm text-gray-600">
+      <div class="w-full">
+        <label class="text-sm font-medium text-gray-700">Semester</label>
+        <select id="edit_pc_semester" name="semester_id" class="w-full border border-gray-300 px-3 py-2 rounded-md mt-1 text-sm bg-white">
+          <option value="">-- Select Semester (Optional) --</option>
+        </select>
+      </div>
+
+      <div class="w-full">
+        <label class="text-sm font-medium text-gray-700">Credit hours</label>
+        <input id="pc_credit" name="pc_credit" type="number" class="w-full border border-gray-300 px-3 py-2 rounded-md mt-1 text-sm">
+      </div>
+
+      <label class="flex items-center space-x-2 my-4 text-sm text-gray-700 cursor-pointer">
         <input type="hidden" name="is_active" value="false">
-        <input type="checkbox" id="pc_active" name="is_active" class="border-c px-3 py-2 rounded mr-2" value="true">
-        Course Active
+        <input type="checkbox" id="pc_active" name="is_active" class="h-4 w-4 text-blue-600 rounded" value="true">
+        <span>Course Active</span>
       </label>
-      <!-- </div> -->
 
       <div class="w-full">
-        <div class="flex justify-between items-center mt-3 mb-1">
-          <label class="text-sm text-gray-600">Assigned Lecturers</label>
+        <div class="flex justify-between items-center mb-1">
+          <label class="text-sm font-medium text-gray-700">Assigned Lecturers</label>
           <div class="space-x-2">
             <button type="button" onclick="selectAllLecturers(true)" class="text-xs text-blue-600 hover:underline cursor-pointer">Select All</button>
             <button type="button" onclick="selectAllLecturers(false)" class="text-xs text-gray-500 hover:underline cursor-pointer">Clear All</button>
@@ -205,12 +231,12 @@
       </div>
 
       <div class="flex justify-end gap-2 mt-6">
-        <button type="button" onclick="closeEditProgramCourse()" class="px-4 py-2 border-c rounded cursor-pointer">
+        <button type="button" onclick="closeEditProgramCourse()" class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 cursor-pointer text-sm">
           Cancel
         </button>
 
-        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded cursor-pointer">
-          Save
+        <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md cursor-pointer text-sm font-medium">
+          Save Changes
         </button>
       </div>
     </form>
@@ -220,7 +246,7 @@
 
 <!-- DELETE MODAL -->
 <div id="deleteProgramCourseModal"
-  class="hidden fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
+  class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
 
   <div class="bg-white rounded-lg w-[400px] p-6 shadow-xl">
     <h3 class="text-lg font-semibold text-red-600 mb-4">Delete Course Mapping</h3>
@@ -230,11 +256,11 @@
     <input type="hidden" id="delete_pc_id">
 
     <div class="flex justify-end gap-2">
-      <button onclick="closeDeleteProgramCourse()" class="px-4 py-2 border-c rounded cursor-pointer">
+      <button onclick="closeDeleteProgramCourse()" class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 cursor-pointer text-sm">
         Cancel
       </button>
 
-      <button onclick="confirmDeleteProgramCourse()" class="px-4 py-2 bg-red-600 text-white rounded cursor-pointer">
+      <button onclick="confirmDeleteProgramCourse()" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md cursor-pointer text-sm font-medium">
         Delete
       </button>
     </div>
@@ -247,10 +273,10 @@
 <!-- DUPLICATE MODAL -->
 <!-- ============================ -->
 <div id="duplicateModal"
-  class="hidden fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
+  class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
 
-  <div class="bg-white rounded-lg w-[600px] p-6 shadow-xl">
-    <h3 class="text-lg font-semibold mb-4">Duplicate Course to Program</h3>
+  <div class="bg-white rounded-lg w-[600px] p-6 shadow-xl max-h-[90vh] overflow-y-auto">
+    <h3 class="text-lg font-semibold mb-4 text-gray-800">Duplicate Base Course into Semester Course</h3>
 
     <div id="dupMessage" class="hidden mb-3 p-3 rounded text-sm mt-2 mb-2"></div>
 
@@ -258,37 +284,42 @@
       {% csrf_token %}
 
       <!-- Program -->
-      <label class="block text-sm mb-1">Program</label>
-      <select id="dup_program" name="program_id" class="w-full border-c px-3 py-2 rounded mb-3" required>
-        <option value="">-- Select Program --</option>
-        {% for p in programs %}
-        <option value="{{ p.id }}">{{ p.name }}</option>
-        {% endfor %}
-      </select>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Program</label>
+      {% if programs|length == 1 %}
+        <input type="hidden" id="dup_program" name="program_id" value="{{ programs.0.id }}">
+        <input type="text" value="{{ programs.0.name }}" readonly class="w-full border border-gray-200 bg-gray-50 text-gray-700 font-medium px-3 py-2 rounded-md mb-3 cursor-not-allowed text-sm">
+      {% else %}
+        <select id="dup_program" name="program_id" class="w-full border border-gray-300 px-3 py-2 rounded-md mb-3 text-sm bg-white" required>
+          <option value="">-- Select Program --</option>
+          {% for p in programs %}
+          <option value="{{ p.id }}">{{ p.name }}</option>
+          {% endfor %}
+        </select>
+      {% endif %}
 
       <!-- Level (Loaded dynamically) -->
-      <label class="block text-sm mb-1">Level</label>
-      <select id="dup_level" name="level_id" class="w-full border-c px-3 py-2 rounded mb-3" required>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Level</label>
+      <select id="dup_level" name="level_id" class="w-full border border-gray-300 px-3 py-2 rounded-md mb-3 text-sm bg-white" required>
         <option value="">-- Select Program First --</option>
       </select>
 
       <!-- Semester (Loaded dynamically based on level) -->
-      <label class="block text-sm mb-1">Semester</label>
-      <select id="dup_semester" name="semester_id" class="w-full border-c px-3 py-2 rounded mb-3" required>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Semester</label>
+      <select id="dup_semester" name="semester_id" class="w-full border border-gray-300 px-3 py-2 rounded-md mb-3 text-sm bg-white" required>
         <option value="">-- Select Level First --</option>
       </select>
 
       <!-- Base Courses (Loaded dynamically based on program) -->
-      <label class="block text-sm mb-1">Choose Base Course</label>
-      <select id="dup_base_course" name="base_course_id" class="w-full border-c px-3 py-2 rounded mb-3" required>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Choose Base Course</label>
+      <select id="dup_base_course" name="base_course_id" class="w-full border border-gray-300 px-3 py-2 rounded-md mb-3 text-sm bg-white" required>
         <option value="">-- Select Program First --</option>
       </select>
 
       <div class="flex justify-end gap-2 mt-6">
         <button type="button" onclick="closeDuplicateModal()"
-          class="px-4 py-2 border-c rounded cursor-pointer">Cancel</button>
+          class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 cursor-pointer text-sm">Cancel</button>
 
-        <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded cursor-pointer">
+        <button type="submit" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md cursor-pointer text-sm font-medium">
           Duplicate
         </button>
       </div>
@@ -303,92 +334,173 @@
 <!-- ============================ -->
 
 <script>
+  // Global reference of all semesters in dean's programs for client-side filter linkage
+  const allFilterSemesters = [
+    {% for s in semesters %}
+    { id: "{{ s.id }}", name: "{{ s.name }} ({{ s.academic_year.name }})", levelId: "{{ s.level_id }}", programId: "{{ s.level.program_id }}" },
+    {% endfor %}
+  ];
+
+  const allFilterLevels = [
+    {% for lvl in levels %}
+    { id: "{{ lvl.id }}", name: "{{ lvl.program.name }} — {{ lvl.level_name }}", programId: "{{ lvl.program_id }}" },
+    {% endfor %}
+  ];
+
+  function updateFilterSemesters() {
+    const selectedLevelId = document.getElementById("filter_level").value;
+    const selectedProgramId = document.getElementById("filter_program").value;
+    const semSelect = document.getElementById("filter_semester");
+    const currentSelectedSem = "{{ selected_semester }}";
+
+    semSelect.innerHTML = `<option value="">All Semesters</option>`;
+
+    let filtered = allFilterSemesters;
+    if (selectedLevelId) {
+      filtered = filtered.filter(s => s.levelId === selectedLevelId);
+    } else if (selectedProgramId) {
+      filtered = filtered.filter(s => s.programId === selectedProgramId);
+    }
+
+    filtered.forEach(s => {
+      const opt = document.createElement("option");
+      opt.value = s.id;
+      opt.textContent = s.name;
+      if (s.id === currentSelectedSem) {
+        opt.selected = true;
+      }
+      semSelect.appendChild(opt);
+    });
+  }
+
+  function updateFilterLevels() {
+    const selectedProgramId = document.getElementById("filter_program").value;
+    const lvlSelect = document.getElementById("filter_level");
+    const currentSelectedLvl = "{{ selected_level }}";
+
+    lvlSelect.innerHTML = `<option value="">All Levels</option>`;
+
+    let filtered = allFilterLevels;
+    if (selectedProgramId) {
+      filtered = filtered.filter(l => l.programId === selectedProgramId);
+    }
+
+    filtered.forEach(l => {
+      const opt = document.createElement("option");
+      opt.value = l.id;
+      opt.textContent = l.name;
+      if (l.id === currentSelectedLvl) {
+        opt.selected = true;
+      }
+      lvlSelect.appendChild(opt);
+    });
+
+    updateFilterSemesters();
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     {% if selected_program %}
     document.getElementById('filter_program').value = "{{ selected_program }}";
+    {% elif programs|length == 1 %}
+    document.getElementById('filter_program').value = "{{ programs.0.id }}";
     {% endif %}
+
+    updateFilterLevels();
 
     {% if selected_level %}
     document.getElementById('filter_level').value = "{{ selected_level }}";
     {% endif %}
 
+    updateFilterSemesters();
+
     {% if selected_semester %}
     document.getElementById('filter_semester').value = "{{ selected_semester }}";
     {% endif %}
+
+    document.getElementById("filter_program").addEventListener("change", updateFilterLevels);
+    document.getElementById("filter_level").addEventListener("change", updateFilterSemesters);
   });
 </script>
 
 <script>
-
   /* ------------------------------
-     OPEN / CLOSE MODAL
+     DUPLICATE MODAL LOGIC
   --------------------------------*/
+  function loadDuplicateLevelsAndCourses(programId) {
+    if (!programId) {
+      document.getElementById("dup_level").innerHTML = `<option value="">-- Select Program First --</option>`;
+      document.getElementById("dup_base_course").innerHTML = `<option value="">-- Select Program First --</option>`;
+      document.getElementById("dup_semester").innerHTML = `<option value="">-- Select Level First --</option>`;
+      return;
+    }
+
+    document.getElementById("dup_level").innerHTML = `<option>Loading levels...</option>`;
+    document.getElementById("dup_base_course").innerHTML = `<option>Loading courses...</option>`;
+    document.getElementById("dup_semester").innerHTML = `<option value="">-- Select Level First --</option>`;
+
+    fetch(`/users/dean/ajax/program-levels-courses/${programId}/`)
+      .then(res => res.json())
+      .then(data => {
+        const lvlSel = document.getElementById("dup_level");
+        lvlSel.innerHTML = `<option value="">-- Select Level --</option>`;
+        data.levels.forEach(l => {
+          lvlSel.innerHTML += `<option value="${l.id}">${l.name}</option>`;
+        });
+
+        const courseSel = document.getElementById("dup_base_course");
+        courseSel.innerHTML = `<option value="">-- Select Base Course --</option>`;
+        data.courses.forEach(c => {
+          courseSel.innerHTML += `<option value="${c.id}">${c.title} (${c.code})</option>`;
+        });
+      });
+  }
+
   function openDuplicateModal() {
+    document.getElementById("dupMessage").classList.add("hidden");
     document.getElementById("duplicateModal").classList.remove("hidden");
+
+    const dupProgEl = document.getElementById("dup_program");
+    if (dupProgEl) {
+      if (dupProgEl.tagName === "INPUT" || dupProgEl.value) {
+        loadDuplicateLevelsAndCourses(dupProgEl.value);
+      }
+    }
   }
 
   function closeDuplicateModal() {
     document.getElementById("duplicateModal").classList.add("hidden");
   }
 
-  /* ------------------------------
-     AJAX: Load Levels & Base Courses
-  --------------------------------*/
-  document.getElementById("dup_program").addEventListener("change", function () {
-    const programId = this.value;
+  const dupProgEl = document.getElementById("dup_program");
+  if (dupProgEl && dupProgEl.tagName === "SELECT") {
+    dupProgEl.addEventListener("change", function () {
+      loadDuplicateLevelsAndCourses(this.value);
+    });
+  }
 
-    // Reset fields
-    document.getElementById("dup_level").innerHTML =
-      `<option>Loading levels...</option>`;
-    document.getElementById("dup_base_course").innerHTML =
-      `<option>Loading courses...</option>`;
-    document.getElementById("dup_semester").innerHTML =
-      `<option>Select level first</option>`;
-
-    fetch(`/users/dean/ajax/program-levels-courses/${programId}/`)
-      .then(res => res.json())
-      .then(data => {
-        /* Populate Levels */
-        const lvlSel = document.getElementById("dup_level");
-        lvlSel.innerHTML = `<option value="">-- Select Level --</option>`;
-        data.levels.forEach(l =>
-          lvlSel.innerHTML += `<option value="${l.id}">${l.name}</option>`
-        );
-
-        /* Populate Base Courses */
-        const courseSel = document.getElementById("dup_base_course");
-        courseSel.innerHTML = `<option value="">-- Select Base Course --</option>`;
-        data.courses.forEach(c =>
-          courseSel.innerHTML += `<option value="${c.id}">${c.title} (${c.code})</option>`
-        );
-      });
-  });
-
-  /* ------------------------------
-     AJAX: Load Semesters when Level Selected
-  --------------------------------*/
   document.getElementById("dup_level").addEventListener("change", function () {
     const levelId = this.value;
-
     const semesterSel = document.getElementById("dup_semester");
+
+    if (!levelId) {
+      semesterSel.innerHTML = `<option value="">-- Select Level First --</option>`;
+      return;
+    }
+
     semesterSel.innerHTML = `<option>Loading semesters...</option>`;
 
     fetch(`/users/dean/ajax/level-semesters/${levelId}/`)
       .then(res => res.json())
       .then(data => {
-        semesterSel.innerHTML = `<option value="">-- Optional --</option>`;
-        data.semesters.forEach(s =>
-          semesterSel.innerHTML += `<option value="${s.id}">${s.name}</option>`
-        );
+        semesterSel.innerHTML = `<option value="">-- Select Semester --</option>`;
+        data.semesters.forEach(s => {
+          semesterSel.innerHTML += `<option value="${s.id}">${s.name}</option>`;
+        });
       });
   });
 
-  /* ------------------------------
-     AJAX: Duplicate Course
-  --------------------------------*/
   document.getElementById("duplicateForm").addEventListener("submit", function (e) {
     e.preventDefault();
-
     const formData = new FormData(this);
 
     fetch(`/users/dean/program-course/duplicate/`, {
@@ -399,27 +511,19 @@
       .then(res => res.json())
       .then(data => {
         const box = document.getElementById("dupMessage");
-
-        // Show the message box
         box.classList.remove("hidden");
 
         if (data.success) {
-          // SUCCESS MESSAGE
           box.className = "mb-3 p-3 rounded text-sm bg-green-100 text-green-800";
           box.innerText = data.message || "Course duplicated successfully.";
-
           setTimeout(() => {
             closeDuplicateModal();
-            location.reload(); // reload table after success
+            location.reload();
           }, 1200);
-        }
-        else if (data.exists) {
-          // DUPLICATE WARNING
+        } else if (data.exists) {
           box.className = "mb-3 p-3 rounded text-sm bg-yellow-100 text-yellow-800";
           box.innerText = data.message || "This course already exists.";
-        }
-        else if (data.error) {
-          // ERROR MESSAGE
+        } else if (data.error) {
           box.className = "mb-3 p-3 rounded text-sm bg-red-100 text-red-800";
           box.innerText = data.error;
         }
@@ -433,9 +537,97 @@
   });
 
   /* ------------------------------
+     EDIT PROGRAM COURSE MODAL
+  --------------------------------*/
+  function loadEditSemestersForLevel(levelId, selectedSemesterId) {
+    const semSelect = document.getElementById("edit_pc_semester");
+    if (!levelId) {
+      semSelect.innerHTML = `<option value="">-- Select Level First --</option>`;
+      return;
+    }
+    semSelect.innerHTML = `<option>Loading semesters...</option>`;
+
+    fetch(`/users/dean/ajax/level-semesters/${levelId}/`)
+      .then(res => res.json())
+      .then(data => {
+        semSelect.innerHTML = `<option value="">-- Select Semester (Optional) --</option>`;
+        data.semesters.forEach(s => {
+          const opt = document.createElement("option");
+          opt.value = s.id;
+          opt.textContent = s.name;
+          if (selectedSemesterId && String(s.id) === String(selectedSemesterId)) {
+            opt.selected = true;
+          }
+          semSelect.appendChild(opt);
+        });
+      });
+  }
+
+  document.getElementById("edit_pc_level").addEventListener("change", function () {
+    loadEditSemestersForLevel(this.value, null);
+  });
+
+  function openEditProgramCourse(id) {
+    fetch(`/users/dean/program-course/${id}/json/`)
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById("pc_id").value = data.id;
+        document.getElementById("pc_title").value = data.title;
+        document.getElementById("pc_code").value = data.code;
+        document.getElementById("pc_credit").value = data.credit_hours;
+        document.getElementById("pc_active").checked = data.active;
+
+        // Set level
+        if (data.level_id) {
+          document.getElementById("edit_pc_level").value = data.level_id;
+          loadEditSemestersForLevel(data.level_id, data.semester_id);
+        } else {
+          document.getElementById("edit_pc_level").value = "";
+          document.getElementById("edit_pc_semester").innerHTML = `<option value="">-- Select Level First --</option>`;
+        }
+
+        // Reset and populate checkboxes
+        const checkboxes = document.querySelectorAll(".lecturer-checkbox");
+        checkboxes.forEach(cb => {
+          cb.checked = data.lecturer_ids.includes(parseInt(cb.value));
+        });
+
+        document.getElementById("editProgramCourseModal").classList.remove("hidden");
+      });
+  }
+
+  function closeEditProgramCourse() {
+    document.getElementById("editProgramCourseModal").classList.add("hidden");
+  }
+
+  function selectAllLecturers(checked) {
+    const checkboxes = document.querySelectorAll(".lecturer-checkbox");
+    checkboxes.forEach(cb => cb.checked = checked);
+  }
+
+  document.getElementById("editProgramCourseForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+
+    fetch(`/users/dean/program-course/update/`, {
+      method: "POST",
+      headers: { "X-CSRFToken": formData.get("csrfmiddlewaretoken") },
+      body: formData,
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          closeEditProgramCourse();
+          location.reload();
+        } else {
+          alert(data.error || "Update failed");
+        }
+      });
+  });
+
+  /* ------------------------------
      DELETE PROGRAM COURSE
   --------------------------------*/
-
   function openDeleteProgramCourse(id, title) {
     document.getElementById("delete_pc_id").value = id;
     document.getElementById("deleteMessage").innerText =
@@ -469,33 +661,6 @@
       });
   }
 
-
-
-  function openEditProgramCourse(id) {
-    fetch(`/users/dean/program-course/${id}/json/`)
-      .then(res => res.json())
-      .then(data => {
-        document.getElementById("pc_id").value = data.id;
-        document.getElementById("pc_title").value = data.title;
-        document.getElementById("pc_code").value = data.code;
-        document.getElementById("pc_credit").value = data.credit_hours;
-        document.getElementById("pc_active").checked = data.active;
-
-        // Reset and populate checkboxes
-        const checkboxes = document.querySelectorAll(".lecturer-checkbox");
-        checkboxes.forEach(cb => {
-          cb.checked = data.lecturer_ids.includes(parseInt(cb.value));
-        });
-
-        document.getElementById("editProgramCourseModal").classList.remove("hidden");
-      });
-  }
-
-  function selectAllLecturers(checked) {
-    const checkboxes = document.querySelectorAll(".lecturer-checkbox");
-    checkboxes.forEach(cb => cb.checked = checked);
-  }
-
   function unassignLecturer(pcId, lecturerId, name) {
     if (!confirm(`Are you sure you want to unassign ${name}?`)) return;
 
@@ -520,33 +685,6 @@
         alert("An error occurred while unassigning.");
       });
   }
-
-  function closeEditProgramCourse() {
-    document.getElementById("editProgramCourseModal").classList.add("hidden");
-  }
-
-  document.getElementById("editProgramCourseForm").addEventListener("submit", function (e) {
-    e.preventDefault();
-    const formData = new FormData(this);
-
-    fetch(`/users/dean/program-course/update/`, {
-      method: "POST",
-      headers: { "X-CSRFToken": formData.get("csrfmiddlewaretoken") },
-      body: formData,
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          closeEditProgramCourse();
-          location.reload();
-        } else {
-          alert(data.error || "Update failed");
-        }
-      });
-  });
-
-
-
 </script>
 
 {% endblock %}
